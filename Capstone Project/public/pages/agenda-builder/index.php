@@ -6,11 +6,11 @@
     <div class="mb-8">
         <div class="flex items-center gap-3 mb-4">
             <div class="bg-red-50 border-red-200 border-2 rounded-lg p-3">
-                <i class="bi bi-building text-red-700 text-2xl"></i>
+                <i class="bi bi-list-check text-red-700 text-2xl"></i>
             </div>
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Committee Structure</h1>
-                <p class="text-gray-600 dark:text-gray-400 mt-1">Manage and view all committee structure in your system.</p>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Agenda Builder</h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-1">Manage and view all agenda builder in your system.</p>
             </div>
         </div>
     </div>
@@ -20,66 +20,66 @@
         <nav class="flex gap-4 overflow-x-auto" role="tablist">
             <button
                 role="tab"
-                id="overview-tab"
+                id="create-agenda-tab"
                 aria-selected="true"
-                onclick="switchTab('overview', 'Committee Structure')"
+                onclick="switchTab('create-agenda', 'Agenda Builder')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-cms-red border-b-2 border-cms-red"
             >
-                Overview
+                Create Agenda
             </button>
             <button
                 role="tab"
-                id="create-committee-tab"
+                id="agenda-items-tab"
                 aria-selected="false"
-                onclick="switchTab('create-committee', 'Committee Structure')"
+                onclick="switchTab('agenda-items', 'Agenda Builder')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Create Committee
+                Agenda Items
             </button>
             <button
                 role="tab"
-                id="committee-types-tab"
+                id="templates-tab"
                 aria-selected="false"
-                onclick="switchTab('committee-types', 'Committee Structure')"
+                onclick="switchTab('templates', 'Agenda Builder')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Committee Types
+                Templates
             </button>
             <button
                 role="tab"
-                id="charter-tab"
+                id="distribution-tab"
                 aria-selected="false"
-                onclick="switchTab('charter', 'Committee Structure')"
+                onclick="switchTab('distribution', 'Agenda Builder')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Charter
+                Distribution
             </button>
             <button
                 role="tab"
-                id="contacts-tab"
+                id="timing-tab"
                 aria-selected="false"
-                onclick="switchTab('contacts', 'Committee Structure')"
+                onclick="switchTab('timing', 'Agenda Builder')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Contacts
+                Timing
             </button>
         </nav>
     </div>
 
     <!-- Tab Contents -->
     <div
-        id="overview-content"
+        id="create-agenda-content"
         role="tabpanel"
-        aria-labelledby="overview-tab"
+        aria-labelledby="create-agenda-tab"
         class="animate-fadeIn"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-list-check text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Overview</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Create Agenda</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -146,18 +146,18 @@
     </div>
 
     <div
-        id="create-committee-content"
+        id="agenda-items-content"
         role="tabpanel"
-        aria-labelledby="create-committee-tab"
+        aria-labelledby="agenda-items-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-list-check text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Create Committee</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Agenda Items</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -224,18 +224,18 @@
     </div>
 
     <div
-        id="committee-types-content"
+        id="templates-content"
         role="tabpanel"
-        aria-labelledby="committee-types-tab"
+        aria-labelledby="templates-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-list-check text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Committee Types</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Templates</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -302,18 +302,18 @@
     </div>
 
     <div
-        id="charter-content"
+        id="distribution-content"
         role="tabpanel"
-        aria-labelledby="charter-tab"
+        aria-labelledby="distribution-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-list-check text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Charter</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Distribution</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -380,18 +380,18 @@
     </div>
 
     <div
-        id="contacts-content"
+        id="timing-content"
         role="tabpanel"
-        aria-labelledby="contacts-tab"
+        aria-labelledby="timing-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-list-check text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Contacts</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Timing</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -492,7 +492,7 @@ function switchTab(tabId, moduleName) {
 
 // Restore active tab on page load
 document.addEventListener('DOMContentLoaded', function() {
-    const moduleName = 'Committee Structure';
+    const moduleName = 'Agenda Builder';
     const savedTab = localStorage.getItem('activeTab_' + moduleName);
     if (savedTab) {
         switchTab(savedTab, moduleName);

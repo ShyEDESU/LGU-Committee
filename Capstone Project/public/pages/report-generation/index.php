@@ -6,11 +6,11 @@
     <div class="mb-8">
         <div class="flex items-center gap-3 mb-4">
             <div class="bg-red-50 border-red-200 border-2 rounded-lg p-3">
-                <i class="bi bi-building text-red-700 text-2xl"></i>
+                <i class="bi bi-file-pdf text-red-700 text-2xl"></i>
             </div>
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Committee Structure</h1>
-                <p class="text-gray-600 dark:text-gray-400 mt-1">Manage and view all committee structure in your system.</p>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Report Generation</h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-1">Manage and view all report generation in your system.</p>
             </div>
         </div>
     </div>
@@ -20,66 +20,66 @@
         <nav class="flex gap-4 overflow-x-auto" role="tablist">
             <button
                 role="tab"
-                id="overview-tab"
+                id="generate-report-tab"
                 aria-selected="true"
-                onclick="switchTab('overview', 'Committee Structure')"
+                onclick="switchTab('generate-report', 'Report Generation')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-cms-red border-b-2 border-cms-red"
             >
-                Overview
+                Generate Report
             </button>
             <button
                 role="tab"
-                id="create-committee-tab"
+                id="templates-tab"
                 aria-selected="false"
-                onclick="switchTab('create-committee', 'Committee Structure')"
+                onclick="switchTab('templates', 'Report Generation')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Create Committee
+                Templates
             </button>
             <button
                 role="tab"
-                id="committee-types-tab"
+                id="recommendations-tab"
                 aria-selected="false"
-                onclick="switchTab('committee-types', 'Committee Structure')"
+                onclick="switchTab('recommendations', 'Report Generation')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Committee Types
+                Recommendations
             </button>
             <button
                 role="tab"
-                id="charter-tab"
+                id="approval-tab"
                 aria-selected="false"
-                onclick="switchTab('charter', 'Committee Structure')"
+                onclick="switchTab('approval', 'Report Generation')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Charter
+                Approval
             </button>
             <button
                 role="tab"
-                id="contacts-tab"
+                id="minority-opinion-tab"
                 aria-selected="false"
-                onclick="switchTab('contacts', 'Committee Structure')"
+                onclick="switchTab('minority-opinion', 'Report Generation')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Contacts
+                Minority Opinion
             </button>
         </nav>
     </div>
 
     <!-- Tab Contents -->
     <div
-        id="overview-content"
+        id="generate-report-content"
         role="tabpanel"
-        aria-labelledby="overview-tab"
+        aria-labelledby="generate-report-tab"
         class="animate-fadeIn"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-file-pdf text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Overview</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Generate Report</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -146,18 +146,18 @@
     </div>
 
     <div
-        id="create-committee-content"
+        id="templates-content"
         role="tabpanel"
-        aria-labelledby="create-committee-tab"
+        aria-labelledby="templates-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-file-pdf text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Create Committee</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Templates</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -224,18 +224,18 @@
     </div>
 
     <div
-        id="committee-types-content"
+        id="recommendations-content"
         role="tabpanel"
-        aria-labelledby="committee-types-tab"
+        aria-labelledby="recommendations-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-file-pdf text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Committee Types</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Recommendations</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -302,18 +302,18 @@
     </div>
 
     <div
-        id="charter-content"
+        id="approval-content"
         role="tabpanel"
-        aria-labelledby="charter-tab"
+        aria-labelledby="approval-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-file-pdf text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Charter</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Approval</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -380,18 +380,18 @@
     </div>
 
     <div
-        id="contacts-content"
+        id="minority-opinion-content"
         role="tabpanel"
-        aria-labelledby="contacts-tab"
+        aria-labelledby="minority-opinion-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-file-pdf text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Contacts</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Minority Opinion</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -492,7 +492,7 @@ function switchTab(tabId, moduleName) {
 
 // Restore active tab on page load
 document.addEventListener('DOMContentLoaded', function() {
-    const moduleName = 'Committee Structure';
+    const moduleName = 'Report Generation';
     const savedTab = localStorage.getItem('activeTab_' + moduleName);
     if (savedTab) {
         switchTab(savedTab, moduleName);

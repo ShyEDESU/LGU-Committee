@@ -1,6 +1,12 @@
 <?php
 session_start();
 
+// If user is already logged in, redirect to dashboard
+if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
+    header('Location: ../public/dashboard.php');
+    exit();
+}
+
 // Initialize login attempts tracking
 if (!isset($_SESSION['login_attempts'])) {
     $_SESSION['login_attempts'] = 0;
@@ -34,7 +40,12 @@ if ($_SESSION['login_attempts'] >= 5) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Committee Management System - Login</title>
+    <title>Login - Committee Management System</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="../public/assets/images/logo.png">
+    <link rel="apple-touch-icon" href="../public/assets/images/logo.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -270,9 +281,19 @@ if ($_SESSION['login_attempts'] >= 5) {
             <div class="border-t border-gray-200 pt-4 text-center">
                 <p class="text-gray-600 text-xs font-medium">© 2025 Legislative Services Committee Management System</p>
                 <p class="text-gray-500 text-xs mt-1">City Government of Valenzuela</p>
-                <p class="text-gray-500 text-xs mt-2">
-                    <a href="terms.php" target="_blank" class="text-cms-red hover:text-cms-dark font-semibold">View Full Terms</a>
-                </p>
+                <div class="flex items-center justify-center gap-3 mt-3 text-xs flex-wrap">
+                    <a href="terms.php" target="_blank" class="text-cms-red hover:text-cms-dark font-semibold transition-colors">
+                        <i class="fas fa-file-contract mr-1"></i>Terms
+                    </a>
+                    <span class="text-gray-300">•</span>
+                    <a href="privacy.php" target="_blank" class="text-cms-red hover:text-cms-dark font-semibold transition-colors">
+                        <i class="fas fa-shield-alt mr-1"></i>Privacy
+                    </a>
+                    <span class="text-gray-300">•</span>
+                    <a href="help.php" target="_blank" class="text-cms-red hover:text-cms-dark font-semibold transition-colors">
+                        <i class="fas fa-question-circle mr-1"></i>Help
+                    </a>
+                </div>
             </div>
         </div>
     </div>

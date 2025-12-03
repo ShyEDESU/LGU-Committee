@@ -6,11 +6,11 @@
     <div class="mb-8">
         <div class="flex items-center gap-3 mb-4">
             <div class="bg-red-50 border-red-200 border-2 rounded-lg p-3">
-                <i class="bi bi-building text-red-700 text-2xl"></i>
+                <i class="bi bi-book text-red-700 text-2xl"></i>
             </div>
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Committee Structure</h1>
-                <p class="text-gray-600 dark:text-gray-400 mt-1">Manage and view all committee structure in your system.</p>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Research Support</h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-1">Manage and view all research support in your system.</p>
             </div>
         </div>
     </div>
@@ -20,66 +20,66 @@
         <nav class="flex gap-4 overflow-x-auto" role="tablist">
             <button
                 role="tab"
-                id="overview-tab"
+                id="request-support-tab"
                 aria-selected="true"
-                onclick="switchTab('overview', 'Committee Structure')"
+                onclick="switchTab('request-support', 'Research Support')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-cms-red border-b-2 border-cms-red"
             >
-                Overview
+                Request Support
             </button>
             <button
                 role="tab"
-                id="create-committee-tab"
+                id="policy-briefs-tab"
                 aria-selected="false"
-                onclick="switchTab('create-committee', 'Committee Structure')"
+                onclick="switchTab('policy-briefs', 'Research Support')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Create Committee
+                Policy Briefs
             </button>
             <button
                 role="tab"
-                id="committee-types-tab"
+                id="legal-analysis-tab"
                 aria-selected="false"
-                onclick="switchTab('committee-types', 'Committee Structure')"
+                onclick="switchTab('legal-analysis', 'Research Support')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Committee Types
+                Legal Analysis
             </button>
             <button
                 role="tab"
-                id="charter-tab"
+                id="comparative-study-tab"
                 aria-selected="false"
-                onclick="switchTab('charter', 'Committee Structure')"
+                onclick="switchTab('comparative-study', 'Research Support')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Charter
+                Comparative Study
             </button>
             <button
                 role="tab"
-                id="contacts-tab"
+                id="research-findings-tab"
                 aria-selected="false"
-                onclick="switchTab('contacts', 'Committee Structure')"
+                onclick="switchTab('research-findings', 'Research Support')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Contacts
+                Research Findings
             </button>
         </nav>
     </div>
 
     <!-- Tab Contents -->
     <div
-        id="overview-content"
+        id="request-support-content"
         role="tabpanel"
-        aria-labelledby="overview-tab"
+        aria-labelledby="request-support-tab"
         class="animate-fadeIn"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-book text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Overview</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Request Support</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -146,18 +146,18 @@
     </div>
 
     <div
-        id="create-committee-content"
+        id="policy-briefs-content"
         role="tabpanel"
-        aria-labelledby="create-committee-tab"
+        aria-labelledby="policy-briefs-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-book text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Create Committee</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Policy Briefs</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -224,18 +224,18 @@
     </div>
 
     <div
-        id="committee-types-content"
+        id="legal-analysis-content"
         role="tabpanel"
-        aria-labelledby="committee-types-tab"
+        aria-labelledby="legal-analysis-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-book text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Committee Types</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Legal Analysis</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -302,18 +302,18 @@
     </div>
 
     <div
-        id="charter-content"
+        id="comparative-study-content"
         role="tabpanel"
-        aria-labelledby="charter-tab"
+        aria-labelledby="comparative-study-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-book text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Charter</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Comparative Study</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -380,18 +380,18 @@
     </div>
 
     <div
-        id="contacts-content"
+        id="research-findings-content"
         role="tabpanel"
-        aria-labelledby="contacts-tab"
+        aria-labelledby="research-findings-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-book text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Contacts</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Research Findings</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -492,7 +492,7 @@ function switchTab(tabId, moduleName) {
 
 // Restore active tab on page load
 document.addEventListener('DOMContentLoaded', function() {
-    const moduleName = 'Committee Structure';
+    const moduleName = 'Research Support';
     const savedTab = localStorage.getItem('activeTab_' + moduleName);
     if (savedTab) {
         switchTab(savedTab, moduleName);

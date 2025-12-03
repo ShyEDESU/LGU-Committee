@@ -6,11 +6,11 @@
     <div class="mb-8">
         <div class="flex items-center gap-3 mb-4">
             <div class="bg-red-50 border-red-200 border-2 rounded-lg p-3">
-                <i class="bi bi-building text-red-700 text-2xl"></i>
+                <i class="bi bi-diagram-2 text-red-700 text-2xl"></i>
             </div>
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Committee Structure</h1>
-                <p class="text-gray-600 dark:text-gray-400 mt-1">Manage and view all committee structure in your system.</p>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Inter-Committee Coordination</h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-1">Manage and view all inter-committee coordination in your system.</p>
             </div>
         </div>
     </div>
@@ -20,66 +20,57 @@
         <nav class="flex gap-4 overflow-x-auto" role="tablist">
             <button
                 role="tab"
-                id="overview-tab"
+                id="joint-sessions-tab"
                 aria-selected="true"
-                onclick="switchTab('overview', 'Committee Structure')"
+                onclick="switchTab('joint-sessions', 'Inter-Committee Coordination')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-cms-red border-b-2 border-cms-red"
             >
-                Overview
+                Joint Sessions
             </button>
             <button
                 role="tab"
-                id="create-committee-tab"
+                id="board-tab"
                 aria-selected="false"
-                onclick="switchTab('create-committee', 'Committee Structure')"
+                onclick="switchTab('board', 'Inter-Committee Coordination')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Create Committee
+                Board
             </button>
             <button
                 role="tab"
-                id="committee-types-tab"
+                id="document-sharing-tab"
                 aria-selected="false"
-                onclick="switchTab('committee-types', 'Committee Structure')"
+                onclick="switchTab('document-sharing', 'Inter-Committee Coordination')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Committee Types
+                Document Sharing
             </button>
             <button
                 role="tab"
-                id="charter-tab"
+                id="hearings-tab"
                 aria-selected="false"
-                onclick="switchTab('charter', 'Committee Structure')"
+                onclick="switchTab('hearings', 'Inter-Committee Coordination')"
                 class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
             >
-                Charter
-            </button>
-            <button
-                role="tab"
-                id="contacts-tab"
-                aria-selected="false"
-                onclick="switchTab('contacts', 'Committee Structure')"
-                class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
-            >
-                Contacts
+                Hearings
             </button>
         </nav>
     </div>
 
     <!-- Tab Contents -->
     <div
-        id="overview-content"
+        id="joint-sessions-content"
         role="tabpanel"
-        aria-labelledby="overview-tab"
+        aria-labelledby="joint-sessions-tab"
         class="animate-fadeIn"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-diagram-2 text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Overview</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Joint Sessions</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -146,18 +137,18 @@
     </div>
 
     <div
-        id="create-committee-content"
+        id="board-content"
         role="tabpanel"
-        aria-labelledby="create-committee-tab"
+        aria-labelledby="board-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-diagram-2 text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Create Committee</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Board</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -224,18 +215,18 @@
     </div>
 
     <div
-        id="committee-types-content"
+        id="document-sharing-content"
         role="tabpanel"
-        aria-labelledby="committee-types-tab"
+        aria-labelledby="document-sharing-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-diagram-2 text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Committee Types</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Document Sharing</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -302,96 +293,18 @@
     </div>
 
     <div
-        id="charter-content"
+        id="hearings-content"
         role="tabpanel"
-        aria-labelledby="charter-tab"
+        aria-labelledby="hearings-tab"
         class="animate-fadeIn hidden"
     >
         <div class="bg-red-50 border-red-200 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
+                    <i class="bi bi-diagram-2 text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Charter</h2>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
-                </div>
-            </div>
-
-            <!-- Coming Soon Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 1</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 2</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 3</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap gap-3">
-                <button class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
-                    <i class="bi bi-plus-circle"></i>
-                    Add New
-                </button>
-                <button class="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
-                    <i class="bi bi-arrow-clockwise"></i>
-                    Refresh
-                </button>
-                <button class="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
-                    <i class="bi bi-download"></i>
-                    Export
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div
-        id="contacts-content"
-        role="tabpanel"
-        aria-labelledby="contacts-tab"
-        class="animate-fadeIn hidden"
-    >
-        <div class="bg-red-50 border-red-200 border rounded-lg p-6">
-            <div class="flex items-center gap-4 mb-6">
-                <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-building text-xl"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Contacts</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Hearings</h2>
                     <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
                 </div>
             </div>
@@ -492,7 +405,7 @@ function switchTab(tabId, moduleName) {
 
 // Restore active tab on page load
 document.addEventListener('DOMContentLoaded', function() {
-    const moduleName = 'Committee Structure';
+    const moduleName = 'Inter-Committee Coordination';
     const savedTab = localStorage.getItem('activeTab_' + moduleName);
     if (savedTab) {
         switchTab(savedTab, moduleName);
