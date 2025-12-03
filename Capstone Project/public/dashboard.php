@@ -1,942 +1,501 @@
-<?php
-/**
- * Dashboard - Main landing page after login
- * 
- * Displays overview of system with key statistics and quick links.
- * 
- * @package Legislative Services Committee Management System
- * @version 1.0
- */
-
-require_once(__DIR__ . '/../config/database.php');
-require_once(__DIR__ . '/../app/middleware/SessionManager.php');
-
-$sessionManager = new SessionManager($conn);
-
-// Check if user is logged in
-if (!$sessionManager->isLoggedIn()) {
-    header('Location: ../../login.php');
-    exit;
-}
-
-$user = $sessionManager->getCurrentUser();
-$role = $_SESSION['role_name'];
-
-// Get statistics
-$stats = [
-    'committees' => $conn->query("SELECT COUNT(*) as count FROM committees")->fetch_assoc()['count'],
-    'upcoming_meetings' => $conn->query("SELECT COUNT(*) as count FROM meetings WHERE status = 'scheduled' AND meeting_date > NOW()")->fetch_assoc()['count'],
-    'pending_documents' => $conn->query("SELECT COUNT(*) as count FROM legislative_documents WHERE status IN ('draft', 'in_committee')")->fetch_assoc()['count'],
-    'active_users' => $conn->query("SELECT COUNT(*) as count FROM users WHERE is_active = TRUE")->fetch_assoc()['count'],
-    'pending_tasks' => $conn->query("SELECT COUNT(*) as count FROM tasks WHERE status IN ('pending', 'in_progress') AND assigned_to_id = " . intval($user['user_id']))->fetch_assoc()['count'],
-];
-
-// Get document statistics by status
-$doc_status = [
-    'draft' => $conn->query("SELECT COUNT(*) as count FROM legislative_documents WHERE status = 'draft'")->fetch_assoc()['count'] ?? 0,
-    'in_committee' => $conn->query("SELECT COUNT(*) as count FROM legislative_documents WHERE status = 'in_committee'")->fetch_assoc()['count'] ?? 0,
-    'approved' => $conn->query("SELECT COUNT(*) as count FROM legislative_documents WHERE status = 'approved'")->fetch_assoc()['count'] ?? 0,
-    'rejected' => $conn->query("SELECT COUNT(*) as count FROM legislative_documents WHERE status = 'rejected'")->fetch_assoc()['count'] ?? 0,
-];
-
-// Get referral statistics
-$referral_stats = [
-    'incoming' => $conn->query("SELECT COUNT(*) as count FROM referrals WHERE referral_type = 'incoming'")->fetch_assoc()['count'] ?? 0,
-    'outgoing' => $conn->query("SELECT COUNT(*) as count FROM referrals WHERE referral_type = 'outgoing'")->fetch_assoc()['count'] ?? 0,
-    'pending' => $conn->query("SELECT COUNT(*) as count FROM referrals WHERE status = 'pending'")->fetch_assoc()['count'] ?? 0,
-];
-
-// Get meeting statistics by month
-$monthly_meetings = [];
-for ($i = 5; $i >= 0; $i--) {
-    $date = date('Y-m', strtotime("-$i month"));
-    $count = $conn->query("SELECT COUNT(*) as count FROM meetings WHERE DATE_FORMAT(meeting_date, '%Y-%m') = '$date'")->fetch_assoc()['count'] ?? 0;
-    $monthly_meetings[date('M', strtotime($date))] = $count;
-}
-
-// Get task completion stats
-$task_stats = [
-    'completed' => $conn->query("SELECT COUNT(*) as count FROM tasks WHERE status = 'completed'")->fetch_assoc()['count'] ?? 0,
-    'in_progress' => $conn->query("SELECT COUNT(*) as count FROM tasks WHERE status = 'in_progress'")->fetch_assoc()['count'] ?? 0,
-    'pending' => $conn->query("SELECT COUNT(*) as count FROM tasks WHERE status = 'pending'")->fetch_assoc()['count'] ?? 0,
-];
-
-// Get recent activities
-$recentActivities = $conn->query("
-    SELECT * FROM audit_logs 
-    WHERE user_id = " . intval($user['user_id']) . "
-    ORDER BY timestamp DESC 
-    LIMIT 5
-");
-
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Legislative Services CMS</title>
+    <title>Committee Management System - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo time(); ?>">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'cms-red': '#dc2626',
+                        'cms-dark': '#b91c1c',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in',
+                        'slide-in': 'slideIn 0.3s ease-in',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+    </style>
 </head>
-<body>
-    <!-- Header -->
-    <header>
-        <div class="header-container">
-            <div class="header-left">
-                <button class="hamburger-btn" title="Toggle Menu">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="header-title">
-                    <h1>Legislative Services CMS</h1>
-                    <p>Committee Management System</p>
-                </div>
-            </div>
-            
-            <div class="header-right">
-                <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Dark/Light Mode">
-                    <i class="fas fa-moon"></i>
-                </button>
-                <div class="notification-icon" title="Notifications">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-badge">3</span>
-                </div>
-                <div class="user-dropdown">
-                    <div class="user-info" id="userInfoBtn">
-                        <div class="user-avatar">
-                            <?php echo strtoupper(substr($user['first_name'], 0, 1) . substr($user['last_name'], 0, 1)); ?>
-                        </div>
-                        <div class="user-details">
-                            <div class="user-name"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></div>
-                            <div class="user-role"><?php echo htmlspecialchars($role); ?></div>
-                        </div>
+<body class="bg-gray-50 dark:bg-gray-900 font-sans antialiased transition-colors duration-300">
+    <!-- Sidebar Overlay for Mobile -->
+    <div id="sidebarOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden" onclick="toggleSidebar()"></div>
+
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar w-64 bg-gradient-to-b from-cms-red to-cms-dark text-white fixed md:relative h-full z-40 transform -translate-x-full md:translate-x-0 transition-all duration-300 overflow-y-auto">
+            <!-- Logo Section -->
+            <div class="p-6 border-b border-red-700 sticky top-0 bg-gradient-to-b from-cms-red to-cms-dark">
+                <a href="#" class="flex items-center space-x-3 hover:opacity-80 transition-all duration-300">
+                    <div class="bg-white rounded-lg shadow-md p-2 w-12 h-12 flex items-center justify-center">
+                        <img src="assets/images/logo.png" alt="Logo" class="w-full h-full object-contain rounded-md">
                     </div>
-                    <div class="user-dropdown-menu" id="userDropdownMenu">
-                        <a href="#" class="user-dropdown-item">
-                            <i class="fas fa-user"></i>
-                            <span>Profile</span>
-                        </a>
-                        <a href="#" class="user-dropdown-item">
-                            <i class="fas fa-cog"></i>
-                            <span>Settings</span>
-                        </a>
-                        <button class="user-dropdown-item logout" id="logoutBtn">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span>Logout</span>
-                        </button>
+                    <div>
+                        <h1 class="text-lg font-bold">CMS</h1>
+                        <p class="text-xs text-red-200">Committee System</p>
                     </div>
-                </div>
-            </div>
-        </div>
-    </header>
-    
-    <!-- Overlay for sidebar -->
-    <div class="overlay"></div>
-    
-    <!-- Sidebar Navigation -->
-    <aside class="sidebar">
-        <nav class="sidebar-menu">
-            <!-- Dashboard -->
-            <div class="sidebar-category">
-                <a href="dashboard.php" class="sidebar-link">
-                    <i class="sidebar-icon fas fa-chart-line"></i>
-                    <span>Dashboard</span>
                 </a>
             </div>
-            
-            <!-- Committees & Members -->
-            <div class="sidebar-category">
-                <div class="sidebar-category-title">Committees</div>
-                
-                <li class="sidebar-menu-item">
-                    <a href="#" class="sidebar-link" data-toggle>
-                        <i class="sidebar-icon fas fa-users"></i>
-                        <span>Committee Management</span>
-                        <i class="sidebar-toggle-icon fas fa-chevron-right"></i>
-                    </a>
-                    <ul class="sidebar-submenu">
-                        <li class="sidebar-submenu-item">
-                            <a href="committees/index.php" class="sidebar-submenu-link">
-                                <i class="fas fa-list"></i> All Committees
-                            </a>
-                        </li>
-                        <li class="sidebar-submenu-item">
-                            <a href="committees/create.php" class="sidebar-submenu-link">
-                                <i class="fas fa-plus-circle"></i> Create Committee
-                            </a>
-                        </li>
-                        <li class="sidebar-submenu-item">
-                            <a href="committees/directory.php" class="sidebar-submenu-link">
-                                <i class="fas fa-address-book"></i> Member Directory
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-            </div>
-            
-            <!-- Meetings & Agendas -->
-            <div class="sidebar-category">
-                <div class="sidebar-category-title">Meetings</div>
-                
-                <li class="sidebar-menu-item">
-                    <a href="#" class="sidebar-link" data-toggle>
-                        <i class="sidebar-icon fas fa-calendar-alt"></i>
-                        <span>Meetings & Sessions</span>
-                        <i class="sidebar-toggle-icon fas fa-chevron-right"></i>
-                    </a>
-                    <ul class="sidebar-submenu">
-                        <li class="sidebar-submenu-item">
-                            <a href="meetings/index.php" class="sidebar-submenu-link">
-                                <i class="fas fa-list"></i> View Meetings
-                            </a>
-                        </li>
-                        <li class="sidebar-submenu-item">
-                            <a href="meetings/schedule.php" class="sidebar-submenu-link">
-                                <i class="fas fa-calendar-plus"></i> Schedule Meeting
-                            </a>
-                        </li>
-                        <li class="sidebar-submenu-item">
-                            <a href="meetings/calendar.php" class="sidebar-submenu-link">
-                                <i class="fas fa-calendar"></i> Calendar View
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-            </div>
-            
-            <!-- Bills & Legislation -->
-            <div class="sidebar-category">
-                <div class="sidebar-category-title">Legislation</div>
-                
-                <li class="sidebar-menu-item">
-                    <a href="#" class="sidebar-link" data-toggle>
-                        <i class="sidebar-icon fas fa-file-alt"></i>
-                        <span>Bills & Documents</span>
-                        <i class="sidebar-toggle-icon fas fa-chevron-right"></i>
-                    </a>
-                    <ul class="sidebar-submenu">
-                        <li class="sidebar-submenu-item">
-                            <a href="documents/index.php" class="sidebar-submenu-link">
-                                <i class="fas fa-list"></i> Browse Documents
-                            </a>
-                        </li>
-                        <li class="sidebar-submenu-item">
-                            <a href="documents/create.php" class="sidebar-submenu-link">
-                                <i class="fas fa-file-circle-plus"></i> File Document
-                            </a>
-                        </li>
-                        <li class="sidebar-submenu-item">
-                            <a href="documents/tracking.php" class="sidebar-submenu-link">
-                                <i class="fas fa-tracking"></i> Track Progress
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                
-                <li class="sidebar-menu-item">
-                    <a href="#" class="sidebar-link" data-toggle>
-                        <i class="sidebar-icon fas fa-arrow-right-arrow-left"></i>
-                        <span>Referrals & Routing</span>
-                        <i class="sidebar-toggle-icon fas fa-chevron-right"></i>
-                    </a>
-                    <ul class="sidebar-submenu">
-                        <li class="sidebar-submenu-item">
-                            <a href="referrals/incoming.php" class="sidebar-submenu-link">
-                                <i class="fas fa-inbox"></i> Incoming Referrals
-                            </a>
-                        </li>
-                        <li class="sidebar-submenu-item">
-                            <a href="referrals/outgoing.php" class="sidebar-submenu-link">
-                                <i class="fas fa-paper-plane"></i> Outgoing Referrals
-                            </a>
-                        </li>
-                        <li class="sidebar-submenu-item">
-                            <a href="endorsements/index.php" class="sidebar-submenu-link">
-                                <i class="fas fa-stamp"></i> Endorsements
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-            </div>
-            
-            <!-- Tracking & Analytics -->
-            <div class="sidebar-category">
-                <div class="sidebar-category-title">Tracking</div>
-                
-                <li class="sidebar-menu-item">
-                    <a href="tasks/index.php" class="sidebar-link">
-                        <i class="sidebar-icon fas fa-tasks"></i>
-                        <span>Action Items</span>
-                    </a>
-                </li>
-                <li class="sidebar-menu-item">
-                    <a href="reports/index.php" class="sidebar-link">
-                        <i class="sidebar-icon fas fa-chart-bar"></i>
-                        <span>Reports & Analytics</span>
-                    </a>
-                </li>
-            </div>
-            
-            <!-- System Administration -->
-            <div class="sidebar-category">
-                <div class="sidebar-category-title">Administration</div>
-                
-                <li class="sidebar-menu-item">
-                    <a href="#" class="sidebar-link" data-toggle>
-                        <i class="sidebar-icon fas fa-users-cog"></i>
-                        <span>User Management</span>
-                        <i class="sidebar-toggle-icon fas fa-chevron-right"></i>
-                    </a>
-                    <ul class="sidebar-submenu">
-                        <li class="sidebar-submenu-item">
-                            <a href="users/index.php" class="sidebar-submenu-link">
-                                <i class="fas fa-list"></i> Users
-                            </a>
-                        </li>
-                        <li class="sidebar-submenu-item">
-                            <a href="users/add.php" class="sidebar-submenu-link">
-                                <i class="fas fa-user-plus"></i> Add User
-                            </a>
-                        </li>
-                        <li class="sidebar-submenu-item">
-                            <a href="roles/index.php" class="sidebar-submenu-link">
-                                <i class="fas fa-shield-alt"></i> Roles
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="sidebar-menu-item">
-                    <a href="#" class="sidebar-link" data-toggle>
-                        <i class="sidebar-icon fas fa-cogs"></i>
-                        <span>Settings</span>
-                        <i class="sidebar-toggle-icon fas fa-chevron-right"></i>
-                    </a>
-                    <ul class="sidebar-submenu">
-                        <li class="sidebar-submenu-item">
-                            <a href="settings/general.php" class="sidebar-submenu-link">
-                                <i class="fas fa-sliders-h"></i> General
-                            </a>
-                        </li>
-                        <li class="sidebar-submenu-item">
-                            <a href="backup/index.php" class="sidebar-submenu-link">
-                                <i class="fas fa-database"></i> Backup
-                            </a>
-                        </li>
-                        <li class="sidebar-submenu-item">
-                            <a href="logs/audit.php" class="sidebar-submenu-link">
-                                <i class="fas fa-history"></i> Audit Logs
-                            </a>
-                        </li>
-                        <li class="sidebar-submenu-item">
-                            <a href="logs/error.php" class="sidebar-submenu-link">
-                                <i class="fas fa-exclamation-triangle"></i> Errors
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-            </div>
-        </nav>
-    </aside>
-    
-    <!-- Main Content -->
-    <div class="main-container">
-        <main class="main-content">
-            <!-- Breadcrumb -->
-            <div class="breadcrumb">
-                <a href="dashboard.php"><i class="fas fa-home"></i> Home</a>
-                <span>></span>
-                <span>Dashboard</span>
-            </div>
-            
-            <!-- Page Header -->
-            <div class="page-header">
-                <div class="page-header-left">
-                    <h1 class="page-title">
-                        <i class="fas fa-chart-line"></i> Dashboard
-                    </h1>
-                    <p class="page-subtitle">Real-time overview of your system</p>
+
+            <!-- Navigation -->
+            <nav class="flex-1 px-4 py-6 space-y-2">
+                <!-- 3.1: Committee Structure & Configuration -->
+                <div class="space-y-1">
+                    <button onclick="toggleModule(this)" class="w-full text-left px-4 py-2 rounded-lg hover:bg-red-700 transition-all flex items-center justify-between font-semibold text-sm">
+                        <span><i class="fas fa-building mr-2"></i>Committee Structure</span>
+                        <i class="fas fa-chevron-down transform transition-transform"></i>
+                    </button>
+                    <div class="hidden submenu pl-4 space-y-1">
+                        <a href="pages/committee-structure/index.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">All Committees</a>
+                        <a href="pages/committee-structure/create.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Create Committee</a>
+                        <a href="pages/committee-structure/types.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Committee Types</a>
+                        <a href="pages/committee-structure/charter.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Charter & Rules</a>
+                        <a href="pages/committee-structure/contact.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Contact Information</a>
+                    </div>
                 </div>
-                <div class="page-header-right">
-                    <div class="welcome-text">
-                        <p class="welcome-label">Welcome back</p>
-                        <p class="welcome-name"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></p>
-                        <p class="welcome-role"><?php echo htmlspecialchars($role); ?></p>
+
+                <!-- 3.2: Member Assignment & Roles -->
+                <div class="space-y-1">
+                    <button onclick="toggleModule(this)" class="w-full text-left px-4 py-2 rounded-lg hover:bg-red-700 transition-all flex items-center justify-between font-semibold text-sm">
+                        <span><i class="fas fa-users mr-2"></i>Member Assignment</span>
+                        <i class="fas fa-chevron-down transform transition-transform"></i>
+                    </button>
+                    <div class="hidden submenu pl-4 space-y-1">
+                        <a href="pages/member-assignment/directory.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Member Directory</a>
+                        <a href="pages/member-assignment/assign.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Assign to Committee</a>
+                        <a href="pages/member-assignment/roles.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Member Roles</a>
+                        <a href="pages/member-assignment/history.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Membership History</a>
+                        <a href="pages/member-assignment/substitutes.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Substitute Management</a>
+                    </div>
+                </div>
+
+                <!-- 3.3: Committee Referral Management -->
+                <div class="space-y-1">
+                    <button onclick="toggleModule(this)" class="w-full text-left px-4 py-2 rounded-lg hover:bg-red-700 transition-all flex items-center justify-between font-semibold text-sm">
+                        <span><i class="fas fa-inbox mr-2"></i>Referrals</span>
+                        <i class="fas fa-chevron-down transform transition-transform"></i>
+                    </button>
+                    <div class="hidden submenu pl-4 space-y-1">
+                        <a href="pages/referral-management/inbox.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Referral Inbox</a>
+                        <a href="pages/referral-management/incoming.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Incoming Referrals</a>
+                        <a href="pages/referral-management/multi.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Multi-Committee</a>
+                        <a href="pages/referral-management/deadlines.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Deadlines & Alerts</a>
+                        <a href="pages/referral-management/acknowledgment.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Acknowledgments</a>
+                    </div>
+                </div>
+
+                <!-- 3.4: Committee Meeting Scheduler -->
+                <div class="space-y-1">
+                    <button onclick="toggleModule(this)" class="w-full text-left px-4 py-2 rounded-lg hover:bg-red-700 transition-all flex items-center justify-between font-semibold text-sm">
+                        <span><i class="fas fa-calendar-alt mr-2"></i>Meetings</span>
+                        <i class="fas fa-chevron-down transform transition-transform"></i>
+                    </button>
+                    <div class="hidden submenu pl-4 space-y-1">
+                        <a href="pages/meeting-scheduler/view.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">View Meetings</a>
+                        <a href="pages/meeting-scheduler/schedule.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Schedule Meeting</a>
+                        <a href="pages/meeting-scheduler/calendar.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Calendar View</a>
+                        <a href="pages/meeting-scheduler/rooms.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Room Booking</a>
+                        <a href="pages/meeting-scheduler/recurring.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Recurring Meetings</a>
+                        <a href="pages/meeting-scheduler/quorum.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Quorum Settings</a>
+                    </div>
+                </div>
+
+                <!-- 3.5: Committee Agenda Builder -->
+                <div class="space-y-1">
+                    <button onclick="toggleModule(this)" class="w-full text-left px-4 py-2 rounded-lg hover:bg-red-700 transition-all flex items-center justify-between font-semibold text-sm">
+                        <span><i class="fas fa-list-check mr-2"></i>Agendas</span>
+                        <i class="fas fa-chevron-down transform transition-transform"></i>
+                    </button>
+                    <div class="hidden submenu pl-4 space-y-1">
+                        <a href="pages/agenda-builder/create.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Create Agenda</a>
+                        <a href="pages/agenda-builder/items.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Agenda Items</a>
+                        <a href="pages/agenda-builder/templates.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Templates</a>
+                        <a href="pages/agenda-builder/distribution.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Distribution</a>
+                        <a href="pages/agenda-builder/timing.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Time Allocation</a>
+                    </div>
+                </div>
+
+                <!-- 3.6: Committee Deliberation Tools -->
+                <div class="space-y-1">
+                    <button onclick="toggleModule(this)" class="w-full text-left px-4 py-2 rounded-lg hover:bg-red-700 transition-all flex items-center justify-between font-semibold text-sm">
+                        <span><i class="fas fa-comments mr-2"></i>Deliberation</span>
+                        <i class="fas fa-chevron-down transform transition-transform"></i>
+                    </button>
+                    <div class="hidden submenu pl-4 space-y-1">
+                        <a href="pages/deliberation-tools/discussions.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Discussion Threads</a>
+                        <a href="pages/deliberation-tools/amendments.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Amendment Proposals</a>
+                        <a href="pages/deliberation-tools/positions.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Member Positions</a>
+                        <a href="pages/deliberation-tools/voting.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Committee Voting</a>
+                        <a href="pages/deliberation-tools/history.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Deliberation History</a>
+                    </div>
+                </div>
+
+                <!-- 3.7: Action Item Tracking -->
+                <div class="space-y-1">
+                    <button onclick="toggleModule(this)" class="w-full text-left px-4 py-2 rounded-lg hover:bg-red-700 transition-all flex items-center justify-between font-semibold text-sm">
+                        <span><i class="fas fa-tasks mr-2"></i>Action Items</span>
+                        <i class="fas fa-chevron-down transform transition-transform"></i>
+                    </button>
+                    <div class="hidden submenu pl-4 space-y-1">
+                        <a href="pages/action-items/all.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">All Items</a>
+                        <a href="pages/action-items/assigned.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">My Assignments</a>
+                        <a href="pages/action-items/overdue.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Overdue Items</a>
+                    </div>
+                </div>
+
+                <!-- 3.8: Committee Report Generation -->
+                <div class="space-y-1">
+                    <button onclick="toggleModule(this)" class="w-full text-left px-4 py-2 rounded-lg hover:bg-red-700 transition-all flex items-center justify-between font-semibold text-sm">
+                        <span><i class="fas fa-file-pdf mr-2"></i>Reports</span>
+                        <i class="fas fa-chevron-down transform transition-transform"></i>
+                    </button>
+                    <div class="hidden submenu pl-4 space-y-1">
+                        <a href="pages/report-generation/generate.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Generate Report</a>
+                        <a href="pages/report-generation/templates.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Report Templates</a>
+                        <a href="pages/report-generation/recommendations.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Recommendations</a>
+                        <a href="pages/report-generation/minority.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Minority Reports</a>
+                        <a href="pages/report-generation/approval.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Approval Workflow</a>
+                    </div>
+                </div>
+
+                <!-- 3.9: Inter-Committee Communication -->
+                <div class="space-y-1">
+                    <button onclick="toggleModule(this)" class="w-full text-left px-4 py-2 rounded-lg hover:bg-red-700 transition-all flex items-center justify-between font-semibold text-sm">
+                        <span><i class="fas fa-network-wired mr-2"></i>Coordination</span>
+                        <i class="fas fa-chevron-down transform transition-transform"></i>
+                    </button>
+                    <div class="hidden submenu pl-4 space-y-1">
+                        <a href="pages/inter-committee/joint.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Joint Committees</a>
+                        <a href="pages/inter-committee/board.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Message Board</a>
+                        <a href="pages/inter-committee/sharing.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Document Sharing</a>
+                        <a href="pages/inter-committee/hearings.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Joint Hearings</a>
+                    </div>
+                </div>
+
+                <!-- 3.10: Research Support Integration -->
+                <div class="space-y-1">
+                    <button onclick="toggleModule(this)" class="w-full text-left px-4 py-2 rounded-lg hover:bg-red-700 transition-all flex items-center justify-between font-semibold text-sm">
+                        <span><i class="fas fa-book mr-2"></i>Research & Support</span>
+                        <i class="fas fa-chevron-down transform transition-transform"></i>
+                    </button>
+                    <div class="hidden submenu pl-4 space-y-1">
+                        <a href="pages/research-support/request.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Request Research</a>
+                        <a href="pages/research-support/briefs.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Policy Briefs</a>
+                        <a href="pages/research-support/legal.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Legal Analysis</a>
+                        <a href="pages/research-support/comparative.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Comparative Legislation</a>
+                        <a href="pages/research-support/findings.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Research Findings</a>
+                    </div>
+                </div>
+
+                <!-- 3.11: User Management (Admin Only) -->
+                <div class="space-y-1">
+                    <button onclick="toggleModule(this)" class="w-full text-left px-4 py-2 rounded-lg hover:bg-red-700 transition-all flex items-center justify-between font-semibold text-sm">
+                        <span><i class="fas fa-users-cog mr-2"></i>User Management</span>
+                        <i class="fas fa-chevron-down transform transition-transform"></i>
+                    </button>
+                    <div class="hidden submenu pl-4 space-y-1">
+                        <a href="pages/user-management/all-users.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">All Users</a>
+                        <a href="pages/user-management/create-user.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Create Account</a>
+                        <a href="pages/user-management/roles.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">User Roles</a>
+                        <a href="pages/user-management/permissions.php" class="block px-4 py-2 text-sm text-red-100 hover:text-white hover:bg-red-700 rounded transition-all">Permissions</a>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-red-700">
+                <div class="flex items-center space-x-3 px-2 py-2">
+                    <div class="bg-red-600 rounded-full w-10 h-10 flex items-center justify-center text-sm font-bold">A</div>
+                    <div class="flex-1 text-sm">
+                        <p class="font-semibold">Admin User</p>
+                        <p class="text-xs text-red-200">Active</p>
                     </div>
                 </div>
             </div>
-            
-            <!-- Statistics Cards - Core Operations -->
-            <section class="dashboard-section">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="fas fa-chart-bar"></i> Key Metrics
-                    </h2>
-                    <p class="section-subtitle">Real-time system statistics and status</p>
-                </div>
-                <div class="dashboard-grid">
-                    <div class="stat-card primary">
-                        <div class="stat-icon">
-                            <i class="fas fa-layer-group"></i>
-                        </div>
-                        <div class="stat-details">
-                            <div class="stat-label">Total Committees</div>
-                            <div class="stat-value"><?php echo $stats['committees']; ?></div>
-                            <div class="stat-change positive">
-                                <i class="fas fa-arrow-up"></i> Active
-                            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm sticky top-0 z-20">
+                <div class="flex items-center justify-between px-6 py-4">
+                    <!-- Hamburger Menu & Logo -->
+                    <div class="flex items-center space-x-4">
+                        <button onclick="toggleSidebar()" class="md:hidden text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition">
+                            <i class="fas fa-bars text-2xl"></i>
+                        </button>
+                        <div class="hidden md:block">
+                            <h2 class="text-xl font-bold text-gray-800 dark:text-white">Committee Management System</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">City Government of Valenzuela</p>
                         </div>
                     </div>
-                    
-                    <div class="stat-card success">
-                        <div class="stat-icon">
-                            <i class="fas fa-calendar-alt"></i>
+
+                    <!-- Header Right -->
+                    <div class="flex items-center space-x-4">
+                        <!-- Notifications -->
+                        <div class="relative">
+                            <button class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 relative transition">
+                                <i class="fas fa-bell text-xl"></i>
+                                <span class="absolute top-0 right-0 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                            </button>
                         </div>
-                        <div class="stat-details">
-                            <div class="stat-label">Upcoming Meetings</div>
-                            <div class="stat-value"><?php echo $stats['upcoming_meetings']; ?></div>
-                            <div class="stat-change positive">
-                                <i class="fas fa-arrow-up"></i> This month
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card warning">
-                        <div class="stat-icon">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                        <div class="stat-details">
-                            <div class="stat-label">Pending Documents</div>
-                            <div class="stat-value"><?php echo $stats['pending_documents']; ?></div>
-                            <div class="stat-change">
-                                <i class="fas fa-clock"></i> Awaiting Review
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card info">
-                        <div class="stat-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="stat-details">
-                            <div class="stat-label">Active Users</div>
-                            <div class="stat-value"><?php echo $stats['active_users']; ?></div>
-                            <div class="stat-change positive">
-                                <i class="fas fa-arrow-up"></i> Online
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card danger">
-                        <div class="stat-icon">
-                            <i class="fas fa-tasks"></i>
-                        </div>
-                        <div class="stat-details">
-                            <div class="stat-label">My Tasks</div>
-                            <div class="stat-value"><?php echo $stats['pending_tasks']; ?></div>
-                            <div class="stat-change">
-                                <i class="fas fa-hourglass"></i> Pending
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- Main Content Row - Activities and Quick Actions -->
-            <section class="dashboard-section">
-                <div class="content-grid">
-                    <!-- Recent Activities -->
-                    <div class="card card-large">
-                        <div class="card-header">
-                            <div class="card-title-wrapper">
-                                <h2 class="card-title">
-                                    <i class="fas fa-history"></i> Recent Activities
-                                </h2>
-                                <p class="card-subtitle">Latest system activities</p>
-                            </div>
-                            <a href="logs/audit.php" class="btn btn-sm btn-secondary">View All</a>
-                        </div>
-                        <div class="card-content">
-                            <div class="activities-list">
-                                <?php if ($recentActivities && $recentActivities->num_rows > 0): ?>
-                                    <?php while ($activity = $recentActivities->fetch_assoc()): ?>
-                                        <div class="activity-item">
-                                            <div class="activity-icon">
-                                                <i class="fas fa-clock"></i>
-                                            </div>
-                                            <div class="activity-info">
-                                                <p class="activity-action"><?php echo htmlspecialchars($activity['action']); ?></p>
-                                                <p class="activity-description"><?php echo htmlspecialchars($activity['description']); ?></p>
-                                                <span class="activity-time"><?php echo date('M d, Y H:i', strtotime($activity['timestamp'])); ?></span>
-                                            </div>
+
+                        <!-- Dark Mode Toggle -->
+                        <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition" title="Toggle dark mode">
+                            <i class="fas fa-moon dark:hidden"></i>
+                            <i class="fas fa-sun hidden dark:block"></i>
+                        </button>
+
+                        <!-- User Profile Menu -->
+                        <div class="relative group">
+                            <button class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                <img src="assets/images/logo.png" alt="Profile" class="w-10 h-10 rounded-full bg-cms-red p-1 object-cover">
+                                <div class="hidden sm:block text-left">
+                                    <p class="text-sm font-semibold text-gray-800 dark:text-white">Admin User</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
+                                </div>
+                                <i class="fas fa-chevron-down text-gray-600 dark:text-gray-400 text-sm"></i>
+                            </button>
+
+                            <!-- Profile Dropdown Menu -->
+                            <div class="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                                <!-- Profile Header -->
+                                <div class="bg-gradient-to-r from-cms-red to-cms-dark p-4 rounded-t-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <img src="assets/images/logo.png" alt="Profile" class="w-16 h-16 rounded-full bg-white p-1 object-cover">
+                                        <div class="text-white">
+                                            <p class="font-bold text-lg">Admin User</p>
+                                            <p class="text-sm text-red-100">Administrator</p>
+                                            <p class="text-xs text-red-200 mt-1">admin@example.com</p>
                                         </div>
-                                    <?php endwhile; ?>
-                                <?php else: ?>
-                                    <div class="empty-state">
-                                        <i class="fas fa-inbox"></i>
-                                        <p>No recent activities</p>
                                     </div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Quick Actions -->
-                    <div class="card card-actions">
-                        <div class="card-header">
-                            <div class="card-title-wrapper">
-                                <h2 class="card-title">
-                                    <i class="fas fa-bolt"></i> Quick Actions
-                                </h2>
-                                <p class="card-subtitle">Frequently used actions</p>
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <div class="actions-grid">
-                                <a href="committees/create.php" class="action-btn btn-primary">
-                                    <div class="action-icon">
-                                        <i class="fas fa-plus-circle"></i>
-                                    </div>
-                                    <div class="action-text">
-                                        <span class="action-title">New Committee</span>
-                                        <span class="action-desc">Create a new committee</span>
-                                    </div>
-                                </a>
-                                <a href="meetings/schedule.php" class="action-btn btn-success">
-                                    <div class="action-icon">
-                                        <i class="fas fa-calendar-plus"></i>
-                                    </div>
-                                    <div class="action-text">
-                                        <span class="action-title">Schedule Meeting</span>
-                                        <span class="action-desc">Schedule a new meeting</span>
-                                    </div>
-                                </a>
-                                <a href="documents/create.php" class="action-btn btn-warning">
-                                    <div class="action-icon">
-                                        <i class="fas fa-file-circle-plus"></i>
-                                    </div>
-                                    <div class="action-text">
-                                        <span class="action-title">New Document</span>
-                                        <span class="action-desc">Upload a document</span>
-                                    </div>
-                                </a>
-                                <a href="tasks/create.php" class="action-btn btn-info">
-                                    <div class="action-icon">
-                                        <i class="fas fa-check-circle"></i>
-                                    </div>
-                                    <div class="action-text">
-                                        <span class="action-title">Assign Task</span>
-                                        <span class="action-desc">Create a new task</span>
-                                    </div>
-                                </a>
+                                </div>
+
+                                <!-- Profile Options -->
+                                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                                    <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-300">
+                                        <i class="fas fa-user-circle text-cms-red"></i>
+                                        <div>
+                                            <p class="font-semibold text-sm">View Profile</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">See your profile details</p>
+                                        </div>
+                                    </a>
+                                    <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-300">
+                                        <i class="fas fa-edit text-cms-red"></i>
+                                        <div>
+                                            <p class="font-semibold text-sm">Edit Profile</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Update your information</p>
+                                        </div>
+                                    </a>
+                                    <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-300">
+                                        <i class="fas fa-lock text-cms-red"></i>
+                                        <div>
+                                            <p class="font-semibold text-sm">Change Password</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Update your password</p>
+                                        </div>
+                                    </a>
+                                </div>
+
+                                <!-- Logout Option -->
+                                <div class="p-3">
+                                    <button onclick="logout()" class="w-full bg-cms-red hover:bg-cms-dark text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition">
+                                        <i class="fas fa-sign-out-alt"></i>
+                                        <span>Logout</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </header>
 
-            <!-- Monitoring & Statistics Section -->
-            <section class="dashboard-section">
-                <div class="section-header">
-                    <h2>Monitoring & Statistics</h2>
-                    <p>System overview and performance metrics</p>
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-auto p-6 space-y-6 bg-gray-50 dark:bg-gray-900">
+                <!-- Welcome Section -->
+                <div class="bg-gradient-to-r from-cms-red to-cms-dark text-white rounded-lg p-8 shadow-lg">
+                    <h1 class="text-3xl font-bold mb-2">Welcome to Committee Management System</h1>
+                    <p class="text-red-100">Manage committees, meetings, and legislative processes efficiently</p>
                 </div>
 
-                <!-- Charts Container -->
-                <div class="charts-container">
-                    <!-- Document Status Chart -->
-                    <div class="chart-card">
-                        <h3>Document Status Distribution</h3>
-                        <canvas id="docStatusChart"></canvas>
-                        <div class="chart-legend">
-                            <span><i class="fas fa-circle" style="color: #3498db;"></i> Draft</span>
-                            <span><i class="fas fa-circle" style="color: #f39c12;"></i> In Committee</span>
-                            <span><i class="fas fa-circle" style="color: #2ecc71;"></i> Approved</span>
-                            <span><i class="fas fa-circle" style="color: #e74c3c;"></i> Rejected</span>
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 border-cms-red">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm font-semibold">Active Committees</p>
+                                <p class="text-3xl font-bold text-gray-800 dark:text-white mt-2">12</p>
+                            </div>
+                            <i class="fas fa-building text-cms-red text-4xl opacity-20"></i>
                         </div>
                     </div>
-
-                    <!-- Meeting Trends Chart -->
-                    <div class="chart-card">
-                        <h3>Monthly Meeting Trends</h3>
-                        <canvas id="meetingTrendsChart"></canvas>
-                        <p class="chart-subtitle">Meetings scheduled by month</p>
-                    </div>
-
-                    <!-- Referral Status Chart -->
-                    <div class="chart-card">
-                        <h3>Referral Overview</h3>
-                        <canvas id="referralChart"></canvas>
-                        <div class="chart-legend">
-                            <span><i class="fas fa-circle" style="color: #9b59b6;"></i> Incoming</span>
-                            <span><i class="fas fa-circle" style="color: #1abc9c;"></i> Outgoing</span>
-                            <span><i class="fas fa-circle" style="color: #e67e22;"></i> Pending</span>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 border-blue-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm font-semibold">Pending Referrals</p>
+                                <p class="text-3xl font-bold text-gray-800 dark:text-white mt-2">8</p>
+                            </div>
+                            <i class="fas fa-inbox text-blue-500 text-4xl opacity-20"></i>
                         </div>
                     </div>
-
-                    <!-- Task Completion Chart -->
-                    <div class="chart-card">
-                        <h3>Task Status Summary</h3>
-                        <canvas id="taskStatusChart"></canvas>
-                        <div class="chart-legend">
-                            <span><i class="fas fa-circle" style="color: #27ae60;"></i> Completed</span>
-                            <span><i class="fas fa-circle" style="color: #f39c12;"></i> In Progress</span>
-                            <span><i class="fas fa-circle" style="color: #95a5a6;"></i> Pending</span>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 border-green-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm font-semibold">Upcoming Meetings</p>
+                                <p class="text-3xl font-bold text-gray-800 dark:text-white mt-2">5</p>
+                            </div>
+                            <i class="fas fa-calendar-alt text-green-500 text-4xl opacity-20"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 border-yellow-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm font-semibold">Action Items</p>
+                                <p class="text-3xl font-bold text-gray-800 dark:text-white mt-2">14</p>
+                            </div>
+                            <i class="fas fa-tasks text-yellow-500 text-4xl opacity-20"></i>
                         </div>
                     </div>
                 </div>
-            </section>
-            </section>
-        </main>
+
+                <!-- Recent Activity -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Recent Activity</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between pb-4 border-b dark:border-gray-700">
+                                <div class="flex items-center space-x-3">
+                                    <div class="bg-cms-red bg-opacity-10 rounded-full p-3">
+                                        <i class="fas fa-file-alt text-cms-red"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-800 dark:text-white">New referral received</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">2 hours ago</p>
+                                    </div>
+                                </div>
+                                <span class="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">New</span>
+                            </div>
+                            <div class="flex items-center justify-between pb-4 border-b dark:border-gray-700">
+                                <div class="flex items-center space-x-3">
+                                    <div class="bg-blue-100 dark:bg-blue-900 rounded-full p-3">
+                                        <i class="fas fa-calendar text-blue-600 dark:text-blue-300"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-800 dark:text-white">Meeting scheduled</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">1 day ago</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Meetings -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Upcoming Meetings</h3>
+                        <div class="space-y-3">
+                            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded border-l-4 border-cms-red">
+                                <p class="font-semibold text-sm text-gray-800 dark:text-white">Finance Committee</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Dec 5, 2025 at 2:00 PM</p>
+                            </div>
+                            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded border-l-4 border-green-500">
+                                <p class="font-semibold text-sm text-gray-800 dark:text-white">Planning Committee</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Dec 6, 2025 at 10:00 AM</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
 
-    <!-- Chart.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    
-    <script src="../../public/assets/js/main.js"></script>
     <script>
-        // Initialize sidebar - start visible
-        function initSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            // Always start visible on page load
-            sidebar.classList.add('active');
-            sidebar.style.transform = 'translateX(0)';
-            setActiveLink();
-            console.log('Sidebar initialized - visible');
-        }
-        
-        // Initialize theme from localStorage
-        function initTheme() {
-            const theme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', theme);
-            updateThemeIcon(theme);
-        }
-        
-        function updateThemeIcon(theme) {
-            const icon = document.querySelector('#themeToggleBtn i');
-            if (icon) {
-                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-            }
-        }
-        
-        // Set active link based on current page
-        function setActiveLink() {
-            const currentPage = window.location.pathname.split('/').pop() || 'dashboard.php';
+        // Dark Mode Toggle Function
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
             
-            document.querySelectorAll('.sidebar-link').forEach(link => {
-                link.classList.remove('active');
-                const href = link.getAttribute('href');
-                
-                if (href && href.includes(currentPage)) {
-                    link.classList.add('active');
-                    
-                    // Expand parent menu if submenu item is active
-                    const submenu = link.closest('.sidebar-submenu');
-                    if (submenu) {
-                        submenu.classList.add('active');
-                        const parent = submenu.previousElementSibling;
-                        if (parent) {
-                            parent.classList.add('collapsed');
-                        }
-                    }
-                }
-            });
+            // Save preference to localStorage
+            const isDarkMode = html.classList.contains('dark');
+            localStorage.setItem('darkMode', isDarkMode);
         }
-        
-        // Theme toggle functionality
-        document.getElementById('themeToggleBtn').addEventListener('click', function() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+        // Initialize dark mode on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const darkModePreference = localStorage.getItem('darkMode');
+            const html = document.documentElement;
             
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-        });
-        
-        // Initialize theme on page load
-        initTheme();
-        initSidebar();
-        
-        // User dropdown menu toggle
-        const userInfoBtn = document.getElementById('userInfoBtn');
-        const userDropdownMenu = document.getElementById('userDropdownMenu');
-        
-        if (userInfoBtn) {
-            userInfoBtn.addEventListener('click', () => {
-                userDropdownMenu.classList.toggle('active');
-            });
-        }
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.user-dropdown')) {
-                userDropdownMenu.classList.remove('active');
+            if (darkModePreference === 'true' || (!darkModePreference && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                html.classList.add('dark');
             }
         });
-        
-        // Logout functionality
-        document.getElementById('logoutBtn').addEventListener('click', function() {
-            if (confirm('Are you sure you want to logout?')) {
-                const formData = new FormData();
-                formData.append('action', 'logout');
-                
-                fetch('../../app/controllers/AuthController.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = '../../auth/login.php';
-                    }
-                })
-                .catch(error => console.error('Logout error:', error));
-            }
-        });
-        
-        // ============================================================================
-        // SIDEBAR DROPDOWN TOGGLE FUNCTIONALITY
-        // ============================================================================
-        const sidebarLinks = document.querySelectorAll('.sidebar-link[data-toggle]');
-        
-        sidebarLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const submenu = this.nextElementSibling;
-                const isActive = submenu?.classList.contains('active');
-                
-                // Close all other submenus
-                document.querySelectorAll('.sidebar-submenu').forEach(menu => {
-                    menu.classList.remove('active');
-                });
-                document.querySelectorAll('.sidebar-link[data-toggle]').forEach(l => {
-                    l.classList.remove('collapsed');
-                });
-                
-                // Toggle current submenu
-                if (submenu && !isActive) {
-                    submenu.classList.add('active');
-                    this.classList.add('collapsed');
-                }
-            });
-        });
-        
-        // ============================================================================
-        // HAMBURGER BUTTON TOGGLE - WITH ACTIVE STATE
-        // ============================================================================
-        const hamburgerBtn = document.querySelector('.hamburger-btn');
-        const sidebar = document.querySelector('.sidebar');
-        const overlay = document.querySelector('.overlay');
-        
-        if (hamburgerBtn && sidebar) {
-            hamburgerBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                if (sidebar.classList.contains('active')) {
-                    // Hide sidebar
-                    sidebar.classList.remove('active');
-                    sidebar.style.transform = 'translateX(-100%)';
-                    hamburgerBtn.classList.remove('active');
-                    if (overlay) overlay.style.display = 'none';
+
+        // Logout Function
+        function logout() {
+            // Send logout request to AuthController
+            fetch('../app/controllers/AuthController.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=logout'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirect to login page with success notification
+                    window.location.href = '../auth/login.php?logout=success';
                 } else {
-                    // Show sidebar
-                    sidebar.classList.add('active');
-                    sidebar.style.transform = 'translateX(0)';
-                    hamburgerBtn.classList.add('active');
-                    if (overlay) overlay.style.display = 'block';
+                    alert('Logout failed: ' + (data.message || 'Unknown error'));
                 }
-                
-                return false;
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+                // Still redirect even if there's an error
+                window.location.href = '../auth/login.php?logout=success';
             });
         }
-        
-        // Close sidebar when clicking overlay
-        if (overlay) {
-            overlay.addEventListener('click', function() {
-                if (sidebar.classList.contains('active')) {
-                    sidebar.classList.remove('active');
-                    sidebar.style.transform = 'translateX(-100%)';
-                    hamburgerBtn.classList.remove('active');
-                    overlay.style.display = 'none';
-                }
-            });
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
         }
-        
-        // Close sidebar on small screen when link clicked
-        document.querySelectorAll('.sidebar-submenu-link').forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth < 768) {
-                    sidebar.classList.remove('active');
-                    sidebar.style.transform = 'translateX(-100%)';
-                    hamburgerBtn.classList.remove('active');
-                    if (overlay) overlay.style.display = 'none';
-                }
-            });
-        });
-        
-        // ============================================================================
-        // CHART.JS INITIALIZATION
-        // ============================================================================
-        const isDarkMode = localStorage.getItem('theme') === 'dark';
-        const chartTextColor = isDarkMode ? '#e5e7eb' : '#374151';
-        const chartGridColor = isDarkMode ? '#374151' : '#e5e7eb';
-        
-        // Document Status Chart
-        const docStatusCtx = document.getElementById('docStatusChart');
-        if (docStatusCtx) {
-            new Chart(docStatusCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Draft', 'In Committee', 'Approved', 'Rejected'],
-                    datasets: [{
-                        data: [<?php echo $doc_status['draft'] . ', ' . $doc_status['in_committee'] . ', ' . $doc_status['approved'] . ', ' . $doc_status['rejected']; ?>],
-                        backgroundColor: ['#3498db', '#f39c12', '#2ecc71', '#e74c3c'],
-                        borderColor: isDarkMode ? '#1f2937' : '#ffffff',
-                        borderWidth: 2,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
-            });
+
+        function toggleModule(button) {
+            const submenu = button.nextElementSibling;
+            const icon = button.querySelector('i:last-child');
+            
+            submenu.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
         }
-        
-        // Meeting Trends Chart
-        const meetingTrendsCtx = document.getElementById('meetingTrendsChart');
-        if (meetingTrendsCtx) {
-            new Chart(meetingTrendsCtx, {
-                type: 'line',
-                data: {
-                    labels: [<?php echo "'" . implode("', '", array_keys($monthly_meetings)) . "'"; ?>],
-                    datasets: [{
-                        label: 'Meetings',
-                        data: [<?php echo implode(', ', array_values($monthly_meetings)); ?>],
-                        borderColor: '#3498db',
-                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#3498db',
-                        pointBorderColor: isDarkMode ? '#1f2937' : '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 5,
-                        pointHoverRadius: 7
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: chartGridColor,
-                                drawBorder: false
-                            },
-                            ticks: {
-                                color: chartTextColor
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false,
-                                drawBorder: false
-                            },
-                            ticks: {
-                                color: chartTextColor
-                            }
-                        }
-                    }
-                }
-            });
-        }
-        
-        // Referral Status Chart
-        const referralCtx = document.getElementById('referralChart');
-        if (referralCtx) {
-            new Chart(referralCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Incoming', 'Outgoing', 'Pending'],
-                    datasets: [{
-                        label: 'Referrals',
-                        data: [<?php echo $referral_stats['incoming'] . ', ' . $referral_stats['outgoing'] . ', ' . $referral_stats['pending']; ?>],
-                        backgroundColor: ['#9b59b6', '#1abc9c', '#e67e22'],
-                        borderRadius: 8,
-                        borderSkipped: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: chartGridColor,
-                                drawBorder: false
-                            },
-                            ticks: {
-                                color: chartTextColor
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false,
-                                drawBorder: false
-                            },
-                            ticks: {
-                                color: chartTextColor
-                            }
-                        }
-                    }
-                }
-            });
-        }
-        
-        // Task Status Chart
-        const taskStatusCtx = document.getElementById('taskStatusChart');
-        if (taskStatusCtx) {
-            new Chart(taskStatusCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Completed', 'In Progress', 'Pending'],
-                    datasets: [{
-                        data: [<?php echo $task_stats['completed'] . ', ' . $task_stats['in_progress'] . ', ' . $task_stats['pending']; ?>],
-                        backgroundColor: ['#27ae60', '#f39c12', '#95a5a6'],
-                        borderColor: isDarkMode ? '#1f2937' : '#ffffff',
-                        borderWidth: 2,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
+
+        // Close sidebar when clicking a link on mobile
+        if (window.innerWidth < 768) {
+            document.querySelectorAll('.submenu a').forEach(link => {
+                link.addEventListener('click', () => {
+                    document.getElementById('sidebar').classList.add('-translate-x-full');
+                    document.getElementById('sidebarOverlay').classList.add('hidden');
+                });
             });
         }
     </script>
 </body>
 </html>
-<?php $conn->close(); ?>

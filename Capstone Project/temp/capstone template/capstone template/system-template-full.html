@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LRMS - Legislative Records Management System | City of Valenzuela</title>
+    <link rel="icon" type="image/png" href="https://valenzuela.gov.ph/wp-content/uploads/2024/06/cropped-VLogo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+    <!-- Sidebar Overlay for Mobile -->
+    <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden" onclick="toggleSidebar()"></div>
+    
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar w-64 bg-gradient-to-b from-red-800 to-red-900 text-white flex-shrink-0 flex flex-col fixed md:relative h-full z-40 transform -translate-x-full md:translate-x-0 transition-all duration-300 animate-slide-in-left">
+            <!-- Logo Section -->
+            <div class="p-6 border-b border-red-700 animate-fade-in">
+                <a href="#" onclick="showSection('dashboard')" class="flex items-center space-x-3 hover:opacity-80 transition-all duration-300 transform hover:scale-105 group">
+                    <div class="bg-white rounded-full shadow-md flex items-center justify-center transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-6" style="width: 70px; height: 70px;">
+                        <img src="https://valenzuela.gov.ph/wp-content/uploads/2024/06/cropped-VLogo.png" alt="Valenzuela Logo" style="width: 120%; height: 120%;" class="object-cover">
+                    </div>
+                    <div class="transform transition-all duration-300 group-hover:translate-x-1">
+                        <h1 class="text-lg font-bold">LRMS</h1>
+                        <p class="text-xs text-red-200">City of Valenzuela</p>
+                    </div>
+                </a>
+            </div>
+            
+            <!-- Navigation Menu -->
+            <nav class="flex-1 overflow-y-auto py-4">
+                <div class="px-4 space-y-1">
+                    <!-- Dashboard -->
+                    <a href="#" onclick="showSection('dashboard')" class="nav-item active" data-section="dashboard">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    
+                    <!-- Documents Section -->
+                    <div class="pt-4 pb-2">
+                        <p class="px-4 text-xs font-semibold text-red-300 uppercase tracking-wider">Documents</p>
+                    </div>
+                    
+                    <a href="#" onclick="showSection('documents')" class="nav-item" data-section="documents">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span>All Documents</span>
+                    </a>
+                    
+                    <a href="#" onclick="showSection('search')" class="nav-item" data-section="search">
+                        <i class="bi bi-search"></i>
+                        <span>Advanced Search</span>
+                    </a>
+                    
+                    <!-- Analytics Section -->
+                    <div class="pt-4 pb-2">
+                        <p class="px-4 text-xs font-semibold text-red-300 uppercase tracking-wider">Analytics</p>
+                    </div>
+                    
+                    <a href="#" onclick="showSection('analytics')" class="nav-item" data-section="analytics">
+                        <i class="bi bi-graph-up"></i>
+                        <span>Reports & Analytics</span>
+                    </a>
+                    
+                    <!-- Administration Section -->
+                    <div class="pt-4 pb-2">
+                        <p class="px-4 text-xs font-semibold text-red-300 uppercase tracking-wider">Administration</p>
+                    </div>
+                    
+                    <a href="#" onclick="showSection('users')" class="nav-item" data-section="users">
+                        <i class="bi bi-people"></i>
+                        <span>User Management</span>
+                    </a>
+                    
+                    <a href="#" onclick="showSection('audit')" class="nav-item" data-section="audit">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Audit Logs</span>
+                    </a>
+                    
+                    <a href="#" onclick="showSection('profile')" class="nav-item" data-section="profile">
+                        <i class="bi bi-person-circle"></i>
+                        <span>My Profile</span>
+                    </a>
+                </div>
+            </nav>
+            
+            <!-- User Info -->
+            <div class="p-4 border-t border-red-700">
+                <div class="flex items-center space-x-3">
+                    <div id="sidebar-profile-pic" class="bg-red-600 rounded-full w-10 h-10 flex items-center justify-center">
+                        <i class="bi bi-person-fill text-white"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold">Admin User</p>
+                        <p class="text-xs text-red-200">Administrator</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 z-10">
+                <div class="px-6 py-4 flex items-center justify-between">
+                    <!-- Mobile Menu Button -->
+                    <button id="mobile-menu-btn" onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-lg transition mr-4">
+                        <i class="bi bi-list text-gray-600 text-2xl"></i>
+                    </button>
+                    
+                    <!-- Search Bar -->
+                    <div class="flex-1 max-w-2xl">
+                        <div class="relative group">
+                            <input type="text" 
+                                   id="quick-search"
+                                   placeholder="Quick search documents... (Ctrl+K)"
+                                   class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200">
+                            <i class="bi bi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 transition-all group-focus-within:text-red-600 group-focus-within:scale-110"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Section -->
+                    <div class="flex items-center space-x-4 ml-6">
+                        <!-- Dark Mode Toggle -->
+                        <button id="theme-toggle" onclick="toggleTheme()" class="p-2 hover:bg-gray-100 rounded-lg transition" title="Toggle dark mode">
+                            <i class="bi bi-moon text-gray-600 text-xl"></i>
+                        </button>
+                        
+                        <!-- Notifications -->
+                        <div class="relative">
+                            <button id="notifications-btn" onclick="toggleNotifications()" class="relative p-2 hover:bg-gray-100 rounded-lg transition">
+                                <i class="bi bi-bell text-gray-600 text-xl"></i>
+                                <span id="notification-badge" class="absolute top-1 right-1 w-2 h-2 bg-red-600 rounded-full"></span>
+                            </button>
+                            
+                            <!-- Notifications Dropdown -->
+                            <div id="notifications-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fade-in-up">
+                                <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                                    <h3 class="font-semibold text-gray-900">Notifications</h3>
+                                    <button onclick="clearAllNotifications()" class="text-xs text-red-600 hover:text-red-700">Clear All</button>
+                                </div>
+                                <div class="max-h-96 overflow-y-auto" id="notifications-list">
+                                    <!-- Notifications will be dynamically added here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- User Profile -->
+                        <div class="relative">
+                            <button id="profile-btn" onclick="toggleProfileMenu()" class="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg transition">
+                                <div id="profile-menu" class="bg-red-600 rounded-full w-8 h-8 flex items-center justify-center text-white">
+                                    <i class="bi bi-person-fill"></i>
+                                </div>
+                                <div class="hidden md:block text-left">
+                                    <p class="text-sm font-medium text-gray-800">Admin User</p>
+                                    <p class="text-xs text-gray-500">Administrator</p>
+                                </div>
+                                <i class="bi bi-chevron-down text-gray-600 text-xs"></i>
+                            </button>
+                            
+                            <!-- Profile Dropdown -->
+                            <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fade-in-up">
+                                <div class="p-4 border-b border-gray-200">
+                                    <p class="font-semibold text-gray-900">Admin User</p>
+                                    <p class="text-sm text-gray-500">admin@lgu.gov.ph</p>
+                                </div>
+                                <div class="p-2">
+                                    <a href="#" onclick="showSection('profile')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition">
+                                        <i class="bi bi-person mr-2"></i>My Profile
+                                    </a>
+                                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition">
+                                        <i class="bi bi-gear mr-2"></i>Settings
+                                    </a>
+                                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition">
+                                        <i class="bi bi-question-circle mr-2"></i>Help
+                                    </a>
+                                    <hr class="my-2">
+                                    <a href="#" onclick="logout()" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition">
+                                        <i class="bi bi-box-arrow-right mr-2"></i>Logout
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-y-auto bg-gray-50 p-6">
+                <!-- Content sections will be loaded here -->
+                <div id="content-area"></div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Upload Document Modal -->
+    <div id="upload-modal" class="modal">
+        <div class="modal-content p-6 max-w-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Upload Document</h3>
+                <button onclick="closeModal('upload-modal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="bi bi-x-lg text-xl"></i>
+                </button>
+            </div>
+            <form id="upload-form" onsubmit="handleDocumentUpload(event)">
+                <div class="space-y-4">
+                    <!-- File Upload Area -->
+                    <div id="dropzone" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-red-500 transition cursor-pointer">
+                        <i class="bi bi-cloud-upload text-5xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-600 mb-2">Drag and drop your file here or click to browse</p>
+                        <input type="file" id="file-input" class="hidden" accept=".pdf,.doc,.docx" onchange="handleFileSelect(event)">
+                        <button type="button" onclick="document.getElementById('file-input').click()" class="btn-outline mt-2">
+                            <i class="bi bi-folder2-open mr-2"></i>Select File
+                        </button>
+                        <p id="file-name" class="text-sm text-gray-500 mt-2"></p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Reference Number</label>
+                            <input type="text" name="reference" class="input-field" placeholder="ORD-2025-001" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Document Type</label>
+                            <select name="type" class="input-field" required>
+                                <option value="">Select type</option>
+                                <option value="ordinance">Ordinance</option>
+                                <option value="resolution">Resolution</option>
+                                <option value="session">Session Minutes</option>
+                                <option value="agenda">Agenda</option>
+                                <option value="committee">Committee Report</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                        <input type="text" name="title" class="input-field" placeholder="Enter document title" required>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Document Date</label>
+                            <input type="date" name="date" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                            <select name="status" class="input-field" required>
+                                <option value="draft">Draft</option>
+                                <option value="pending">Pending Review</option>
+                                <option value="approved">Approved</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                        <textarea name="description" class="input-field" rows="3" placeholder="Enter document description"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tags (comma separated)</label>
+                        <input type="text" name="tags" class="input-field" placeholder="budget, finance, 2025">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('upload-modal')" class="btn-outline">Cancel</button>
+                    <button type="submit" class="btn-primary">
+                        <i class="bi bi-upload mr-2"></i>Upload Document
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Document View Modal -->
+    <div id="view-modal" class="modal">
+        <div class="modal-content p-6 max-w-4xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Document Details</h3>
+                <button onclick="closeModal('view-modal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="bi bi-x-lg text-xl"></i>
+                </button>
+            </div>
+            <div id="document-details"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="app-features.js"></script>
+</body>
+</html>

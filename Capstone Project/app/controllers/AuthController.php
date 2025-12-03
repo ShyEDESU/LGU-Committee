@@ -43,14 +43,50 @@ class AuthController {
             ];
         }
         
+        // Initialize login attempts tracking if not set
+        if (!isset($_SESSION['login_attempts'])) {
+            $_SESSION['login_attempts'] = 0;
+            $_SESSION['first_attempt_time'] = null;
+        }
+        
+        // Check if account is currently locked
+        if ($_SESSION['login_attempts'] >= 5) {
+            if ($_SESSION['first_attempt_time'] === null) {
+                $_SESSION['first_attempt_time'] = time();
+            }
+            
+            $elapsed_time = time() - $_SESSION['first_attempt_time'];
+            $lockout_duration = 15 * 60; // 15 minutes
+            
+            if ($elapsed_time < $lockout_duration) {
+                // Still locked
+                return [
+                    'success' => false,
+                    'message' => 'Account is temporarily locked due to too many failed login attempts. Please try again later.',
+                    'locked' => true
+                ];
+            } else {
+                // Lockout period expired, reset attempts
+                $_SESSION['login_attempts'] = 0;
+                $_SESSION['first_attempt_time'] = null;
+            }
+        }
+        
         // Authenticate
         if ($this->sessionManager->authenticate($email, $password)) {
+            // Reset attempts on successful login
+            $_SESSION['login_attempts'] = 0;
+            $_SESSION['first_attempt_time'] = null;
+            
             return [
                 'success' => true,
                 'message' => 'Login successful',
                 'redirect' => '/public/dashboard.php'
             ];
         }
+        
+        // Increment failed attempts
+        $_SESSION['login_attempts']++;
         
         return [
             'success' => false,
@@ -158,6 +194,9 @@ class AuthController {
 
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Set JSON response header
+    header('Content-Type: application/json');
+    
     $action = isset($_POST['action']) ? $_POST['action'] : '';
     $authController = new AuthController();
     
