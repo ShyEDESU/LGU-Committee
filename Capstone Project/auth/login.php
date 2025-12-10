@@ -23,8 +23,8 @@ if ($_SESSION['login_attempts'] >= 5) {
     }
     
     $elapsed_time = time() - $_SESSION['first_attempt_time'];
-    $lockout_duration = 15 * 60; // 15 minutes
-    
+    $lockout_duration = 10; // 10 seconds for testing
+
     if ($elapsed_time < $lockout_duration) {
         $is_locked = true;
         $remaining_time = $lockout_duration - $elapsed_time;

@@ -56,7 +56,7 @@ class AuthController {
             }
             
             $elapsed_time = time() - $_SESSION['first_attempt_time'];
-            $lockout_duration = 15 * 60; // 15 minutes
+            $lockout_duration = 10; // 10 seconds for testing
             
             if ($elapsed_time < $lockout_duration) {
                 // Still locked

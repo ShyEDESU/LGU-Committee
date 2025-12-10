@@ -1,4 +1,27 @@
-<?php session_start(); ?>
+<?php
+session_start();
+require_once '../../../app/helpers/ModuleDataHelper.php';
+require_once '../../../app/helpers/ModuleDisplayHelper.php';
+
+// Module data
+$module_key = 'meetings';
+$data = ModuleDataHelper::getModuleData($module_key);
+$total_items = ModuleDataHelper::getItemCount($module_key);
+
+// Handle form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'add') {
+        ModuleDataHelper::addItem($module_key, [
+            'title' => $_POST['title'] ?? 'New Meeting',
+            'date' => $_POST['date'] ?? date('Y-m-d'),
+            'status' => $_POST['status'] ?? 'Scheduled'
+        ]);
+    } elseif ($_POST['action'] === 'delete') {
+        ModuleDataHelper::deleteItem($module_key, (int)$_POST['id']);
+    }
+    $data = ModuleDataHelper::getModuleData($module_key);
+}
+?>
 <?php include '../../../public/includes/header-sidebar.php'; ?>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -64,7 +87,7 @@
         aria-labelledby="upcoming-tab"
         class="animate-fadeIn"
     >
-        <div class="bg-red-50 border-red-200 border rounded-lg p-6">
+        <div class="bg-red-50 dark:bg-gray-800 border-red-200 dark:border-gray-700 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
                     <i class="bi bi-calendar text-xl"></i>
@@ -142,7 +165,7 @@
         aria-labelledby="past-meetings-tab"
         class="animate-fadeIn hidden"
     >
-        <div class="bg-red-50 border-red-200 border rounded-lg p-6">
+        <div class="bg-red-50 dark:bg-gray-800 border-red-200 dark:border-gray-700 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
                     <i class="bi bi-calendar text-xl"></i>
@@ -220,7 +243,7 @@
         aria-labelledby="minutes-tab"
         class="animate-fadeIn hidden"
     >
-        <div class="bg-red-50 border-red-200 border rounded-lg p-6">
+        <div class="bg-red-50 dark:bg-gray-800 border-red-200 dark:border-gray-700 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
                     <i class="bi bi-calendar text-xl"></i>
@@ -298,7 +321,7 @@
         aria-labelledby="recordings-tab"
         class="animate-fadeIn hidden"
     >
-        <div class="bg-red-50 border-red-200 border rounded-lg p-6">
+        <div class="bg-red-50 dark:bg-gray-800 border-red-200 dark:border-gray-700 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
                     <i class="bi bi-calendar text-xl"></i>

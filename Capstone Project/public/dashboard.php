@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once '../config/database.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
@@ -10,8 +11,22 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
 
 // Get user info from session
 $userName = $_SESSION['user_name'] ?? 'User';
-$userEmail = $_SESSION['user_email'] ?? 'user@example.com';
 $userRole = $_SESSION['user_role'] ?? 'User';
+$userId = $_SESSION['user_id'];
+
+// Fetch user email from database
+$userEmail = 'user@example.com';
+if ($userId) {
+    $query = "SELECT email FROM users WHERE user_id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        $userEmail = $row['email'];
+    }
+    $stmt->close();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -268,25 +283,25 @@ $userRole = $_SESSION['user_role'] ?? 'User';
 
                                 <!-- Profile Options -->
                                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-                                    <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-300">
+                                    <a href="pages/user-management/index.php" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-300">
                                         <i class="fas fa-user-circle text-cms-red"></i>
                                         <div>
-                                            <p class="font-semibold text-sm">View Profile</p>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">See your profile details</p>
+                                            <p class="font-semibold text-sm">My Profile</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">View and manage your profile</p>
                                         </div>
                                     </a>
-                                    <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-300">
-                                        <i class="fas fa-edit text-cms-red"></i>
+                                    <a href="pages/user-management/index.php?tab=settings" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-300">
+                                        <i class="fas fa-cog text-cms-red"></i>
                                         <div>
-                                            <p class="font-semibold text-sm">Edit Profile</p>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">Update your information</p>
+                                            <p class="font-semibold text-sm">Settings</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Manage account settings</p>
                                         </div>
                                     </a>
-                                    <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-300">
-                                        <i class="fas fa-lock text-cms-red"></i>
+                                    <a href="pages/user-management/index.php?tab=help" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-300">
+                                        <i class="fas fa-question-circle text-cms-red"></i>
                                         <div>
-                                            <p class="font-semibold text-sm">Change Password</p>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">Update your password</p>
+                                            <p class="font-semibold text-sm">Help & Support</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Get help and support</p>
                                         </div>
                                     </a>
                                 </div>

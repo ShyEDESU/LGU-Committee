@@ -1,4 +1,27 @@
-<?php session_start(); ?>
+<?php
+session_start();
+require_once '../../../app/helpers/ModuleDataHelper.php';
+require_once '../../../app/helpers/ModuleDisplayHelper.php';
+
+// Module data
+$module_key = 'committees';
+$data = ModuleDataHelper::getModuleData($module_key);
+$total_items = ModuleDataHelper::getItemCount($module_key);
+
+// Handle form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'add') {
+        ModuleDataHelper::addItem($module_key, [
+            'name' => $_POST['name'] ?? 'New Committee',
+            'type' => $_POST['type'] ?? 'Standing',
+            'status' => $_POST['status'] ?? 'Active'
+        ]);
+    } elseif ($_POST['action'] === 'delete') {
+        ModuleDataHelper::deleteItem($module_key, (int)$_POST['id']);
+    }
+    $data = ModuleDataHelper::getModuleData($module_key);
+}
+?>
 <?php include '../../../public/includes/header-sidebar.php'; ?>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -55,58 +78,38 @@
         aria-labelledby="all-committees-tab"
         class="animate-fadeIn"
     >
-        <div class="bg-red-50 border-red-200 border rounded-lg p-6">
+        <div class="bg-red-50 dark:bg-gray-800 border-red-200 dark:border-gray-700 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-people text-xl"></i>
+                    <i class="bi bi-building text-xl"></i>
                 </div>
                 <div>
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white">All Committees</h2>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Total Items: <strong><?php echo $total_items; ?></strong></p>
                 </div>
             </div>
 
-            <!-- Coming Soon Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 1</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 2</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 3</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Data Grid -->
+            <?php ModuleDisplayHelper::displayItemsGrid(
+                $data,
+                'bi-building',
+                [
+                    'name' => 'Name',
+                    'type' => 'Type',
+                    'members' => 'Members',
+                    'status' => 'Status'
+                ]
+            ); ?>
+
+            <!-- Add New Item Form -->
+            <div class="mt-8">
+                <?php ModuleDisplayHelper::displayAddForm([
+                    'name' => 'text',
+                    'type' => 'select',
+                    'members' => 'number',
+                    'status' => 'select'
+                ]); ?>
+            </div>
             </div>
 
             <!-- Action Buttons -->
@@ -133,7 +136,7 @@
         aria-labelledby="active-tab"
         class="animate-fadeIn hidden"
     >
-        <div class="bg-red-50 border-red-200 border rounded-lg p-6">
+        <div class="bg-red-50 dark:bg-gray-800 border-red-200 dark:border-gray-700 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
                     <i class="bi bi-people text-xl"></i>
@@ -211,7 +214,7 @@
         aria-labelledby="inactive-tab"
         class="animate-fadeIn hidden"
     >
-        <div class="bg-red-50 border-red-200 border rounded-lg p-6">
+        <div class="bg-red-50 dark:bg-gray-800 border-red-200 dark:border-gray-700 border rounded-lg p-6">
             <div class="flex items-center gap-4 mb-6">
                 <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
                     <i class="bi bi-people text-xl"></i>
