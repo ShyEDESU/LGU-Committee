@@ -1,485 +1,94 @@
 <?php
 session_start();
-require_once '../../../app/helpers/ModuleDataHelper.php';
-require_once '../../../app/helpers/ModuleDisplayHelper.php';
-
-// Module data
-$module_key = 'agenda-builder';
-$data = ModuleDataHelper::getModuleData($module_key);
-$total_items = ModuleDataHelper::getItemCount($module_key);
-
-// Handle form submissions
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'add') {
-        ModuleDataHelper::addItem($module_key, [
-            'title' => $_POST['title'] ?? 'New Agenda',
-            'status' => $_POST['status'] ?? 'Draft',
-            'created' => date('Y-m-d')
-        ]);
-    } elseif ($_POST['action'] === 'delete') {
-        ModuleDataHelper::deleteItem($module_key, (int)$_POST['id']);
-    }
-    $data = ModuleDataHelper::getModuleData($module_key);
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ../../../auth/login.php');
+    exit();
 }
+
+$userName = $_SESSION['user_name'] ?? 'User';
+$pageTitle = 'Agendas & Deliberation';
+include '../../includes/header.php';
+
+// Hardcoded agendas data
+$agendas = [
+    ['id' => 1, 'meeting' => 'Finance Committee - Budget Review', 'date' => '2024-12-15', 'items' => 5, 'status' => 'Draft'],
+    ['id' => 2, 'meeting' => 'Health Committee - Healthcare Facilities', 'date' => '2024-12-14', 'items' => 3, 'status' => 'Final'],
+    ['id' => 3, 'meeting' => 'Education Committee - School Infrastructure', 'date' => '2024-12-13', 'items' => 4, 'status' => 'Approved'],
+    ['id' => 4, 'meeting' => 'Infrastructure Committee - Road Maintenance', 'date' => '2024-12-12', 'items' => 6, 'status' => 'Approved'],
+    ['id' => 5, 'meeting' => 'Public Safety Committee - Disaster Prep', 'date' => '2024-12-11', 'items' => 4, 'status' => 'Approved'],
+    ['id' => 6, 'meeting' => 'Finance Committee - Revenue Enhancement', 'date' => '2024-12-18', 'items' => 5, 'status' => 'Draft'],
+];
 ?>
-<?php include '../../../public/includes/header-sidebar.php'; ?>
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Module Header -->
-    <div class="mb-8">
-        <div class="flex items-center gap-3 mb-4">
-            <div class="bg-red-50 border-red-200 border-2 rounded-lg p-3">
-                <i class="bi bi-list-check text-red-700 text-2xl"></i>
-            </div>
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Agenda Builder</h1>
-                <p class="text-gray-600 dark:text-gray-400 mt-1">Manage and view all agenda builder in your system.</p>
-            </div>
+<div class="mb-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Agendas & Deliberation</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Build and manage meeting agendas</p>
         </div>
+        <a href="create.php" class="px-4 py-2 bg-cms-red hover:bg-cms-dark text-white rounded-lg"><i class="bi bi-plus-lg"></i> Create Agenda</a>
     </div>
-
-    <!-- Tabs Navigation -->
-    <div class="border-b border-gray-200 dark:border-gray-700 mb-8 sticky top-0 bg-white dark:bg-gray-900 z-10">
-        <nav class="flex gap-4 overflow-x-auto" role="tablist">
-            <button
-                role="tab"
-                id="create-agenda-tab"
-                aria-selected="true"
-                onclick="switchTab('create-agenda', 'Agenda Builder')"
-                class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-cms-red border-b-2 border-cms-red"
-            >
-                Create Agenda
-            </button>
-            <button
-                role="tab"
-                id="agenda-items-tab"
-                aria-selected="false"
-                onclick="switchTab('agenda-items', 'Agenda Builder')"
-                class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
-            >
-                Agenda Items
-            </button>
-            <button
-                role="tab"
-                id="templates-tab"
-                aria-selected="false"
-                onclick="switchTab('templates', 'Agenda Builder')"
-                class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
-            >
-                Templates
-            </button>
-            <button
-                role="tab"
-                id="distribution-tab"
-                aria-selected="false"
-                onclick="switchTab('distribution', 'Agenda Builder')"
-                class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
-            >
-                Distribution
-            </button>
-            <button
-                role="tab"
-                id="timing-tab"
-                aria-selected="false"
-                onclick="switchTab('timing', 'Agenda Builder')"
-                class="px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
-            >
-                Timing
-            </button>
-        </nav>
-    </div>
-
-    <!-- Tab Contents -->
-    <div
-        id="create-agenda-content"
-        role="tabpanel"
-        aria-labelledby="create-agenda-tab"
-        class="animate-fadeIn"
-    >
-        <div class="bg-red-50 dark:bg-gray-800 border-red-200 dark:border-gray-700 border rounded-lg p-6">
-            <div class="flex items-center gap-4 mb-6">
-                <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-list-check text-xl"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Create Agenda</h2>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">Total Items: <strong><?php echo $total_items; ?></strong></p>
-                </div>
-            </div>
-
-            <!-- Data Grid -->
-            <?php ModuleDisplayHelper::displayItemsGrid(
-                $data,
-                'bi-list-check',
-                [
-                    'title' => 'Title',
-                    'status' => 'Status'
-                ]
-            ); ?>
-
-            <!-- Add New Item Form -->
-            <div class="mt-8">
-                <?php ModuleDisplayHelper::displayAddForm([
-                    'title' => 'text',
-                    'status' => 'select'
-                ]); ?>
-            </div>
-        </div>
-    </div>
-
-    <div
-        id="agenda-items-content"
-        role="tabpanel"
-        aria-labelledby="agenda-items-tab"
-        class="animate-fadeIn hidden"
-    >
-        <div class="bg-red-50 dark:bg-gray-800 border-red-200 dark:border-gray-700 border rounded-lg p-6">
-            <div class="flex items-center gap-4 mb-6">
-                <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-list-check text-xl"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Agenda Items</h2>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
-                </div>
-            </div>
-
-            <!-- Coming Soon Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 1</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 2</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 3</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap gap-3">
-                <button class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
-                    <i class="bi bi-plus-circle"></i>
-                    Add New
-                </button>
-                <button class="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
-                    <i class="bi bi-arrow-clockwise"></i>
-                    Refresh
-                </button>
-                <button class="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
-                    <i class="bi bi-download"></i>
-                    Export
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div
-        id="templates-content"
-        role="tabpanel"
-        aria-labelledby="templates-tab"
-        class="animate-fadeIn hidden"
-    >
-        <div class="bg-red-50 dark:bg-gray-800 border-red-200 dark:border-gray-700 border rounded-lg p-6">
-            <div class="flex items-center gap-4 mb-6">
-                <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-list-check text-xl"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Templates</h2>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
-                </div>
-            </div>
-
-            <!-- Coming Soon Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 1</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 2</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 3</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap gap-3">
-                <button class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
-                    <i class="bi bi-plus-circle"></i>
-                    Add New
-                </button>
-                <button class="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
-                    <i class="bi bi-arrow-clockwise"></i>
-                    Refresh
-                </button>
-                <button class="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
-                    <i class="bi bi-download"></i>
-                    Export
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div
-        id="distribution-content"
-        role="tabpanel"
-        aria-labelledby="distribution-tab"
-        class="animate-fadeIn hidden"
-    >
-        <div class="bg-red-50 dark:bg-gray-800 border-red-200 dark:border-gray-700 border rounded-lg p-6">
-            <div class="flex items-center gap-4 mb-6">
-                <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-list-check text-xl"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Distribution</h2>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
-                </div>
-            </div>
-
-            <!-- Coming Soon Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 1</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 2</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 3</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap gap-3">
-                <button class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
-                    <i class="bi bi-plus-circle"></i>
-                    Add New
-                </button>
-                <button class="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
-                    <i class="bi bi-arrow-clockwise"></i>
-                    Refresh
-                </button>
-                <button class="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
-                    <i class="bi bi-download"></i>
-                    Export
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div
-        id="timing-content"
-        role="tabpanel"
-        aria-labelledby="timing-tab"
-        class="animate-fadeIn hidden"
-    >
-        <div class="bg-red-50 dark:bg-gray-800 border-red-200 dark:border-gray-700 border rounded-lg p-6">
-            <div class="flex items-center gap-4 mb-6">
-                <div class="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3">
-                    <i class="bi bi-list-check text-xl"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Timing</h2>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">This section is ready for content implementation.</p>
-                </div>
-            </div>
-
-            <!-- Coming Soon Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 1</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 2</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="text-red-700 text-2xl">
-                                <i class="bi bi-box-seam"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white">Item 3</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Coming soon</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap gap-3">
-                <button class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
-                    <i class="bi bi-plus-circle"></i>
-                    Add New
-                </button>
-                <button class="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
-                    <i class="bi bi-arrow-clockwise"></i>
-                    Refresh
-                </button>
-                <button class="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
-                    <i class="bi bi-download"></i>
-                    Export
-                </button>
-            </div>
-        </div>
-    </div>
-
 </div>
 
-<!-- Tab Switching Script -->
-<script>
-function switchTab(tabId, moduleName) {
-    // Hide all tabs
-    document.querySelectorAll('[role="tabpanel"]').forEach(panel => {
-        panel.classList.add('hidden');
-    });
-    
-    // Show selected tab
-    const selectedPanel = document.getElementById(tabId + '-content');
-    if (selectedPanel) {
-        selectedPanel.classList.remove('hidden');
-    }
-    
-    // Update tab button states
-    document.querySelectorAll('[role="tab"]').forEach(tab => {
-        if (tab.id === tabId + '-tab') {
-            tab.classList.remove('text-gray-600', 'dark:text-gray-400', 'border-transparent');
-            tab.classList.add('text-cms-red', 'border-cms-red');
-            tab.setAttribute('aria-selected', 'true');
-        } else {
-            tab.classList.remove('text-cms-red', 'border-cms-red');
-            tab.classList.add('text-gray-600', 'dark:text-gray-400', 'border-transparent');
-            tab.setAttribute('aria-selected', 'false');
-        }
-    });
-    
-    // Save to localStorage
-    localStorage.setItem('activeTab_' + moduleName, tabId);
-}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 mb-6">
+    <div class="flex flex-wrap gap-2">
+        <a href="index.php" class="px-4 py-2 bg-cms-red text-white rounded-lg font-semibold"><i class="bi bi-list"></i> All Agendas</a>
+        <a href="items.php" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"><i class="bi bi-list-check"></i> Items</a>
+        <a href="deliberation.php" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"><i class="bi bi-chat-left-text"></i> Deliberation</a>
+        <a href="voting.php" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"><i class="bi bi-hand-thumbs-up"></i> Voting</a>
+    </div>
+</div>
 
-// Restore active tab on page load
-document.addEventListener('DOMContentLoaded', function() {
-    const moduleName = 'Agenda Builder';
-    const savedTab = localStorage.getItem('activeTab_' + moduleName);
-    if (savedTab) {
-        switchTab(savedTab, moduleName);
-    }
-});
-</script>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <p class="text-sm text-gray-600">Total Agendas</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1"><?php echo count($agendas); ?></p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <p class="text-sm text-gray-600">Draft</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+            <?php echo count(array_filter($agendas, fn($a) => $a['status'] === 'Draft')); ?>
+        </p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <p class="text-sm text-gray-600">Approved</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+            <?php echo count(array_filter($agendas, fn($a) => $a['status'] === 'Approved')); ?>
+        </p>
+    </div>
+</div>
 
-<?php include '../../../public/includes/footer.php'; ?>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+    <table class="w-full">
+        <thead class="bg-gray-50 dark:bg-gray-700">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Meeting</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Items</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            <?php foreach ($agendas as $agenda): ?>
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td class="px-6 py-4 font-semibold text-gray-900 dark:text-white"><?php echo $agenda['meeting']; ?></td>
+                <td class="px-6 py-4 text-gray-900 dark:text-white"><?php echo date('M j, Y', strtotime($agenda['date'])); ?></td>
+                <td class="px-6 py-4 text-gray-900 dark:text-white"><?php echo $agenda['items']; ?> items</td>
+                <td class="px-6 py-4">
+                    <span class="px-3 py-1 text-xs font-semibold rounded-full 
+                        <?php echo $agenda['status'] === 'Draft' ? 'bg-yellow-100 text-yellow-800' : 
+                                   ($agenda['status'] === 'Final' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'); ?>">
+                        <?php echo $agenda['status']; ?>
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <a href="view.php?id=<?php echo $agenda['id']; ?>" class="text-cms-red hover:text-cms-dark">View</a>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
+
+<?php include '../../includes/footer.php'; ?>

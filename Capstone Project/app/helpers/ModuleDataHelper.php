@@ -313,6 +313,174 @@ class ModuleDataHelper {
             'total_research' => count($_SESSION['module_data']['research'] ?? []),
         ];
     }
+
+    // ============================================
+    // NEW CORE MODULE DATA METHODS
+    // ============================================
+
+    /**
+     * Get Committee Profiles & Membership data
+     */
+    public static function getCommitteeProfiles() {
+        self::initializeModuleData();
+        return array_map(function($committee) {
+            $committee['members_count'] = rand(4, 12);
+            $committee['description'] = 'Committee responsible for overseeing '.$committee['name'].' matters';
+            return $committee;
+        }, $_SESSION['module_data']['committees'] ?? []);
+    }
+
+    /**
+     * Get Members data
+     */
+    public static function getMembers() {
+        self::initializeModuleData();
+        return array_map(function($member) {
+            $member['position'] = ['Chairperson', 'Vice-Chair', 'Member', 'Secretary'][rand(0, 3)];
+            return $member;
+        }, $_SESSION['module_data']['members'] ?? []);
+    }
+
+    /**
+     * Get Committee Meetings data
+     */
+    public static function getMeetings() {
+        self::initializeModuleData();
+        $meetings = $_SESSION['module_data']['meetings'] ?? [];
+        return array_map(function($meeting) {
+            $meeting['committee'] = ['Finance Committee', 'Public Safety', 'Parks & Recreation'][rand(0, 2)];
+            return $meeting;
+        }, $meetings);
+    }
+
+    /**
+     * Get Agendas data
+     */
+    public static function getAgendas() {
+        self::initializeModuleData();
+        return array_map(function($agenda) {
+            $agenda['committee'] = ['Finance Committee', 'Public Safety'][rand(0, 1)];
+            $agenda['items_count'] = rand(3, 8);
+            return $agenda;
+        }, $_SESSION['module_data']['agendas'] ?? []);
+    }
+
+    /**
+     * Get Referrals data for Referral Tracking module
+     */
+    public static function getReferrals() {
+        self::initializeModuleData();
+        return [
+            [
+                'id' => 1,
+                'reference_number' => 'REF-2025-001',
+                'subject' => 'Budget Allocation Request for Q1 2025',
+                'from_department' => 'Finance Department',
+                'assigned_to' => 'John Smith',
+                'status' => 'In Review',
+                'deadline' => '2025-12-20',
+                'created' => '2025-12-01'
+            ],
+            [
+                'id' => 2,
+                'reference_number' => 'REF-2025-002',
+                'subject' => 'Policy Amendment - Safety Protocols Update',
+                'from_department' => 'Legal Affairs',
+                'assigned_to' => 'Robert Brown',
+                'status' => 'Pending',
+                'deadline' => '2025-12-18',
+                'created' => '2025-12-03'
+            ],
+            [
+                'id' => 3,
+                'reference_number' => 'REF-2025-003',
+                'subject' => 'Infrastructure Development Proposal',
+                'from_department' => 'Public Works',
+                'assigned_to' => 'Mary Johnson',
+                'status' => 'In Review',
+                'deadline' => '2025-12-25',
+                'created' => '2025-12-05'
+            ],
+        ];
+    }
+
+    /**
+     * Get Action Items data
+     */
+    public static function getActionItems() {
+        self::initializeModuleData();
+        return [
+            [
+                'id' => 1,
+                'title' => 'Review and Approve Budget Proposal',
+                'description' => 'Complete financial review of the proposed 2025 Q1 budget',
+                'assigned_to' => 'John Smith',
+                'priority' => 'High',
+                'due_date' => '2025-12-20',
+                'progress' => 60,
+                'status' => 'In Progress',
+                'created' => '2025-12-01'
+            ],
+            [
+                'id' => 2,
+                'title' => 'Update Safety Compliance Documentation',
+                'description' => 'Ensure all safety protocols are current and properly documented',
+                'assigned_to' => 'Robert Brown',
+                'priority' => 'High',
+                'due_date' => '2025-12-18',
+                'progress' => 30,
+                'status' => 'In Progress',
+                'created' => '2025-12-02'
+            ],
+            [
+                'id' => 3,
+                'title' => 'Prepare Monthly Committee Report',
+                'description' => 'Compile and prepare December activity report for publication',
+                'assigned_to' => 'Mary Johnson',
+                'priority' => 'Medium',
+                'due_date' => '2025-12-30',
+                'progress' => 80,
+                'status' => 'In Progress',
+                'created' => '2025-12-05'
+            ],
+        ];
+    }
+
+    /**
+     * Get Committee Reports data
+     */
+    public static function getReports() {
+        self::initializeModuleData();
+        return [
+            [
+                'id' => 1,
+                'title' => 'Q4 2025 Financial Summary Report',
+                'content' => 'Comprehensive overview of committee finances and budget utilization for Q4 2025, including detailed breakdown of expenses and recommendations.',
+                'committee' => 'Finance Committee',
+                'created_date' => '2025-12-10',
+                'status' => 'Draft',
+                'author' => 'John Smith'
+            ],
+            [
+                'id' => 2,
+                'title' => 'Safety and Compliance Review Report',
+                'content' => 'Annual review of all safety protocols, compliance measures, and recommendations for improvements in the coming year.',
+                'committee' => 'Public Safety',
+                'created_date' => '2025-12-08',
+                'status' => 'Draft',
+                'author' => 'Robert Brown'
+            ],
+            [
+                'id' => 3,
+                'title' => 'Committee Performance and Achievements Report',
+                'content' => 'Detailed report on committee activities, achievements, and impact during the reporting period with future recommendations.',
+                'committee' => 'Finance Committee',
+                'created_date' => '2025-12-05',
+                'status' => 'Draft',
+                'author' => 'Mary Johnson'
+            ],
+        ];
+    }
 }
 
 // Initialize module data on every page load
