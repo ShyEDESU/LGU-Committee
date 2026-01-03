@@ -33,7 +33,7 @@ include '../../includes/header.php';
         <a href="progress.php" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
             <i class="bi bi-graph-up"></i> Progress
         </a>
-        <a href="create.php" class="px-4 py-2 bg-cms-red text-white rounded-lg font-semibold">
+        <a href="create.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold">
             <i class="bi bi-plus-lg"></i> Create
         </a>
     </div>
@@ -46,14 +46,14 @@ include '../../includes/header.php';
                 <i class="bi bi-card-heading"></i> Task Title *
             </label>
             <input type="text" name="title" required placeholder="e.g., Review 2025 Budget Proposal"
-                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <i class="bi bi-person"></i> Assign To *
             </label>
-            <select name="assigned_to" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+            <select name="assigned_to" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                 <option value="">Select Member</option>
                 <option value="Hon. Maria Santos">Hon. Maria Santos</option>
                 <option value="Hon. Juan Dela Cruz">Hon. Juan Dela Cruz</option>
@@ -68,14 +68,14 @@ include '../../includes/header.php';
                 <i class="bi bi-calendar-x"></i> Deadline *
             </label>
             <input type="date" name="deadline" required
-                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <i class="bi bi-exclamation-triangle"></i> Priority *
             </label>
-            <select name="priority" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+            <select name="priority" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                 <option value="">Select Priority</option>
                 <option value="High">High</option>
                 <option value="Medium">Medium</option>
@@ -87,7 +87,7 @@ include '../../includes/header.php';
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <i class="bi bi-building"></i> Related Committee
             </label>
-            <select name="committee" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+            <select name="committee" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                 <option value="">Select Committee (Optional)</option>
                 <option value="Finance">Finance</option>
                 <option value="Health">Health</option>
@@ -102,7 +102,7 @@ include '../../includes/header.php';
                 <i class="bi bi-card-text"></i> Description *
             </label>
             <textarea name="description" rows="5" required placeholder="Detailed description of the task..."
-                      class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white"></textarea>
+                      class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"></textarea>
         </div>
     </div>
 
@@ -110,10 +110,11 @@ include '../../includes/header.php';
         <a href="index.php" class="px-6 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
             Cancel
         </a>
-        <button type="submit" class="px-6 py-3 bg-cms-red hover:bg-cms-dark text-white rounded-lg transition">
+        <button type="submit" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
             <i class="bi bi-check-lg"></i> Create Action Item
         </button>
     </div>
 </form>
 
 <?php include '../../includes/footer.php'; ?>
+

@@ -108,7 +108,7 @@ $meeting = [
                 <?php foreach ($meeting['agenda_items'] as $index => $item): ?>
                 <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <div class="flex items-center space-x-3">
-                        <span class="w-8 h-8 bg-cms-red rounded-full flex items-center justify-center text-white font-bold">
+                        <span class="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white font-bold">
                             <?php echo $index + 1; ?>
                         </span>
                         <div>
@@ -164,3 +164,4 @@ $meeting = [
 </script>
 
 <?php include '../../includes/footer.php'; ?>
+

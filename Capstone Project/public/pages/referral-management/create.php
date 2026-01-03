@@ -33,7 +33,7 @@ include '../../includes/header.php';
         <a href="assign.php" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
             <i class="bi bi-person-plus"></i> Assignment
         </a>
-        <a href="create.php" class="px-4 py-2 bg-cms-red text-white rounded-lg font-semibold">
+        <a href="create.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold">
             <i class="bi bi-plus-lg"></i> Create
         </a>
     </div>
@@ -46,14 +46,14 @@ include '../../includes/header.php';
                 <i class="bi bi-card-heading"></i> Referral Title *
             </label>
             <input type="text" name="title" required placeholder="e.g., Ordinance No. 2024-001 - Annual Budget"
-                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <i class="bi bi-tag"></i> Type *
             </label>
-            <select name="type" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+            <select name="type" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                 <option value="">Select Type</option>
                 <option value="Ordinance">Ordinance</option>
                 <option value="Resolution">Resolution</option>
@@ -65,7 +65,7 @@ include '../../includes/header.php';
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <i class="bi bi-building"></i> Assign to Committee *
             </label>
-            <select name="committee" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+            <select name="committee" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                 <option value="">Select Committee</option>
                 <option value="Finance">Finance</option>
                 <option value="Health">Health</option>
@@ -79,7 +79,7 @@ include '../../includes/header.php';
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <i class="bi bi-exclamation-triangle"></i> Priority *
             </label>
-            <select name="priority" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+            <select name="priority" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                 <option value="">Select Priority</option>
                 <option value="High">High</option>
                 <option value="Medium">Medium</option>
@@ -92,7 +92,7 @@ include '../../includes/header.php';
                 <i class="bi bi-calendar-x"></i> Deadline *
             </label>
             <input type="date" name="deadline" required
-                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
         </div>
 
         <div class="md:col-span-2">
@@ -100,7 +100,7 @@ include '../../includes/header.php';
                 <i class="bi bi-card-text"></i> Description *
             </label>
             <textarea name="description" rows="6" required placeholder="Detailed description of the referral..."
-                      class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white"></textarea>
+                      class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"></textarea>
         </div>
 
         <div class="md:col-span-2">
@@ -108,7 +108,7 @@ include '../../includes/header.php';
                 <i class="bi bi-paperclip"></i> Attachments
             </label>
             <input type="file" name="attachments[]" multiple
-                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">You can upload multiple files</p>
         </div>
     </div>
@@ -117,10 +117,11 @@ include '../../includes/header.php';
         <a href="index.php" class="px-6 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
             Cancel
         </a>
-        <button type="submit" class="px-6 py-3 bg-cms-red hover:bg-cms-dark text-white rounded-lg transition">
+        <button type="submit" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
             <i class="bi bi-check-lg"></i> Create Referral
         </button>
     </div>
 </form>
 
 <?php include '../../includes/footer.php'; ?>
+

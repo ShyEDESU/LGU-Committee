@@ -58,14 +58,14 @@ $committee = [
                 <i class="bi bi-building"></i> Committee Name *
             </label>
             <input type="text" name="name" value="<?php echo htmlspecialchars($committee['name']); ?>" required
-                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <i class="bi bi-tag"></i> Committee Type *
             </label>
-            <select name="type" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+            <select name="type" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                 <option value="Standing" <?php echo $committee['type'] === 'Standing' ? 'selected' : ''; ?>>Standing Committee</option>
                 <option value="Special" <?php echo $committee['type'] === 'Special' ? 'selected' : ''; ?>>Special Committee</option>
                 <option value="Ad Hoc" <?php echo $committee['type'] === 'Ad Hoc' ? 'selected' : ''; ?>>Ad Hoc Committee</option>
@@ -76,7 +76,7 @@ $committee = [
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <i class="bi bi-toggle-on"></i> Status *
             </label>
-            <select name="status" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white">
+            <select name="status" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                 <option value="Active" <?php echo $committee['status'] === 'Active' ? 'selected' : ''; ?>>Active</option>
                 <option value="Inactive" <?php echo $committee['status'] === 'Inactive' ? 'selected' : ''; ?>>Inactive</option>
             </select>
@@ -87,7 +87,7 @@ $committee = [
                 <i class="bi bi-card-text"></i> Jurisdiction *
             </label>
             <textarea name="jurisdiction" rows="4" required
-                      class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cms-red dark:bg-gray-700 dark:text-white"><?php echo htmlspecialchars($committee['jurisdiction']); ?></textarea>
+                      class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"><?php echo htmlspecialchars($committee['jurisdiction']); ?></textarea>
         </div>
     </div>
 
@@ -95,10 +95,11 @@ $committee = [
         <a href="index.php" class="px-6 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
             Cancel
         </a>
-        <button type="submit" class="px-6 py-3 bg-cms-red hover:bg-cms-dark text-white rounded-lg transition">
+        <button type="submit" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
             <i class="bi bi-check-lg"></i> Save Changes
         </button>
     </div>
 </form>
 
 <?php include '../../includes/footer.php'; ?>
+

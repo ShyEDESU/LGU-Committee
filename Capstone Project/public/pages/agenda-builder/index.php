@@ -23,44 +23,44 @@ $agendas = [
 <div class="mb-6">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Agendas & Deliberation</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">Build and manage meeting agendas</p>
+            <h1 class="text-3xl font-bold text-gray-900">Agendas & Deliberation</h1>
+            <p class="text-gray-600 mt-1">Build and manage meeting agendas</p>
         </div>
-        <a href="create.php" class="px-4 py-2 bg-cms-red hover:bg-cms-dark text-white rounded-lg"><i class="bi bi-plus-lg"></i> Create Agenda</a>
+        <a href="create.php" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"><i class="bi bi-plus-lg"></i> Create Agenda</a>
     </div>
 </div>
 
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 mb-6">
+<div class="bg-white rounded-lg shadow-sm p-4 mb-6">
     <div class="flex flex-wrap gap-2">
-        <a href="index.php" class="px-4 py-2 bg-cms-red text-white rounded-lg font-semibold"><i class="bi bi-list"></i> All Agendas</a>
-        <a href="items.php" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"><i class="bi bi-list-check"></i> Items</a>
-        <a href="deliberation.php" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"><i class="bi bi-chat-left-text"></i> Deliberation</a>
-        <a href="voting.php" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"><i class="bi bi-hand-thumbs-up"></i> Voting</a>
+        <a href="index.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold"><i class="bi bi-list"></i> All Agendas</a>
+        <a href="items.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i class="bi bi-list-check"></i> Items</a>
+        <a href="deliberation.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i class="bi bi-chat-left-text"></i> Deliberation</a>
+        <a href="voting.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i class="bi bi-hand-thumbs-up"></i> Voting</a>
     </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+    <div class="bg-white rounded-lg shadow-sm p-6">
         <p class="text-sm text-gray-600">Total Agendas</p>
-        <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1"><?php echo count($agendas); ?></p>
+        <p class="text-3xl font-bold text-gray-900 mt-1"><?php echo count($agendas); ?></p>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+    <div class="bg-white rounded-lg shadow-sm p-6">
         <p class="text-sm text-gray-600">Draft</p>
-        <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+        <p class="text-3xl font-bold text-gray-900 mt-1">
             <?php echo count(array_filter($agendas, fn($a) => $a['status'] === 'Draft')); ?>
         </p>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+    <div class="bg-white rounded-lg shadow-sm p-6">
         <p class="text-sm text-gray-600">Approved</p>
-        <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+        <p class="text-3xl font-bold text-gray-900 mt-1">
             <?php echo count(array_filter($agendas, fn($a) => $a['status'] === 'Approved')); ?>
         </p>
     </div>
 </div>
 
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+<div class="bg-white rounded-lg shadow-sm overflow-hidden">
     <table class="w-full">
-        <thead class="bg-gray-50 dark:bg-gray-700">
+        <thead class="bg-gray-50">
             <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Meeting</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
@@ -69,12 +69,12 @@ $agendas = [
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        <tbody class="divide-y divide-gray-200">
             <?php foreach ($agendas as $agenda): ?>
-            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td class="px-6 py-4 font-semibold text-gray-900 dark:text-white"><?php echo $agenda['meeting']; ?></td>
-                <td class="px-6 py-4 text-gray-900 dark:text-white"><?php echo date('M j, Y', strtotime($agenda['date'])); ?></td>
-                <td class="px-6 py-4 text-gray-900 dark:text-white"><?php echo $agenda['items']; ?> items</td>
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 font-semibold text-gray-900"><?php echo $agenda['meeting']; ?></td>
+                <td class="px-6 py-4 text-gray-900"><?php echo date('M j, Y', strtotime($agenda['date'])); ?></td>
+                <td class="px-6 py-4 text-gray-900"><?php echo $agenda['items']; ?> items</td>
                 <td class="px-6 py-4">
                     <span class="px-3 py-1 text-xs font-semibold rounded-full 
                         <?php echo $agenda['status'] === 'Draft' ? 'bg-yellow-100 text-yellow-800' : 
@@ -83,7 +83,7 @@ $agendas = [
                     </span>
                 </td>
                 <td class="px-6 py-4">
-                    <a href="view.php?id=<?php echo $agenda['id']; ?>" class="text-cms-red hover:text-cms-dark">View</a>
+                    <a href="view.php?id=<?php echo $agenda['id']; ?>" class="text-red-600 hover:text-red-700">View</a>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -92,3 +92,4 @@ $agendas = [
 </div>
 
 <?php include '../../includes/footer.php'; ?>
+
