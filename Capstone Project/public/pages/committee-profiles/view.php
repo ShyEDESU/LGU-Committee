@@ -202,6 +202,116 @@ include '../../includes/header.php';
                     </div>
                 <?php endif; ?>
             </div>
+
+            <!-- Committee Referrals -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold">Assigned Referrals</h2>
+                    <a href="../referral-management/create.php?committee=<?php echo $id; ?>"
+                        class="text-red-600 hover:text-red-700">
+                        <i class="bi bi-plus-circle mr-1"></i>Create New
+                    </a>
+                </div>
+                <?php
+                $committeeReferrals = getReferralsByCommittee($id);
+                ?>
+                <?php if (empty($committeeReferrals)): ?>
+                    <p class="text-gray-500">No referrals assigned yet</p>
+                <?php else: ?>
+                    <div class="space-y-3">
+                        <?php foreach (array_slice($committeeReferrals, 0, 5) as $referral): ?>
+                            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div class="flex justify-between items-start mb-2">
+                                    <p class="font-semibold"><?php echo htmlspecialchars($referral['title']); ?></p>
+                                    <span
+                                        class="px-2 py-1 text-xs rounded-full <?php echo $referral['status'] === 'Pending' ? 'bg-gray-100 text-gray-800' :
+                                            ($referral['status'] === 'Under Review' ? 'bg-blue-100 text-blue-800' :
+                                                ($referral['status'] === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800')); ?>">
+                                        <?php echo $referral['status']; ?>
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                    <span
+                                        class="px-2 py-1 rounded-full <?php echo $referral['priority'] === 'High' ? 'bg-red-100 text-red-800' :
+                                            ($referral['priority'] === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'); ?>">
+                                        <?php echo $referral['priority']; ?> Priority
+                                    </span>
+                                    <?php if (!empty($referral['deadline'])): ?>
+                                        <span>
+                                            <i class="bi bi-calendar-x mr-1"></i>
+                                            Due: <?php echo date('M j, Y', strtotime($referral['deadline'])); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                <a href="../referral-management/view.php?id=<?php echo $referral['id']; ?>"
+                                    class="text-red-600 hover:text-red-700 text-sm mt-2 inline-block">
+                                    View Details →
+                                </a>
+                            </div>
+                        <?php endforeach; ?>
+                        <?php if (count($committeeReferrals) > 5): ?>
+                            <a href="../referral-management/index.php?committee=<?php echo $id; ?>"
+                                class="block text-center text-red-600 hover:text-red-700 text-sm mt-2">
+                                View all <?php echo count($committeeReferrals); ?> referrals →
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Committee Agendas -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold">Committee Agendas</h2>
+                    <a href="../agenda-builder/index.php" class="text-red-600 hover:text-red-700">
+                        View All →
+                    </a>
+                </div>
+                <?php
+                $committeeAgendas = getAgendasByCommittee($id);
+                ?>
+                <?php if (empty($committeeAgendas)): ?>
+                    <p class="text-gray-500">No agendas created yet</p>
+                <?php else: ?>
+                    <div class="space-y-3">
+                        <?php foreach (array_slice($committeeAgendas, 0, 5) as $agenda): ?>
+                            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div class="flex justify-between items-start mb-2">
+                                    <p class="font-semibold"><?php echo htmlspecialchars($agenda['meeting']['title']); ?></p>
+                                    <span class="px-2 py-1 text-xs rounded-full 
+                                        <?php
+                                        $status = $agenda['meeting']['agenda_status'] ?? 'Draft';
+                                        echo $status === 'Draft' ? 'bg-yellow-100 text-yellow-800' :
+                                            ($status === 'Approved' ? 'bg-green-100 text-green-800' :
+                                                ($status === 'Published' ? 'bg-purple-100 text-purple-800' :
+                                                    'bg-gray-100 text-gray-800'));
+                                        ?>">
+                                        <?php echo $status; ?>
+                                    </span>
+                                </div>
+                                <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                    <i class="bi bi-calendar mr-2"></i>
+                                    <?php echo date('M j, Y', strtotime($agenda['meeting']['date'])); ?>
+                                </div>
+                                <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                    <i class="bi bi-list-check mr-2"></i>
+                                    <?php echo $agenda['item_count']; ?> items
+                                </div>
+                                <a href="../agenda-builder/view.php?id=<?php echo $agenda['meeting']['id']; ?>"
+                                    class="text-red-600 hover:text-red-700 text-sm mt-2 inline-block">
+                                    View Agenda →
+                                </a>
+                            </div>
+                        <?php endforeach; ?>
+                        <?php if (count($committeeAgendas) > 5): ?>
+                            <a href="../agenda-builder/index.php"
+                                class="block text-center text-red-600 hover:text-red-700 text-sm mt-2">
+                                View all <?php echo count($committeeAgendas); ?> agendas →
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
 
         <!-- Sidebar Stats -->
@@ -222,6 +332,10 @@ include '../../includes/header.php';
                         <span class="text-gray-600 dark:text-gray-400">Pending Referrals</span>
                         <span
                             class="text-2xl font-bold text-orange-600"><?php echo $committee['pending_referrals']; ?></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Agendas</span>
+                        <span class="text-2xl font-bold text-purple-600"><?php echo count($committeeAgendas); ?></span>
                     </div>
                 </div>
             </div>

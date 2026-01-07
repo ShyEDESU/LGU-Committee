@@ -128,11 +128,87 @@ include '../../includes/header.php';
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-bold">Meeting Agenda</h2>
-                    <button class="text-red-600 hover:text-red-700 cursor-not-allowed" disabled title="Coming Soon">
-                        <i class="bi bi-plus-circle mr-1"></i>Add Item
-                    </button>
+                    <?php 
+                    $agendaItems = getAgendaByMeeting($id);
+                    $hasAgenda = !empty($agendaItems);
+                    $agendaStatus = $meeting['agenda_status'] ?? 'None';
+                    
+                    if ($hasAgenda): ?>
+                        <div class="flex space-x-2">
+                            <a href="../agenda-builder/view.php?id=<?php echo $id; ?>" 
+                               class="text-blue-600 hover:text-blue-700">
+                                <i class="bi bi-eye mr-1"></i>View Full Agenda
+                            </a>
+                            <a href="../agenda-builder/items.php?meeting_id=<?php echo $id; ?>" 
+                               class="text-green-600 hover:text-green-700">
+                                <i class="bi bi-pencil mr-1"></i>Edit Items
+                            </a>
+                        </div>
+                    <?php else: ?>
+                        <a href="../agenda-builder/create.php?committee=<?php echo $meeting['committee_id']; ?>&meeting_id=<?php echo $id; ?>" 
+                           class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+                            <i class="bi bi-plus-circle mr-1"></i>Create Agenda
+                        </a>
+                    <?php endif; ?>
                 </div>
-                <p class="text-gray-500 text-center py-8">No agenda items yet</p>
+                
+                <?php if ($hasAgenda): ?>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div>
+                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Status:</span>
+                                <span class="ml-2 inline-block px-3 py-1 text-xs font-semibold rounded-full 
+                                    <?php 
+                                    echo $agendaStatus === 'Draft' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                                        ($agendaStatus === 'Approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 
+                                        ($agendaStatus === 'Published' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 
+                                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300')); 
+                                    ?>">
+                                    <?php echo $agendaStatus; ?>
+                                </span>
+                            </div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">
+                                <i class="bi bi-list-check mr-1"></i><?php echo count($agendaItems); ?> items
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <?php 
+                            $displayItems = array_slice($agendaItems, 0, 5); // Show first 5 items
+                            foreach ($displayItems as $index => $item): 
+                            ?>
+                                <div class="flex items-start p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                                    <span class="font-semibold text-red-600 mr-3"><?php echo ($index + 1); ?>.</span>
+                                    <div class="flex-1">
+                                        <p class="font-medium text-gray-900 dark:text-white"><?php echo htmlspecialchars($item['title']); ?></p>
+                                        <?php if (!empty($item['description'])): ?>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400"><?php echo htmlspecialchars($item['description']); ?></p>
+                                        <?php endif; ?>
+                                    </div>
+                                    <span class="text-sm text-gray-500 dark:text-gray-400"><?php echo $item['duration']; ?> min</span>
+                                </div>
+                            <?php endforeach; ?>
+                            
+                            <?php if (count($agendaItems) > 5): ?>
+                                <div class="text-center pt-2">
+                                    <a href="../agenda-builder/view.php?id=<?php echo $id; ?>" 
+                                       class="text-red-600 hover:text-red-700 text-sm font-semibold">
+                                        View all <?php echo count($agendaItems); ?> items →
+                                    </a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="text-center py-8">
+                        <i class="bi bi-file-earmark-text text-6xl text-gray-300 dark:text-gray-600 mb-3"></i>
+                        <p class="text-gray-500 dark:text-gray-400 mb-4">No agenda created yet</p>
+                        <a href="../agenda-builder/create.php?committee=<?php echo $meeting['committee_id']; ?>&meeting_id=<?php echo $id; ?>" 
+                           class="inline-block bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg">
+                            <i class="bi bi-plus-circle mr-2"></i>Create Agenda Now
+                        </a>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- Minutes Section -->

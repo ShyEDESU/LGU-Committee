@@ -167,6 +167,9 @@ if ($search || $statusFilter) {
                         Location</th>
                     <th
                         class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                        Agenda</th>
+                    <th
+                        class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                         Status</th>
                     <th
                         class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
@@ -194,6 +197,34 @@ if ($search || $statusFilter) {
                         </td>
                         <td class="px-6 py-4 text-gray-900 dark:text-white">
                             <?php echo htmlspecialchars($meeting['venue']); ?>
+                        </td>
+                        <td class="px-6 py-4">
+                            <?php
+                            $agendaItems = getAgendaByMeeting($meeting['id']);
+                            $hasAgenda = !empty($agendaItems);
+                            $agendaStatus = $meeting['agenda_status'] ?? 'None';
+
+                            if ($hasAgenda):
+                                if ($agendaStatus === 'Published'): ?>
+                                    <span
+                                        class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
+                                        title="Agenda Published">
+                                        <i class="bi bi-megaphone mr-1"></i> Published
+                                    </span>
+                                <?php else: ?>
+                                    <span
+                                        class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                        title="Has Agenda">
+                                        <i class="bi bi-check-circle mr-1"></i> <?php echo $agendaStatus; ?>
+                                    </span>
+                                <?php endif;
+                            else: ?>
+                                <a href="../agenda-builder/create.php?committee=<?php echo $meeting['committee_id']; ?>&meeting_id=<?php echo $meeting['id']; ?>"
+                                    class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-900/50"
+                                    title="Create Agenda">
+                                    <i class="bi bi-exclamation-triangle mr-1"></i> No Agenda
+                                </a>
+                            <?php endif; ?>
                         </td>
                         <td class="px-6 py-4">
                             <span class="px-3 py-1 text-xs font-semibold rounded-full 

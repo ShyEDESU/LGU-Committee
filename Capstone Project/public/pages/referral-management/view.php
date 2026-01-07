@@ -8,7 +8,27 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$referralId = $_GET['id'] ?? 1;
+// Handle quick status change
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_action'])) {
+    $referralId = $_POST['referral_id'];
+    $newStatus = $_POST['new_status'];
+    $finalAction = $_POST['final_action'] ?? '';
+
+    $updateData = ['status' => $newStatus];
+
+    // If approving or rejecting, add final action details
+    if ($newStatus === 'Approved' || $newStatus === 'Rejected') {
+        $updateData['final_action'] = $finalAction;
+        $updateData['final_action_date'] = date('Y-m-d');
+    }
+
+    updateReferral($referralId, $updateData);
+    $_SESSION['success_message'] = 'Referral status updated to ' . $newStatus;
+    header('Location: view.php?id=' . $referralId);
+    exit();
+}
+
+$referralId = $_GET['id'] ?? 0;
 $referral = getReferralById($referralId);
 
 if (!$referral) {
@@ -59,16 +79,83 @@ include '../../includes/header.php';
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
                 <?php echo htmlspecialchars($referral['title']); ?>
             </h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1"><?php echo $referral['type']; ?> -
-                <?php echo $referral['committee']; ?> Committee
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                <?php echo htmlspecialchars($referral['type']); ?> -
+                <?php echo htmlspecialchars($referral['committee_name']); ?>
             </p>
         </div>
-        <a href="index.php"
-            class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-            <i class="bi bi-arrow-left"></i> Back
-        </a>
+        <div class="flex gap-2">
+            <a href="edit.php?id=<?php echo $referralId; ?>"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+            <a href="index.php"
+                class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
     </div>
 </div>
+
+<?php if (isset($_SESSION['success_message'])): ?>
+    <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-lg">
+        <p class="text-green-800"><?php echo $_SESSION['success_message'];
+        unset($_SESSION['success_message']); ?></p>
+    </div>
+<?php endif; ?>
+
+<!-- Quick Actions for Status Change (for authorized users) -->
+<?php if ($referral['status'] !== 'Approved' && $referral['status'] !== 'Rejected'): ?>
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-6 mb-6 rounded-lg">
+        <h3 class="font-bold text-blue-900 mb-3"><i class="bi bi-lightning-charge-fill mr-2"></i>Quick Actions (Authorized
+            Users)</h3>
+        <p class="text-sm text-blue-800 mb-4">City Hall President, Committee Chairperson, or authorized staff can take
+            action:</p>
+        <div class="flex flex-wrap gap-3">
+            <form method="POST" class="inline">
+                <input type="hidden" name="quick_action" value="1">
+                <input type="hidden" name="referral_id" value="<?php echo $referral['id']; ?>">
+                <input type="hidden" name="new_status" value="Approved">
+                <input type="hidden" name="final_action" value="Approved by authorized user">
+                <button type="submit" onclick="return confirm('Approve this referral?')"
+                    class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold">
+                    <i class="bi bi-check-circle-fill mr-2"></i>Approve
+                </button>
+            </form>
+
+            <form method="POST" class="inline">
+                <input type="hidden" name="quick_action" value="1">
+                <input type="hidden" name="referral_id" value="<?php echo $referral['id']; ?>">
+                <input type="hidden" name="new_status" value="Rejected">
+                <input type="hidden" name="final_action" value="Rejected by authorized user">
+                <button type="submit" onclick="return confirm('Reject this referral?')"
+                    class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold">
+                    <i class="bi bi-x-circle-fill mr-2"></i>Reject
+                </button>
+            </form>
+
+            <form method="POST" class="inline">
+                <input type="hidden" name="quick_action" value="1">
+                <input type="hidden" name="referral_id" value="<?php echo $referral['id']; ?>">
+                <input type="hidden" name="new_status" value="Deferred">
+                <button type="submit" onclick="return confirm('Defer this referral?')"
+                    class="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition font-semibold">
+                    <i class="bi bi-pause-circle-fill mr-2"></i>Defer
+                </button>
+            </form>
+
+            <form method="POST" class="inline">
+                <input type="hidden" name="quick_action" value="1">
+                <input type="hidden" name="referral_id" value="<?php echo $referral['id']; ?>">
+                <input type="hidden" name="new_status" value="Under Review">
+                <button type="submit"
+                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                    <i class="bi bi-eye-fill mr-2"></i>Move to Review
+                </button>
+            </form>
+        </div>
+    </div>
+<?php endif; ?>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 mb-6">
     <div class="flex flex-wrap gap-2">
@@ -84,9 +171,9 @@ include '../../includes/header.php';
             class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
             <i class="bi bi-person-plus"></i> Assignment
         </a>
-        <a href="create.php"
+        <a href="deadlines.php"
             class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-            <i class="bi bi-plus-lg"></i> Create
+            <i class="bi bi-calendar-x"></i> Deadlines
         </a>
     </div>
 </div>
@@ -99,43 +186,92 @@ include '../../includes/header.php';
                 <div>
                     <p class="text-sm text-gray-600 dark:text-gray-400">Type</p>
                     <span class="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800">
-                        <?php echo htmlspecialchars($referral['type'] ?? 'N/A'); ?>
+                        <?php echo htmlspecialchars($referral['type'] ?? 'Communication'); ?>
                     </span>
                 </div>
                 <div>
                     <p class="text-sm text-gray-600 dark:text-gray-400">Priority</p>
-                    <span class="px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">
-                        <?php echo $referral['priority']; ?>
+                    <span
+                        class="px-3 py-1 text-sm font-semibold rounded-full 
+                        <?php echo $referral['priority'] === 'High' ? 'bg-red-100 text-red-800' :
+                            ($referral['priority'] === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'); ?>">
+                        <?php echo htmlspecialchars($referral['priority']); ?>
                     </span>
                 </div>
                 <div>
                     <p class="text-sm text-gray-600 dark:text-gray-400">Status</p>
-                    <span class="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800">
-                        <?php echo $referral['status']; ?>
+                    <span
+                        class="px-3 py-1 text-sm font-semibold rounded-full 
+                        <?php echo $referral['status'] === 'Pending' ? 'bg-gray-100 text-gray-800' :
+                            ($referral['status'] === 'Under Review' ? 'bg-blue-100 text-blue-800' :
+                                ($referral['status'] === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800')); ?>">
+                        <?php echo htmlspecialchars($referral['status']); ?>
                     </span>
                 </div>
                 <div>
                     <p class="text-sm text-gray-600 dark:text-gray-400">Deadline</p>
                     <p class="font-semibold text-gray-900 dark:text-white">
-                        <?php echo date('M j, Y', strtotime($referral['deadline'])); ?>
+                        <?php echo !empty($referral['deadline']) ? date('M j, Y', strtotime($referral['deadline'])) : 'No deadline'; ?>
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Committee</p>
+                    <p class="font-semibold text-gray-900 dark:text-white">
+                        <a href="../committee-profiles/view.php?id=<?php echo $referral['committee_id']; ?>"
+                            class="text-red-600 hover:text-red-700">
+                            <?php echo htmlspecialchars($referral['committee_name']); ?>
+                        </a>
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Assigned To</p>
+                    <p class="font-semibold text-gray-900 dark:text-white">
+                        <?php echo htmlspecialchars($referral['assigned_to'] ?? 'Not assigned'); ?>
                     </p>
                 </div>
                 <div>
                     <p class="text-sm text-gray-600 dark:text-gray-400">Submitted By</p>
                     <p class="font-semibold text-gray-900 dark:text-white">
-                        <?php echo htmlspecialchars($referral['submitted_by'] ?? 'Unknown'); ?></p>
+                        <?php echo htmlspecialchars($referral['submitted_by'] ?? 'Unknown'); ?>
+                    </p>
                 </div>
                 <div>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Submitted Date</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Date Received</p>
                     <p class="font-semibold text-gray-900 dark:text-white">
-                        <?php echo isset($referral['submitted_date']) ? date('M j, Y', strtotime($referral['submitted_date'])) : 'N/A'; ?>
+                        <?php echo isset($referral['date_received']) ? date('M j, Y', strtotime($referral['date_received'])) : 'N/A'; ?>
                     </p>
                 </div>
+
+                <?php if (!empty($referral['meeting_id'])):
+                    $meeting = getMeetingById($referral['meeting_id']);
+                    ?>
+                    <div class="col-span-2">
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Linked Meeting</p>
+                        <a href="../committee-meetings/view.php?id=<?php echo $referral['meeting_id']; ?>"
+                            class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition">
+                            <i class="bi bi-calendar-event mr-2"></i>
+                            <?php echo htmlspecialchars($meeting['title'] ?? 'Meeting #' . $referral['meeting_id']); ?>
+                        </a>
+                    </div>
+                <?php endif; ?>
+
                 <div class="col-span-2">
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Description</p>
-                    <p class="text-gray-900 dark:text-white"><?php echo htmlspecialchars($referral['description']); ?>
+                    <p class="text-gray-900 dark:text-white">
+                        <?php echo !empty($referral['description']) ? nl2br(htmlspecialchars($referral['description'])) : 'No description provided'; ?>
                     </p>
                 </div>
+
+                <?php if (!empty($referral['notes'])): ?>
+                    <div class="col-span-2">
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Notes</p>
+                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                            <p class="text-gray-900">
+                                <?php echo nl2br(htmlspecialchars($referral['notes'])); ?>
+                            </p>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -144,27 +280,52 @@ include '../../includes/header.php';
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <h3 class="font-bold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
             <div class="space-y-2">
-                <button onclick="updateStatus()"
-                    class="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition text-sm">
-                    <i class="bi bi-arrow-repeat"></i> Update Status
-                </button>
-                <button onclick="reassign()"
-                    class="w-full px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition text-sm">
-                    <i class="bi bi-person-plus"></i> Reassign
-                </button>
-                <button onclick="addNote()"
-                    class="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition text-sm">
-                    <i class="bi bi-chat-left-text"></i> Add Note
+                <a href="edit.php?id=<?php echo $referralId; ?>"
+                    class="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition text-sm flex items-center justify-center">
+                    <i class="bi bi-pencil mr-2"></i> Edit Referral
+                </a>
+                <button onclick="confirmDelete()"
+                    class="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition text-sm">
+                    <i class="bi bi-trash mr-2"></i> Delete Referral
                 </button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4">
+        <div class="flex items-center mb-4">
+            <i class="bi bi-exclamation-triangle-fill text-red-500 text-3xl mr-3"></i>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Confirm Delete</h3>
+        </div>
+        <p class="text-gray-600 dark:text-gray-400 mb-6">
+            Are you sure you want to delete this referral? This action cannot be undone.
+        </p>
+        <div class="flex justify-end space-x-3">
+            <button onclick="closeDeleteModal()"
+                class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+                Cancel
+            </button>
+            <form method="POST" class="inline">
+                <input type="hidden" name="delete" value="1">
+                <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+                    Delete
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
-    function updateStatus() { alert('Update status'); }
-    function reassign() { alert('Reassign referral'); }
-    function addNote() { alert('Add note'); }
+    function confirmDelete() {
+        document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+    }
 </script>
 
 <?php include '../../includes/footer.php'; ?>

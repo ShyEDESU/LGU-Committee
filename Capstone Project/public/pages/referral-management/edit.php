@@ -8,8 +8,8 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$id = $_GET['id'] ?? 0;
-$referral = getReferralById($id);
+$referralId = $_GET['id'] ?? 1;
+$referral = getReferralById($referralId);
 
 if (!$referral) {
     $_SESSION['error_message'] = 'Referral not found';
@@ -19,34 +19,38 @@ if (!$referral) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $committeeId = $_POST['committee_id'] ?? 0;
-    $committee = getCommitteeById($committeeId);
-    
-    $data = [
-        'committee_id' => $committeeId,
-        'committee_name' => $committee['name'] ?? '',
-        'title' => trim($_POST['title'] ?? ''),
-        'description' => trim($_POST['description'] ?? ''),
-        'priority' => $_POST['priority'] ?? 'Medium',
-        'deadline' => $_POST['deadline'] ?? '',
-        'assigned_to' => trim($_POST['assigned_to'] ?? '')
-    ];
-    
-    // Validation
-    $errors = [];
-    if (empty($data['title'])) $errors[] = 'Title is required';
-    if (empty($data['committee_id'])) $errors[] = 'Committee is required';
-    if (empty($data['deadline'])) $errors[] = 'Deadline is required';
-    
-    if (empty($errors)) {
-        updateReferral($id, $data);
-        $_SESSION['success_message'] = 'Referral updated successfully!';
-        header('Location: view.php?id=' . $id);
-        exit();
+    $committees = getAllCommittees();
+    $selectedCommittee = null;
+
+    // Find the selected committee
+    foreach ($committees as $committee) {
+        if ($committee['id'] == $_POST['committee_id']) {
+            $selectedCommittee = $committee;
+            break;
+        }
     }
+
+    $updatedData = [
+        'committee_id' => $_POST['committee_id'],
+        'committee_name' => $selectedCommittee ? $selectedCommittee['name'] : $referral['committee_name'],
+        'title' => $_POST['title'],
+        'type' => $_POST['type'],
+        'description' => $_POST['description'],
+        'priority' => $_POST['priority'],
+        'status' => $_POST['status'],
+        'deadline' => $_POST['deadline'],
+        'assigned_to' => $_POST['assigned_to'],
+        'notes' => $_POST['notes'] ?? '',
+        'is_public' => isset($_POST['is_public']) ? true : false
+    ];
+
+    updateReferral($referralId, $updatedData);
+    $_SESSION['success_message'] = 'Referral updated successfully';
+    header('Location: view.php?id=' . $referralId);
+    exit();
 }
 
-// Get committees for dropdown
+// Get all committees for dropdown
 $committees = getAllCommittees();
 
 $userName = $_SESSION['user_name'] ?? 'User';
@@ -54,106 +58,162 @@ $pageTitle = 'Edit Referral';
 include '../../includes/header.php';
 ?>
 
-<div class="container-fluid">
-    <nav class="mb-4" aria-label="breadcrumb">
-        <ol class="breadcrumb bg-transparent p-0">
-            <li class="breadcrumb-item"><a href="../../dashboard.php" class="text-red-600">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="index.php" class="text-red-600">Referrals</a></li>
-            <li class="breadcrumb-item"><a href="view.php?id=<?php echo $id; ?>" class="text-red-600"><?php echo htmlspecialchars($referral['title']); ?></a></li>
-            <li class="breadcrumb-item active">Edit</li>
-        </ol>
-    </nav>
-
-    <div class="flex items-center justify-between mb-6">
+<div class="mb-6">
+    <div class="flex items-center justify-between">
         <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Edit Referral</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">Update referral details</p>
+            <p class="text-gray-600 dark:text-gray-400 mt-1"><?php echo htmlspecialchars($referral['title']); ?></p>
         </div>
-        <a href="view.php?id=<?php echo $id; ?>" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
-            <i class="bi bi-x-lg mr-2"></i>Cancel
+        <a href="view.php?id=<?php echo $referralId; ?>"
+            class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            <i class="bi bi-x-lg"></i> Cancel
         </a>
     </div>
-
-    <?php if (!empty($errors)): ?>
-    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-        <ul class="list-disc list-inside text-red-700">
-            <?php foreach ($errors as $error): ?>
-                <li><?php echo htmlspecialchars($error); ?></li>
-            <?php endforeach; ?>
-        </ul>
-    </div>
-    <?php endif; ?>
-
-    <form method="POST" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Referral Title <span class="text-red-500">*</span>
-                </label>
-                <input type="text" name="title" required value="<?php echo htmlspecialchars($referral['title']); ?>"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Committee <span class="text-red-500">*</span>
-                </label>
-                <select name="committee_id" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-                    <option value="">Select Committee</option>
-                    <?php foreach ($committees as $committee): ?>
-                        <option value="<?php echo $committee['id']; ?>" 
-                            <?php echo $referral['committee_id'] == $committee['id'] ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($committee['name']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Priority <span class="text-red-500">*</span>
-                </label>
-                <select name="priority" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-                    <option value="High" <?php echo $referral['priority'] === 'High' ? 'selected' : ''; ?>>High</option>
-                    <option value="Medium" <?php echo $referral['priority'] === 'Medium' ? 'selected' : ''; ?>>Medium</option>
-                    <option value="Low" <?php echo $referral['priority'] === 'Low' ? 'selected' : ''; ?>>Low</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Deadline <span class="text-red-500">*</span>
-                </label>
-                <input type="date" name="deadline" required value="<?php echo htmlspecialchars($referral['deadline']); ?>"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Assigned To
-                </label>
-                <input type="text" name="assigned_to" value="<?php echo htmlspecialchars($referral['assigned_to'] ?? ''); ?>"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-            </div>
-
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Description
-                </label>
-                <textarea name="description" rows="4"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"><?php echo htmlspecialchars($referral['description'] ?? ''); ?></textarea>
-            </div>
-        </div>
-
-        <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <a href="view.php?id=<?php echo $id; ?>" class="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-                Cancel
-            </a>
-            <button type="submit" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg">
-                <i class="bi bi-check-circle mr-2"></i>Update Referral
-            </button>
-        </div>
-    </form>
 </div>
+
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 mb-6">
+    <div class="flex flex-wrap gap-2">
+        <a href="index.php"
+            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            <i class="bi bi-list"></i> All Referrals
+        </a>
+        <a href="view.php?id=<?php echo $referralId; ?>"
+            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            <i class="bi bi-eye"></i> View
+        </a>
+        <a href="tracking.php"
+            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            <i class="bi bi-graph-up"></i> Tracking
+        </a>
+    </div>
+</div>
+
+<form method="POST" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-card-heading"></i> Referral Title *
+            </label>
+            <input type="text" name="title" required value="<?php echo htmlspecialchars($referral['title']); ?>"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-tag"></i> Type *
+            </label>
+            <select name="type" required
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                <option value="">Select Type</option>
+                <option value="Ordinance" <?php echo ($referral['type'] ?? '') === 'Ordinance' ? 'selected' : ''; ?>>
+                    Ordinance</option>
+                <option value="Resolution" <?php echo ($referral['type'] ?? '') === 'Resolution' ? 'selected' : ''; ?>>
+                    Resolution</option>
+                <option value="Communication" <?php echo ($referral['type'] ?? '') === 'Communication' ? 'selected' : ''; ?>>Communication</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-building"></i> Assign to Committee *
+            </label>
+            <select name="committee_id" required
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                <option value="">Select Committee</option>
+                <?php foreach ($committees as $committee): ?>
+                    <option value="<?php echo $committee['id']; ?>" <?php echo $referral['committee_id'] == $committee['id'] ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($committee['name']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-exclamation-triangle"></i> Priority *
+            </label>
+            <select name="priority" required
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                <option value="">Select Priority</option>
+                <option value="High" <?php echo $referral['priority'] === 'High' ? 'selected' : ''; ?>>High</option>
+                <option value="Medium" <?php echo $referral['priority'] === 'Medium' ? 'selected' : ''; ?>>Medium</option>
+                <option value="Low" <?php echo $referral['priority'] === 'Low' ? 'selected' : ''; ?>>Low</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-circle-fill"></i> Status *
+            </label>
+            <select name="status" required
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                <option value="">Select Status</option>
+                <option value="Pending" <?php echo $referral['status'] === 'Pending' ? 'selected' : ''; ?>>Pending
+                </option>
+                <option value="Under Review" <?php echo $referral['status'] === 'Under Review' ? 'selected' : ''; ?>>Under
+                    Review</option>
+                <option value="Approved" <?php echo $referral['status'] === 'Approved' ? 'selected' : ''; ?>>Approved
+                </option>
+                <option value="Rejected" <?php echo $referral['status'] === 'Rejected' ? 'selected' : ''; ?>>Rejected
+                </option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-calendar-x"></i> Deadline *
+            </label>
+            <input type="date" name="deadline" required value="<?php echo $referral['deadline']; ?>"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-person"></i> Assigned To
+            </label>
+            <input type="text" name="assigned_to"
+                value="<?php echo htmlspecialchars($referral['assigned_to'] ?? ''); ?>"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+        </div>
+
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-card-text"></i> Description *
+            </label>
+            <textarea name="description" rows="6" required
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"><?php echo htmlspecialchars($referral['description']); ?></textarea>
+        </div>
+
+        <!-- Notes -->
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-sticky"></i> Internal Notes
+            </label>
+            <textarea name="notes" rows="3" placeholder="Add any internal notes or comments..."
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"><?php echo htmlspecialchars($referral['notes'] ?? ''); ?></textarea>
+        </div>
+
+        <!-- Public Visibility -->
+        <div class="md:col-span-2">
+            <label class="flex items-center cursor-pointer">
+                <input type="checkbox" name="is_public" <?php echo ($referral['is_public'] ?? true) ? 'checked' : ''; ?>
+                    class="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <i class="bi bi-globe"></i> Make this referral publicly visible
+                </span>
+            </label>
+        </div>
+    </div>
+
+    <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <a href="view.php?id=<?php echo $referralId; ?>"
+            class="px-6 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            Cancel
+        </a>
+        <button type="submit" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+            <i class="bi bi-check-lg"></i> Update Referral
+        </button>
+    </div>
+</form>
 
 <?php include '../../includes/footer.php'; ?>

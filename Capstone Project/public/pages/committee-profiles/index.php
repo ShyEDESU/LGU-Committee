@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
@@ -17,6 +18,13 @@ include '../../includes/header.php';
 
 // Get committees from session
 $committees = getAllCommittees();
+
+// Get agenda counts for each committee
+$agendaCounts = [];
+foreach ($committees as $committee) {
+    $committeeAgendas = getAgendasByCommittee($committee['id']);
+    $agendaCounts[$committee['id']] = count($committeeAgendas);
+}
 
 // Filter and search
 $search = $_GET['search'] ?? '';
@@ -228,6 +236,10 @@ if ($search || $typeFilter || $statusFilter) {
                     <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
                         <i class="bi bi-inbox w-5"></i>
                         <span class="ml-2"><?php echo $committee['pending_referrals']; ?> Pending Referrals</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                        <i class="bi bi-file-earmark-text w-5"></i>
+                        <span class="ml-2"><?php echo $agendaCounts[$committee['id']] ?? 0; ?> Agendas</span>
                     </div>
                 </div>
 

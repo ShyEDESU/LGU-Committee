@@ -58,9 +58,166 @@ if (!isset($_SESSION['meetings'])) {
 // Initialize agendas
 if (!isset($_SESSION['agendas'])) {
     $_SESSION['agendas'] = [
-        ['id' => 1, 'meeting_id' => 1, 'item_number' => 1, 'title' => 'Call to Order', 'description' => '', 'duration' => 5],
-        ['id' => 2, 'meeting_id' => 1, 'item_number' => 2, 'title' => 'Budget Presentation', 'description' => 'Q4 budget overview', 'duration' => 30],
-        ['id' => 3, 'meeting_id' => 1, 'item_number' => 3, 'title' => 'Discussion', 'description' => 'Open floor discussion', 'duration' => 60],
+        [
+            'id' => 1,
+            'meeting_id' => 1,
+            'title' => '2025 Annual Budget Review',
+            'description' => 'Review and discussion of proposed 2025 budget',
+            'items' => [
+                [
+                    'id' => 1,
+                    'title' => 'Budget Presentation',
+                    'presenter' => 'Finance Director',
+                    'duration' => 30,
+                    'type' => 'Presentation',
+                    'referral_id' => 1,
+                    'notes' => '',
+                    'description' => 'Presentation of the proposed 2025 annual budget'
+                ],
+                [
+                    'id' => 2,
+                    'title' => 'Q&A Session',
+                    'presenter' => 'All Members',
+                    'duration' => 20,
+                    'type' => 'Discussion',
+                    'referral_id' => null,
+                    'notes' => '',
+                    'description' => 'Open discussion and questions about the budget'
+                ],
+                [
+                    'id' => 3,
+                    'title' => 'Budget Vote',
+                    'presenter' => 'Committee Chair',
+                    'duration' => 15,
+                    'type' => 'Voting',
+                    'referral_id' => 1,
+                    'notes' => '',
+                    'description' => 'Vote on budget approval'
+                ]
+            ],
+            'status' => 'Published',
+            'created_date' => '2025-12-01'
+        ],
+        [
+            'id' => 2,
+            'meeting_id' => 2,
+            'title' => 'Infrastructure Development Plan',
+            'description' => 'Discussion on proposed infrastructure projects for 2025',
+            'items' => [
+                [
+                    'id' => 1,
+                    'title' => 'Call to Order',
+                    'presenter' => 'Committee Chair',
+                    'duration' => 5,
+                    'type' => 'Procedural',
+                    'referral_id' => null,
+                    'notes' => '',
+                    'description' => 'Opening remarks and roll call'
+                ],
+                [
+                    'id' => 2,
+                    'title' => 'Road Improvement Project Overview',
+                    'presenter' => 'Public Works Director',
+                    'duration' => 25,
+                    'type' => 'Presentation',
+                    'referral_id' => 2,
+                    'notes' => '',
+                    'description' => 'Presentation on proposed road repairs and improvements'
+                ],
+                [
+                    'id' => 3,
+                    'title' => 'Bridge Maintenance Report',
+                    'presenter' => 'Engineering Consultant',
+                    'duration' => 20,
+                    'type' => 'Report',
+                    'referral_id' => null,
+                    'notes' => '',
+                    'description' => 'Status update on bridge inspections and maintenance needs'
+                ],
+                [
+                    'id' => 4,
+                    'title' => 'Public Comment Period',
+                    'presenter' => 'Citizens',
+                    'duration' => 30,
+                    'type' => 'Public Input',
+                    'referral_id' => null,
+                    'notes' => '',
+                    'description' => 'Open forum for public comments on infrastructure projects'
+                ],
+                [
+                    'id' => 5,
+                    'title' => 'Committee Discussion',
+                    'presenter' => 'All Members',
+                    'duration' => 25,
+                    'type' => 'Discussion',
+                    'referral_id' => 2,
+                    'notes' => '',
+                    'description' => 'Committee deliberation on infrastructure priorities'
+                ]
+            ],
+            'status' => 'Draft',
+            'created_date' => '2025-12-10'
+        ],
+        [
+            'id' => 3,
+            'meeting_id' => 3,
+            'title' => 'Zoning Ordinance Amendment',
+            'description' => 'Review and vote on proposed zoning changes',
+            'items' => [
+                [
+                    'id' => 1,
+                    'title' => 'Opening and Approval of Minutes',
+                    'presenter' => 'Committee Secretary',
+                    'duration' => 10,
+                    'type' => 'Procedural',
+                    'referral_id' => null,
+                    'notes' => '',
+                    'description' => 'Review and approve minutes from previous meeting'
+                ],
+                [
+                    'id' => 2,
+                    'title' => 'Zoning Amendment Presentation',
+                    'presenter' => 'City Planner',
+                    'duration' => 35,
+                    'type' => 'Presentation',
+                    'referral_id' => 3,
+                    'notes' => '',
+                    'description' => 'Detailed presentation on proposed zoning ordinance changes'
+                ],
+                [
+                    'id' => 3,
+                    'title' => 'Environmental Impact Review',
+                    'presenter' => 'Environmental Consultant',
+                    'duration' => 20,
+                    'type' => 'Report',
+                    'referral_id' => 3,
+                    'notes' => '',
+                    'description' => 'Assessment of environmental impacts from zoning changes'
+                ],
+                [
+                    'id' => 4,
+                    'title' => 'Committee Deliberation',
+                    'presenter' => 'All Members',
+                    'duration' => 30,
+                    'type' => 'Discussion',
+                    'referral_id' => 3,
+                    'notes' => '',
+                    'description' => 'Discussion and debate on zoning amendment'
+                ],
+                [
+                    'id' => 5,
+                    'title' => 'Final Vote',
+                    'presenter' => 'Committee Chair',
+                    'duration' => 10,
+                    'type' => 'Voting',
+                    'referral_id' => 3,
+                    'notes' => '',
+                    'description' => 'Roll call vote on zoning ordinance amendment'
+                ]
+            ],
+            'status' => 'Finalized',
+            'created_date' => '2025-12-15'
+        ]
     ];
 }
 
@@ -96,6 +253,36 @@ if (!isset($_SESSION['referrals'])) {
             'assigned_to' => 'Hon. Juan Dela Cruz',
             'submitted_by' => 'Health Department',
             'submitted_date' => '2025-11-20'
+        ],
+        [
+            'id' => 3,
+            'committee_id' => 3,
+            'committee_name' => 'Committee on Education',
+            'title' => 'Resolution No. 2025-052',
+            'type' => 'Resolution',
+            'description' => 'Resolution approving scholarship program for underprivileged students',
+            'priority' => 'High',
+            'status' => 'Approved',
+            'date_received' => '2025-11-25',
+            'deadline' => '2025-12-20',
+            'assigned_to' => 'Hon. Ana Reyes',
+            'submitted_by' => 'Education Department',
+            'submitted_date' => '2025-11-25'
+        ],
+        [
+            'id' => 4,
+            'committee_id' => 4,
+            'committee_name' => 'Committee on Infrastructure',
+            'title' => 'Ordinance No. 2025-003',
+            'type' => 'Ordinance',
+            'description' => 'An ordinance authorizing road widening project',
+            'priority' => 'Medium',
+            'status' => 'Pending',
+            'date_received' => '2025-12-01',
+            'deadline' => '2026-01-30',
+            'assigned_to' => 'Hon. Pedro Garcia',
+            'submitted_by' => 'Public Works Department',
+            'submitted_date' => '2025-12-01'
         ]
     ];
 }
@@ -190,15 +377,29 @@ function updateMeeting($id, $data)
     $meetings = &$_SESSION['meetings'];
     foreach ($meetings as &$meeting) {
         if ($meeting['id'] == $id) {
-            $meeting['committee_id'] = $data['committee_id'];
-            $meeting['committee_name'] = $data['committee_name'];
-            $meeting['title'] = $data['title'];
-            $meeting['description'] = $data['description'] ?? '';
-            $meeting['date'] = $data['date'];
-            $meeting['time_start'] = $data['time_start'];
-            $meeting['time_end'] = $data['time_end'] ?? '';
-            $meeting['venue'] = $data['venue'];
-            $meeting['is_public'] = $data['is_public'] ?? true;
+            // Update only provided fields
+            if (isset($data['committee_id']))
+                $meeting['committee_id'] = $data['committee_id'];
+            if (isset($data['committee_name']))
+                $meeting['committee_name'] = $data['committee_name'];
+            if (isset($data['title']))
+                $meeting['title'] = $data['title'];
+            if (isset($data['description']))
+                $meeting['description'] = $data['description'];
+            if (isset($data['date']))
+                $meeting['date'] = $data['date'];
+            if (isset($data['time_start']))
+                $meeting['time_start'] = $data['time_start'];
+            if (isset($data['time_end']))
+                $meeting['time_end'] = $data['time_end'];
+            if (isset($data['venue']))
+                $meeting['venue'] = $data['venue'];
+            if (isset($data['is_public']))
+                $meeting['is_public'] = $data['is_public'];
+            if (isset($data['agenda_status']))
+                $meeting['agenda_status'] = $data['agenda_status'];
+            if (isset($data['status']))
+                $meeting['status'] = $data['status'];
             return true;
         }
     }
@@ -241,19 +442,34 @@ function createReferral($data)
     $referrals = getAllReferrals();
     $newId = empty($referrals) ? 1 : max(array_column($referrals, 'id')) + 1;
 
-    $_SESSION['referrals'][] = [
+    $newReferral = [
         'id' => $newId,
         'committee_id' => $data['committee_id'],
         'committee_name' => $data['committee_name'],
         'title' => $data['title'],
+        'type' => $data['type'] ?? 'Communication', // Ordinance, Resolution, Communication
         'description' => $data['description'] ?? '',
-        'priority' => $data['priority'] ?? 'Medium',
-        'status' => 'Pending',
-        'date_received' => date('Y-m-d'),
+        'priority' => $data['priority'] ?? 'Medium', // High, Medium, Low
+        'status' => 'Pending', // Pending, Under Review, In Committee, Approved, Rejected, Deferred
+        'date_received' => $data['date_received'] ?? date('Y-m-d'),
         'deadline' => $data['deadline'] ?? '',
-        'assigned_to' => $data['assigned_to'] ?? ''
+        'assigned_to' => $data['assigned_to'] ?? '',
+        'assigned_member_id' => $data['assigned_member_id'] ?? null,
+        'submitted_by' => $data['submitted_by'] ?? '',
+        'submitted_date' => $data['submitted_date'] ?? date('Y-m-d'),
+        'created_by' => $_SESSION['user_name'] ?? 'User',
+        'created_date' => date('Y-m-d'),
+        'updated_date' => date('Y-m-d'),
+        // Integration fields
+        'meeting_id' => $data['meeting_id'] ?? null,
+        'agenda_item_id' => $data['agenda_item_id'] ?? null,
+        'final_action' => null,
+        'final_action_date' => null,
+        'notes' => $data['notes'] ?? '',
+        'is_public' => $data['is_public'] ?? true
     ];
 
+    $_SESSION['referrals'][] = $newReferral;
     return $newId;
 }
 
@@ -265,16 +481,43 @@ function updateReferral($id, $data)
     $referrals = &$_SESSION['referrals'];
     foreach ($referrals as &$ref) {
         if ($ref['id'] == $id) {
-            $ref['committee_id'] = $data['committee_id'];
-            $ref['committee_name'] = $data['committee_name'];
-            $ref['title'] = $data['title'];
-            $ref['description'] = $data['description'] ?? '';
-            $ref['priority'] = $data['priority'] ?? 'Medium';
-            $ref['deadline'] = $data['deadline'] ?? '';
-            $ref['assigned_to'] = $data['assigned_to'] ?? '';
-            if (isset($data['status'])) {
+            // Update only provided fields
+            if (isset($data['committee_id']))
+                $ref['committee_id'] = $data['committee_id'];
+            if (isset($data['committee_name']))
+                $ref['committee_name'] = $data['committee_name'];
+            if (isset($data['title']))
+                $ref['title'] = $data['title'];
+            if (isset($data['type']))
+                $ref['type'] = $data['type'];
+            if (isset($data['description']))
+                $ref['description'] = $data['description'];
+            if (isset($data['priority']))
+                $ref['priority'] = $data['priority'];
+            if (isset($data['status']))
                 $ref['status'] = $data['status'];
-            }
+            if (isset($data['deadline']))
+                $ref['deadline'] = $data['deadline'];
+            if (isset($data['assigned_to']))
+                $ref['assigned_to'] = $data['assigned_to'];
+            if (isset($data['assigned_member_id']))
+                $ref['assigned_member_id'] = $data['assigned_member_id'];
+            if (isset($data['submitted_by']))
+                $ref['submitted_by'] = $data['submitted_by'];
+            if (isset($data['meeting_id']))
+                $ref['meeting_id'] = $data['meeting_id'];
+            if (isset($data['agenda_item_id']))
+                $ref['agenda_item_id'] = $data['agenda_item_id'];
+            if (isset($data['final_action']))
+                $ref['final_action'] = $data['final_action'];
+            if (isset($data['final_action_date']))
+                $ref['final_action_date'] = $data['final_action_date'];
+            if (isset($data['notes']))
+                $ref['notes'] = $data['notes'];
+            if (isset($data['is_public']))
+                $ref['is_public'] = $data['is_public'];
+
+            $ref['updated_date'] = date('Y-m-d');
             return true;
         }
     }
@@ -482,6 +725,66 @@ function getReferralsByStatus($status)
 }
 
 /**
+ * Get referrals by type
+ */
+function getReferralsByType($type)
+{
+    $referrals = getAllReferrals();
+    return array_filter($referrals, function ($ref) use ($type) {
+        return $ref['type'] === $type;
+    });
+}
+
+/**
+ * Get referrals by priority
+ */
+function getReferralsByPriority($priority)
+{
+    $referrals = getAllReferrals();
+    return array_filter($referrals, function ($ref) use ($priority) {
+        return $ref['priority'] === $priority;
+    });
+}
+
+/**
+ * Get referrals by deadline range
+ */
+function getReferralsByDeadline($startDate, $endDate)
+{
+    $referrals = getAllReferrals();
+    return array_filter($referrals, function ($ref) use ($startDate, $endDate) {
+        if (empty($ref['deadline']))
+            return false;
+        return $ref['deadline'] >= $startDate && $ref['deadline'] <= $endDate;
+    });
+}
+
+/**
+ * Get overdue referrals
+ */
+function getOverdueReferrals()
+{
+    $referrals = getAllReferrals();
+    $today = date('Y-m-d');
+    return array_filter($referrals, function ($ref) use ($today) {
+        return !empty($ref['deadline']) &&
+            $ref['deadline'] < $today &&
+            !in_array($ref['status'], ['Approved', 'Rejected', 'Completed']);
+    });
+}
+
+/**
+ * Get referrals by meeting
+ */
+function getReferralsByMeeting($meetingId)
+{
+    $referrals = getAllReferrals();
+    return array_filter($referrals, function ($ref) use ($meetingId) {
+        return $ref['meeting_id'] == $meetingId;
+    });
+}
+
+/**
  * Get action items by meeting
  */
 function getActionItemsByMeeting($meetingId)
@@ -568,9 +871,12 @@ function getAgendaById($id)
 function getAgendaByMeeting($meetingId)
 {
     $agendas = getAllAgendas();
-    return array_filter($agendas, function ($agenda) use ($meetingId) {
-        return $agenda['meeting_id'] == $meetingId;
-    });
+    foreach ($agendas as $agenda) {
+        if ($agenda['meeting_id'] == $meetingId) {
+            return $agenda['items'] ?? [];
+        }
+    }
+    return [];
 }
 
 /**
@@ -838,5 +1144,470 @@ function getAttendanceStats($memberId)
         'excused' => $excused,
         'attendance_rate' => $total > 0 ? round(($present / $total) * 100, 2) : 0
     ];
+}
+
+// ==========================================
+// ENHANCED AGENDA MANAGEMENT FUNCTIONS
+// ==========================================
+
+// Initialize agenda templates in session
+if (!isset($_SESSION['agenda_templates'])) {
+    $_SESSION['agenda_templates'] = [
+        [
+            'id' => 1,
+            'name' => 'Standard Committee Meeting',
+            'description' => 'Default template for regular committee meetings',
+            'committee_type' => 'All',
+            'items' => [
+                ['title' => 'Call to Order', 'description' => '', 'duration' => 5, 'type' => 'Call to Order'],
+                ['title' => 'Approval of Previous Minutes', 'description' => '', 'duration' => 10, 'type' => 'Approval'],
+                ['title' => 'Main Discussion', 'description' => '', 'duration' => 60, 'type' => 'Discussion'],
+                ['title' => 'Voting on Resolutions', 'description' => '', 'duration' => 15, 'type' => 'Voting'],
+                ['title' => 'Adjournment', 'description' => '', 'duration' => 5, 'type' => 'Adjournment']
+            ],
+            'created_by' => 'System',
+            'created_date' => '2025-01-01'
+        ],
+        [
+            'id' => 2,
+            'name' => 'Budget Review Session',
+            'description' => 'Template for budget review and financial discussions',
+            'committee_type' => 'Standing',
+            'items' => [
+                ['title' => 'Call to Order', 'description' => '', 'duration' => 5, 'type' => 'Call to Order'],
+                ['title' => 'Budget Presentation', 'description' => 'Financial overview and budget details', 'duration' => 30, 'type' => 'Presentation'],
+                ['title' => 'Q&A Session', 'description' => 'Questions and clarifications', 'duration' => 20, 'type' => 'Discussion'],
+                ['title' => 'Budget Discussion', 'description' => 'Detailed discussion on budget items', 'duration' => 45, 'type' => 'Discussion'],
+                ['title' => 'Voting on Budget', 'description' => '', 'duration' => 15, 'type' => 'Voting'],
+                ['title' => 'Adjournment', 'description' => '', 'duration' => 5, 'type' => 'Adjournment']
+            ],
+            'created_by' => 'System',
+            'created_date' => '2025-01-01'
+        ]
+    ];
+}
+
+// Initialize deliberations in session
+if (!isset($_SESSION['deliberations'])) {
+    $_SESSION['deliberations'] = [];
+}
+
+// Initialize votes in session
+if (!isset($_SESSION['votes'])) {
+    $_SESSION['votes'] = [];
+}
+
+// Initialize agenda distribution in session
+if (!isset($_SESSION['agenda_distribution'])) {
+    $_SESSION['agenda_distribution'] = [];
+}
+
+/**
+ * Get all agenda templates
+ */
+function getAllAgendaTemplates()
+{
+    return $_SESSION['agenda_templates'] ?? [];
+}
+
+/**
+ * Get agenda template by ID
+ */
+function getAgendaTemplateById($id)
+{
+    $templates = getAllAgendaTemplates();
+    foreach ($templates as $template) {
+        if ($template['id'] == $id) {
+            return $template;
+        }
+    }
+    return null;
+}
+
+/**
+ * Create agenda template
+ */
+function createAgendaTemplate($data)
+{
+    $templates = getAllAgendaTemplates();
+    $newId = empty($templates) ? 1 : max(array_column($templates, 'id')) + 1;
+
+    $_SESSION['agenda_templates'][] = [
+        'id' => $newId,
+        'name' => $data['name'],
+        'description' => $data['description'] ?? '',
+        'committee_type' => $data['committee_type'] ?? 'All',
+        'items' => $data['items'] ?? [],
+        'created_by' => $_SESSION['user_name'] ?? 'User',
+        'created_date' => date('Y-m-d')
+    ];
+
+    return $newId;
+}
+
+/**
+ * Update agenda template
+ */
+function updateAgendaTemplate($id, $data)
+{
+    $templates = &$_SESSION['agenda_templates'];
+    foreach ($templates as &$template) {
+        if ($template['id'] == $id) {
+            $template['name'] = $data['name'];
+            $template['description'] = $data['description'] ?? '';
+            $template['committee_type'] = $data['committee_type'] ?? 'All';
+            $template['items'] = $data['items'] ?? [];
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Delete agenda template
+ */
+function deleteAgendaTemplate($id)
+{
+    $templates = &$_SESSION['agenda_templates'];
+    foreach ($templates as $key => $template) {
+        if ($template['id'] == $id) {
+            unset($templates[$key]);
+            $_SESSION['agenda_templates'] = array_values($templates);
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Apply template to create agenda items
+ */
+function applyTemplate($templateId, $meetingId)
+{
+    $template = getAgendaTemplateById($templateId);
+    if (!$template) {
+        return false;
+    }
+
+    // Create agenda items from template
+    foreach ($template['items'] as $item) {
+        addAgendaItem($meetingId, [
+            'title' => $item['title'],
+            'description' => $item['description'],
+            'duration' => $item['duration'],
+            'type' => $item['type']
+        ]);
+    }
+
+    return true;
+}
+
+/**
+ * Create full agenda with items
+ */
+function createFullAgenda($data)
+{
+    $meetings = getAllMeetings();
+    $newId = empty($meetings) ? 1 : max(array_column($meetings, 'id')) + 1;
+
+    // Create the agenda metadata
+    $agendaId = $newId;
+
+    // If items are provided, create them
+    if (isset($data['items']) && is_array($data['items'])) {
+        foreach ($data['items'] as $index => $item) {
+            $item['meeting_id'] = $data['meeting_id'];
+            $item['item_number'] = $index + 1;
+            createAgenda($item);
+        }
+    }
+
+    return $agendaId;
+}
+
+/**
+ * Duplicate agenda
+ */
+function duplicateAgenda($id)
+{
+    $agenda = getAgendaById($id);
+    if (!$agenda) {
+        return false;
+    }
+
+    // Get all items for this agenda
+    $items = getAgendaByMeeting($agenda['meeting_id']);
+
+    // Note: This would need a new meeting ID to duplicate to
+    // For now, return the agenda data for manual duplication
+    return [
+        'agenda' => $agenda,
+        'items' => $items
+    ];
+}
+
+/**
+ * Publish agenda
+ */
+function publishAgenda($id)
+{
+    // This would update the agenda status
+    // Since agendas are stored as items, we need a different approach
+    // We'll add this to the meeting metadata
+    $meetings = &$_SESSION['meetings'];
+    foreach ($meetings as &$meeting) {
+        if ($meeting['id'] == $id) {
+            $meeting['agenda_status'] = 'Published';
+            $meeting['agenda_published_date'] = date('Y-m-d H:i:s');
+            $meeting['agenda_published_by'] = $_SESSION['user_name'] ?? 'User';
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Get agendas by committee
+ */
+function getAgendasByCommittee($committeeId)
+{
+    $meetings = getAllMeetings();
+    $committeeMeetings = array_filter($meetings, function ($meeting) use ($committeeId) {
+        return $meeting['committee_id'] == $committeeId;
+    });
+
+    // Get agendas for these meetings
+    $agendas = [];
+    foreach ($committeeMeetings as $meeting) {
+        $items = getAgendaByMeeting($meeting['id']);
+        if (!empty($items)) {
+            $agendas[] = [
+                'meeting' => $meeting,
+                'items' => $items,
+                'item_count' => count($items)
+            ];
+        }
+    }
+
+    return $agendas;
+}
+
+/**
+ * Get agendas by status
+ */
+function getAgendasByStatus($status)
+{
+    $meetings = getAllMeetings();
+    return array_filter($meetings, function ($meeting) use ($status) {
+        return isset($meeting['agenda_status']) && $meeting['agenda_status'] === $status;
+    });
+}
+
+/**
+ * Create deliberation record
+ */
+function createDeliberation($agendaItemId, $data)
+{
+    if (!isset($_SESSION['deliberations'])) {
+        $_SESSION['deliberations'] = [];
+    }
+
+    $deliberations = $_SESSION['deliberations'];
+    $newId = empty($deliberations) ? 1 : max(array_column($deliberations, 'id')) + 1;
+
+    $_SESSION['deliberations'][] = [
+        'id' => $newId,
+        'agenda_item_id' => $agendaItemId,
+        'speaker' => $data['speaker'],
+        'notes' => $data['notes'] ?? '',
+        'duration' => $data['duration'] ?? 0,
+        'timestamp' => date('Y-m-d H:i:s'),
+        'recorded_by' => $_SESSION['user_name'] ?? 'User'
+    ];
+
+    return $newId;
+}
+
+/**
+ * Update deliberation
+ */
+function updateDeliberation($id, $data)
+{
+    $deliberations = &$_SESSION['deliberations'];
+    foreach ($deliberations as &$delib) {
+        if ($delib['id'] == $id) {
+            $delib['speaker'] = $data['speaker'];
+            $delib['notes'] = $data['notes'] ?? '';
+            $delib['duration'] = $data['duration'] ?? 0;
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Get deliberations by agenda
+ */
+function getDeliberationsByAgenda($agendaId)
+{
+    $deliberations = $_SESSION['deliberations'] ?? [];
+    $agendaItems = getAgendaByMeeting($agendaId);
+    $itemIds = array_column($agendaItems, 'id');
+
+    return array_filter($deliberations, function ($delib) use ($itemIds) {
+        return in_array($delib['agenda_item_id'], $itemIds);
+    });
+}
+
+/**
+ * Create vote
+ */
+function createVote($agendaItemId, $data)
+{
+    if (!isset($_SESSION['votes'])) {
+        $_SESSION['votes'] = [];
+    }
+
+    $votes = $_SESSION['votes'];
+    $newId = empty($votes) ? 1 : max(array_column($votes, 'id')) + 1;
+
+    $_SESSION['votes'][] = [
+        'id' => $newId,
+        'agenda_item_id' => $agendaItemId,
+        'motion_text' => $data['motion_text'],
+        'voting_method' => $data['voting_method'] ?? 'Voice Vote',
+        'votes_yes' => 0,
+        'votes_no' => 0,
+        'votes_abstain' => 0,
+        'votes_absent' => 0,
+        'result' => 'Pending',
+        'member_votes' => [],
+        'created_by' => $_SESSION['user_name'] ?? 'User',
+        'created_date' => date('Y-m-d H:i:s')
+    ];
+
+    return $newId;
+}
+
+/**
+ * Record member vote
+ */
+function recordMemberVote($voteId, $memberId, $vote)
+{
+    $votes = &$_SESSION['votes'];
+    foreach ($votes as &$voteRecord) {
+        if ($voteRecord['id'] == $voteId) {
+            // Record the member's vote
+            $voteRecord['member_votes'][$memberId] = $vote;
+
+            // Update tallies
+            $voteRecord['votes_yes'] = count(array_filter($voteRecord['member_votes'], fn($v) => $v === 'Yes'));
+            $voteRecord['votes_no'] = count(array_filter($voteRecord['member_votes'], fn($v) => $v === 'No'));
+            $voteRecord['votes_abstain'] = count(array_filter($voteRecord['member_votes'], fn($v) => $v === 'Abstain'));
+            $voteRecord['votes_absent'] = count(array_filter($voteRecord['member_votes'], fn($v) => $v === 'Absent'));
+
+            // Determine result
+            if ($voteRecord['votes_yes'] > $voteRecord['votes_no']) {
+                $voteRecord['result'] = 'Passed';
+            } elseif ($voteRecord['votes_no'] > $voteRecord['votes_yes']) {
+                $voteRecord['result'] = 'Failed';
+            } else {
+                $voteRecord['result'] = 'Tied';
+            }
+
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Get votes by agenda
+ */
+function getVotesByAgenda($agendaId)
+{
+    $votes = $_SESSION['votes'] ?? [];
+    $agendaItems = getAgendaByMeeting($agendaId);
+    $itemIds = array_column($agendaItems, 'id');
+
+    return array_filter($votes, function ($vote) use ($itemIds) {
+        return in_array($vote['agenda_item_id'], $itemIds);
+    });
+}
+
+/**
+ * Get vote results
+ */
+function getVoteResults($voteId)
+{
+    $votes = $_SESSION['votes'] ?? [];
+    foreach ($votes as $vote) {
+        if ($vote['id'] == $voteId) {
+            return [
+                'motion_text' => $vote['motion_text'],
+                'voting_method' => $vote['voting_method'],
+                'yes' => $vote['votes_yes'],
+                'no' => $vote['votes_no'],
+                'abstain' => $vote['votes_abstain'],
+                'absent' => $vote['votes_absent'],
+                'result' => $vote['result'],
+                'total_votes' => $vote['votes_yes'] + $vote['votes_no'] + $vote['votes_abstain']
+            ];
+        }
+    }
+    return null;
+}
+
+/**
+ * Distribute agenda
+ */
+function distributeAgenda($agendaId, $recipients)
+{
+    if (!isset($_SESSION['agenda_distribution'])) {
+        $_SESSION['agenda_distribution'] = [];
+    }
+
+    foreach ($recipients as $recipient) {
+        $_SESSION['agenda_distribution'][] = [
+            'agenda_id' => $agendaId,
+            'recipient_id' => $recipient['id'],
+            'recipient_name' => $recipient['name'],
+            'recipient_email' => $recipient['email'],
+            'sent_date' => date('Y-m-d H:i:s'),
+            'read_date' => null,
+            'status' => 'Sent'
+        ];
+    }
+
+    return true;
+}
+
+/**
+ * Track distribution action
+ */
+function trackDistribution($agendaId, $recipientId, $action)
+{
+    $distribution = &$_SESSION['agenda_distribution'];
+    foreach ($distribution as &$record) {
+        if ($record['agenda_id'] == $agendaId && $record['recipient_id'] == $recipientId) {
+            if ($action === 'read') {
+                $record['read_date'] = date('Y-m-d H:i:s');
+                $record['status'] = 'Read';
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Get distribution log
+ */
+function getDistributionLog($agendaId)
+{
+    $distribution = $_SESSION['agenda_distribution'] ?? [];
+    return array_filter($distribution, function ($record) use ($agendaId) {
+        return $record['agenda_id'] == $agendaId;
+    });
 }
 ?>

@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'time_start' => $_POST['time_start'] ?? '',
         'time_end' => $_POST['time_end'] ?? '',
         'venue' => $_POST['venue'] ?? '',
+        'referral_id' => $_POST['referral_id'] ?? null,
         'is_public' => isset($_POST['is_public']) ? true : false
     ];
     
@@ -141,6 +142,26 @@ include '../../includes/header.php';
                 </label>
                 <input type="time" name="time_end" value="<?php echo htmlspecialchars($_POST['time_end'] ?? ''); ?>"
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+            </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Related Referral (Optional)
+                </label>
+                <select name="referral_id" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                    <option value="">None</option>
+                    <?php
+                    $pendingReferrals = getReferralsByStatus('Pending');
+                    $underReviewReferrals = getReferralsByStatus('Under Review');
+                    $allAvailableReferrals = array_merge($pendingReferrals, $underReviewReferrals);
+                    foreach ($allAvailableReferrals as $ref):
+                    ?>
+                        <option value="<?php echo $ref['id']; ?>" <?php echo ($_POST['referral_id'] ?? '') == $ref['id'] ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($ref['title']); ?> (<?php echo $ref['status']; ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Link this meeting to a specific referral for discussion</p>
             </div>
 
             <div class="md:col-span-2">

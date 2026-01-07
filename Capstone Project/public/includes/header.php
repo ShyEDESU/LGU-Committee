@@ -640,31 +640,53 @@ $recentNotifications = NotificationHelper::getRecentNotifications($userId, 5);
 
 
                 <script>
-                    // Auto-logout when tab/window is closed (but NOT on page navigation)
-                    let isNavigating = false;
+                    // Session activity tracking
+                    let lastActivity = Date.now();
+                    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+                    const HEARTBEAT_INTERVAL = 60 * 1000; // Send heartbeat every 1 minute
 
-                    // Track when user is navigating to another page
-                    document.addEventListener('click', function (e) {
-                        // Check if clicking on a link within the site
-                        const link = e.target.closest('a');
-                        if (link && link.href && link.href.includes(window.location.hostname)) {
-                            isNavigating = true;
+                    // Update last activity time on user interaction
+                    function updateActivity() {
+                        lastActivity = Date.now();
+                    }
+
+                    // Track user activity
+                    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+                        document.addEventListener(event, updateActivity, true);
+                    });
+
+                    // Send heartbeat to server to keep session alive
+                    function sendHeartbeat() {
+                        fetch('../../../app/controllers/AuthController.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: 'action=heartbeat'
+                        }).catch(() => {
+                            // If heartbeat fails, session might be expired
+                            console.log('Heartbeat failed');
+                        });
+                    }
+
+                    // Check session timeout
+                    function checkSessionTimeout() {
+                        const timeSinceActivity = Date.now() - lastActivity;
+
+                        if (timeSinceActivity > SESSION_TIMEOUT) {
+                            // Session timed out due to inactivity
+                            alert('Your session has expired due to inactivity. Please login again.');
+                            window.location.href = '../../../auth/login.php';
                         }
-                    });
+                    }
 
-                    // Also track form submissions
-                    document.addEventListener('submit', function () {
-                        isNavigating = true;
-                    });
-
-                    // Only logout if actually closing tab/window (not navigating)
-                    window.addEventListener('beforeunload', function (e) {
-                        // If navigating to another page, don't logout
-                        if (isNavigating) {
-                            return;
+                    // Send heartbeat every minute if user is active
+                    setInterval(() => {
+                        const timeSinceActivity = Date.now() - lastActivity;
+                        // Only send heartbeat if user was active in last 5 minutes
+                        if (timeSinceActivity < 5 * 60 * 1000) {
+                            sendHeartbeat();
                         }
-
-                        // Send logout request only when actually closing tab/window
-                        navigator.sendBeacon('../../auth/logout_handler.php', 'auto_logout=true');
-                    });
+                        checkSessionTimeout();
+                    }, HEARTBEAT_INTERVAL);
                 </script>

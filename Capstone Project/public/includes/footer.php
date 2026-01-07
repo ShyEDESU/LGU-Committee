@@ -12,7 +12,22 @@
     // Logout function
     function logout() {
         if (confirm('Are you sure you want to logout?')) {
-            window.location.href = '../../../auth/login.php?logout=true';
+            // Use fetch to destroy session first, then redirect
+            fetch('../../../app/controllers/AuthController.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=logout'
+            })
+                .then(() => {
+                    // Redirect to login page after logout
+                    window.location.href = '../../../auth/login.php?logout=success';
+                })
+                .catch(() => {
+                    // Even if fetch fails, redirect anyway
+                    window.location.href = '../../../auth/login.php?logout=success';
+                });
         }
     }
 </script>
