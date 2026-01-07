@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../../config/session_config.php';
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
     exit();
@@ -32,16 +32,21 @@ $doneItems = array_filter($actionItems, fn($item) => $item['status'] === 'Done')
             <h1 class="text-3xl font-bold text-gray-900">Action Items</h1>
             <p class="text-gray-600 mt-1">Track and manage committee action items</p>
         </div>
-        <a href="create.php" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"><i class="bi bi-plus-lg"></i> New Action Item</a>
+        <a href="create.php" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"><i
+                class="bi bi-plus-lg"></i> New Action Item</a>
     </div>
 </div>
 
 <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
     <div class="flex flex-wrap gap-2">
-        <a href="index.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold"><i class="bi bi-kanban"></i> Kanban Board</a>
-        <a href="assign.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i class="bi bi-person-plus"></i> Assign</a>
-        <a href="progress.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i class="bi bi-graph-up"></i> Progress</a>
-        <a href="deadlines.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i class="bi bi-calendar-x"></i> Deadlines</a>
+        <a href="index.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold"><i
+                class="bi bi-kanban"></i> Kanban Board</a>
+        <a href="assign.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i
+                class="bi bi-person-plus"></i> Assign</a>
+        <a href="progress.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i
+                class="bi bi-graph-up"></i> Progress</a>
+        <a href="deadlines.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i
+                class="bi bi-calendar-x"></i> Deadlines</a>
     </div>
 </div>
 
@@ -74,20 +79,21 @@ $doneItems = array_filter($actionItems, fn($item) => $item['status'] === 'Done')
         </h3>
         <div class="space-y-3">
             <?php foreach ($todoItems as $item): ?>
-            <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-gray-500">
-                <h4 class="font-semibold text-gray-900 mb-2"><?php echo $item['title']; ?></h4>
-                <p class="text-sm text-gray-600 mb-2">
-                    <i class="bi bi-person"></i> <?php echo $item['assigned_to']; ?>
-                </p>
-                <p class="text-sm text-gray-600 mb-2">
-                    <i class="bi bi-calendar"></i> <?php echo date('M j', strtotime($item['deadline'])); ?>
-                </p>
-                <span class="px-2 py-1 text-xs font-semibold rounded-full 
-                    <?php echo $item['priority'] === 'High' ? 'bg-red-100 text-red-800' : 
-                               ($item['priority'] === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'); ?>">
-                    <?php echo $item['priority']; ?>
-                </span>
-            </div>
+                <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-gray-500">
+                    <h4 class="font-semibold text-gray-900 mb-2"><?php echo $item['title']; ?></h4>
+                    <p class="text-sm text-gray-600 mb-2">
+                        <i class="bi bi-person"></i> <?php echo $item['assigned_to']; ?>
+                    </p>
+                    <p class="text-sm text-gray-600 mb-2">
+                        <i class="bi bi-calendar"></i> <?php echo date('M j', strtotime($item['deadline'])); ?>
+                    </p>
+                    <span
+                        class="px-2 py-1 text-xs font-semibold rounded-full 
+                    <?php echo $item['priority'] === 'High' ? 'bg-red-100 text-red-800' :
+                        ($item['priority'] === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'); ?>">
+                        <?php echo $item['priority']; ?>
+                    </span>
+                </div>
             <?php endforeach; ?>
         </div>
     </div>
@@ -100,26 +106,28 @@ $doneItems = array_filter($actionItems, fn($item) => $item['status'] === 'Done')
         </h3>
         <div class="space-y-3">
             <?php foreach ($inProgressItems as $item): ?>
-            <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-                <h4 class="font-semibold text-gray-900 mb-2"><?php echo $item['title']; ?></h4>
-                <p class="text-sm text-gray-600 mb-2">
-                    <i class="bi bi-person"></i> <?php echo $item['assigned_to']; ?>
-                </p>
-                <p class="text-sm text-gray-600 mb-2">
-                    <i class="bi bi-calendar"></i> <?php echo date('M j', strtotime($item['deadline'])); ?>
-                </p>
-                <div class="mb-2">
-                    <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div class="bg-blue-600 h-2 rounded-full" style="width: <?php echo $item['progress']; ?>%"></div>
+                <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <h4 class="font-semibold text-gray-900 mb-2"><?php echo $item['title']; ?></h4>
+                    <p class="text-sm text-gray-600 mb-2">
+                        <i class="bi bi-person"></i> <?php echo $item['assigned_to']; ?>
+                    </p>
+                    <p class="text-sm text-gray-600 mb-2">
+                        <i class="bi bi-calendar"></i> <?php echo date('M j', strtotime($item['deadline'])); ?>
+                    </p>
+                    <div class="mb-2">
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: <?php echo $item['progress']; ?>%">
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1"><?php echo $item['progress']; ?>% complete</p>
                     </div>
-                    <p class="text-xs text-gray-600 mt-1"><?php echo $item['progress']; ?>% complete</p>
+                    <span
+                        class="px-2 py-1 text-xs font-semibold rounded-full 
+                    <?php echo $item['priority'] === 'High' ? 'bg-red-100 text-red-800' :
+                        ($item['priority'] === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'); ?>">
+                        <?php echo $item['priority']; ?>
+                    </span>
                 </div>
-                <span class="px-2 py-1 text-xs font-semibold rounded-full 
-                    <?php echo $item['priority'] === 'High' ? 'bg-red-100 text-red-800' : 
-                               ($item['priority'] === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'); ?>">
-                    <?php echo $item['priority']; ?>
-                </span>
-            </div>
             <?php endforeach; ?>
         </div>
     </div>
@@ -132,19 +140,18 @@ $doneItems = array_filter($actionItems, fn($item) => $item['status'] === 'Done')
         </h3>
         <div class="space-y-3">
             <?php foreach ($doneItems as $item): ?>
-            <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-                <h4 class="font-semibold text-gray-900 mb-2"><?php echo $item['title']; ?></h4>
-                <p class="text-sm text-gray-600 mb-2">
-                    <i class="bi bi-person"></i> <?php echo $item['assigned_to']; ?>
-                </p>
-                <p class="text-sm text-gray-600 mb-2">
-                    <i class="bi bi-check-circle text-green-600"></i> Completed
-                </p>
-            </div>
+                <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                    <h4 class="font-semibold text-gray-900 mb-2"><?php echo $item['title']; ?></h4>
+                    <p class="text-sm text-gray-600 mb-2">
+                        <i class="bi bi-person"></i> <?php echo $item['assigned_to']; ?>
+                    </p>
+                    <p class="text-sm text-gray-600 mb-2">
+                        <i class="bi bi-check-circle text-green-600"></i> Completed
+                    </p>
+                </div>
             <?php endforeach; ?>
         </div>
     </div>
 </div>
 
 <?php include '../../includes/footer.php'; ?>
-

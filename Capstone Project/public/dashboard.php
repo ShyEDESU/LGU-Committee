@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_config.php';
 require_once '../config/database.php';
 
 // Check if user is logged in
@@ -77,6 +77,19 @@ if ($userId) {
 
     <!-- Ensure sidebar is visible on desktop (when not collapsed) -->
     <style>
+        /* Hide scrollbar while maintaining scroll functionality */
+        .sidebar nav::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        .sidebar nav {
+            scrollbar-width: none;
+            /* Firefox */
+            -ms-overflow-style: none;
+            /* IE/Edge */
+        }
+
         @media (min-width: 768px) {
             #sidebar:not(.collapsed) {
                 display: flex !important;
@@ -146,86 +159,93 @@ if ($userId) {
 
         <nav class="flex-1 py-4 px-3 overflow-y-auto">
             <a href="dashboard.php"
-                class="flex items-center px-4 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 bg-red-700">
-                <i class="bi bi-speedometer2 mr-3 text-lg"></i>
-                <span>Dashboard</span>
+                class="flex items-center px-3 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 bg-red-700">
+                <i class="bi bi-speedometer2 mr-2.5 text-xl"></i>
+                <span class="text-lg">Dashboard</span>
             </a>
 
-            <div class="mt-4 mb-2 px-4">
-                <p class="text-xs font-semibold text-red-300/80 uppercase tracking-wider">Core Modules</p>
+            <div class="mt-3 mb-2 px-3">
+                <p class="text-sm font-semibold text-red-300/80 uppercase tracking-wider">Core Modules</p>
             </div>
 
             <a href="pages/committee-profiles/index.php"
-                class="flex items-center px-4 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
-                <i class="bi bi-building mr-3 text-lg"></i>
-                <span>Committee Profiles</span>
+                class="flex items-center px-3 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
+                <i class="bi bi-building mr-2.5 text-xl"></i>
+                <span class="text-base">Committee Profiles</span>
             </a>
             <a href="pages/committee-meetings/index.php"
-                class="flex items-center px-4 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
-                <i class="bi bi-calendar-check mr-3 text-lg"></i>
-                <span>Meetings</span>
+                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
+                <i class="bi bi-calendar-check mr-2.5 text-xl"></i>
+                <span class="text-base">Meetings</span>
             </a>
             <a href="pages/agenda-builder/index.php"
-                class="flex items-center px-4 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
-                <i class="bi bi-list-ul mr-3 text-lg"></i>
-                <span>Agendas</span>
+                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
+                <i class="bi bi-list-ul mr-2.5 text-xl"></i>
+                <span class="text-base">Agendas</span>
             </a>
             <a href="pages/referral-management/index.php"
-                class="flex items-center px-4 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
-                <i class="bi bi-inbox mr-3 text-lg"></i>
-                <span>Referrals</span>
+                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
+                <i class="bi bi-inbox mr-2.5 text-xl"></i>
+                <span class="text-base">Referrals</span>
             </a>
             <a href="pages/action-items/index.php"
-                class="flex items-center px-4 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
-                <i class="bi bi-check2-square mr-3 text-lg"></i>
-                <span>Action Items</span>
+                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
+                <i class="bi bi-check2-square mr-2.5 text-xl"></i>
+                <span class="text-base">Action Items</span>
             </a>
 
-            <div class="mt-4 mb-2 px-4">
-                <p class="text-xs font-semibold text-red-300/80 uppercase tracking-wider">Analytics</p>
+            <div class="mt-3 mb-2 px-3">
+                <p class="text-sm font-semibold text-red-300/80 uppercase tracking-wider">Analytics</p>
             </div>
 
             <a href="pages/committee-reports/index.php"
-                class="flex items-center px-4 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
-                <i class="bi bi-graph-up mr-3 text-lg"></i>
-                <span>Reports & Analytics</span>
+                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
+                <i class="bi bi-graph-up mr-2.5 text-xl"></i>
+                <span class="text-base">Reports & Analytics</span>
             </a>
-            <!-- ADMINISTRATION SECTION -->
-            <div class="px-4 py-3 mt-4 mb-2">
-                <p class="text-xs font-semibold text-red-300/80 uppercase tracking-wider">Administration</p>
+
+            <div class="mt-3 mb-2 px-3">
+                <p class="text-[10px] font-semibold text-red-300/80 uppercase tracking-wider">Administration</p>
             </div>
 
             <!-- User Management -->
             <a href="pages/user-management/index.php"
-                class="flex items-center px-4 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
-                <i class="bi bi-people-fill mr-3 text-lg"></i>
-                <span>User Management</span>
+                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
+                <i class="bi bi-people-fill mr-2.5 text-xl"></i>
+                <span class="text-base">User Management</span>
             </a>
 
             <!-- Audit Logs -->
             <a href="pages/audit-logs/index.php"
-                class="flex items-center px-4 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
-                <i class="bi bi-shield-check mr-3 text-lg"></i>
-                <span>Audit Logs</span>
+                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
+                <i class="bi bi-shield-check mr-2.5 text-xl"></i>
+                <span class="text-base">Audit Logs</span>
+            </a>
+
+            <!-- Notifications -->
+            <a href="pages/notifications/index.php"
+                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
+                <i class="bi bi-bell mr-2.5 text-xl"></i>
+                <span class="text-base">Notifications</span>
             </a>
 
             <!-- My Profile -->
             <a href="pages/my-profile/index.php"
-                class="flex items-center px-4 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
-                <i class="bi bi-person-circle mr-3 text-lg"></i>
-                <span>My Profile</span>
+                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
+                <i class="bi bi-person-circle mr-2.5 text-xl"></i>
+                <span class="text-base">My Profile</span>
             </a>
             <a href="pages/system-settings/index.php"
-                class="flex items-center px-4 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
-                <i class="bi bi-gear mr-3 text-lg"></i>
-                <span>Settings</span>
+                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
+                <i class="bi bi-gear mr-2.5 text-xl"></i>
+                <span class="text-base">Settings</span>
             </a>
         </nav>
 
         <div class="p-3 mt-auto border-t border-red-700/40">
             <div class="flex items-center space-x-2.5 mb-2.5">
                 <div class="w-9 h-9 rounded-full bg-red-700 flex items-center justify-center">
-                    <i class="bi bi-person-fill text-white text-sm"></i>
+                    <i class="bi bi-person-fill text-white text-base"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-white truncate"><?php echo htmlspecialchars($userName); ?></p>
@@ -254,76 +274,90 @@ if ($userId) {
                 </a>
             </div>
 
-            <nav class="flex-1 overflow-y-auto py-4">
-                <div class="px-4 space-y-1">
+            <nav class="flex-1 overflow-y-auto py-3">
+                <div class="px-3 space-y-1">
                     <a href="dashboard.php"
-                        class="flex items-center px-4 py-3 rounded-lg bg-red-700 text-white transition-all duration-200 group">
+                        class="flex items-center px-3 py-3 rounded-lg bg-red-700 text-white transition-all duration-200 group">
                         <i class="bi bi-speedometer2 text-lg"></i>
-                        <span class="sidebar-text ml-3 font-medium">Dashboard</span>
+                        <span class="sidebar-text ml-2 text-lg">Dashboard</span>
                     </a>
 
-                    <div class="pt-4 pb-2 sidebar-text">
-                        <p class="px-4 text-xs font-semibold text-red-300 uppercase tracking-wider">Core Modules</p>
+                    <div class="pt-3 pb-1 sidebar-text">
+                        <p class="px-3 text-sm font-semibold text-red-300 uppercase tracking-wider">Core Modules</p>
                     </div>
 
                     <a href="pages/committee-profiles/index.php"
-                        class="flex items-center px-4 py-3 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
+                        class="flex items-center px-3 py-3 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
                         <i class="bi bi-people text-lg"></i>
-                        <span class="sidebar-text ml-3 group-hover:translate-x-1 transition-transform">Committee
+                        <span
+                            class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Committee
                             Profiles</span>
                     </a>
                     <a href="pages/committee-meetings/index.php"
-                        class="flex items-center px-4 py-3 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
+                        class="flex items-center px-3 py-2 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
                         <i class="bi bi-calendar-event text-lg"></i>
-                        <span class="sidebar-text ml-3 group-hover:translate-x-1 transition-transform">Meetings</span>
+                        <span
+                            class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Meetings</span>
                     </a>
                     <a href="pages/agenda-builder/index.php"
-                        class="flex items-center px-4 py-3 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
+                        class="flex items-center px-3 py-2 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
                         <i class="bi bi-list-check text-lg"></i>
-                        <span class="sidebar-text ml-3 group-hover:translate-x-1 transition-transform">Agendas</span>
+                        <span
+                            class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Agendas</span>
                     </a>
                     <a href="pages/referral-management/index.php"
-                        class="flex items-center px-4 py-3 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
+                        class="flex items-center px-3 py-2 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
                         <i class="bi bi-arrow-left-right text-lg"></i>
-                        <span class="sidebar-text ml-3 group-hover:translate-x-1 transition-transform">Referrals</span>
+                        <span
+                            class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Referrals</span>
                     </a>
                     <a href="pages/action-items/index.php"
-                        class="flex items-center px-4 py-3 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
+                        class="flex items-center px-3 py-2 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
                         <i class="bi bi-check2-square text-lg"></i>
-                        <span class="sidebar-text ml-3 group-hover:translate-x-1 transition-transform">Action
+                        <span class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Action
                             Items</span>
                     </a>
 
-                    <div class="pt-4 pb-2 sidebar-text">
-                        <p class="px-4 text-xs font-semibold text-red-300 uppercase tracking-wider">Analytics</p>
+                    <div class="pt-3 pb-1 sidebar-text">
+                        <p class="px-3 text-sm font-semibold text-red-300 uppercase tracking-wider">Analytics</p>
                     </div>
 
                     <a href="pages/committee-reports/index.php"
-                        class="flex items-center px-4 py-3 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
+                        class="flex items-center px-3 py-2 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
                         <i class="bi bi-graph-up text-lg"></i>
-                        <span class="sidebar-text ml-3 group-hover:translate-x-1 transition-transform">Reports &
+                        <span class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Reports
+                            &
                             Analytics</span>
                     </a>
 
-                    <div class="pt-4 pb-2 sidebar-text">
-                        <p class="px-4 text-xs font-semibold text-red-300 uppercase tracking-wider">Administration</p>
+                    <div class="pt-3 pb-1 sidebar-text">
+                        <p class="px-3 text-[10px] font-semibold text-red-300 uppercase tracking-wider">Administration
+                        </p>
                     </div>
 
                     <a href="pages/user-management/index.php"
-                        class="flex items-center px-4 py-3 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
+                        class="flex items-center px-3 py-2 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
                         <i class="bi bi-people text-lg"></i>
-                        <span class="sidebar-text ml-3 group-hover:translate-x-1 transition-transform">User
+                        <span class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">User
                             Management</span>
                     </a>
                     <a href="pages/audit-logs/index.php"
-                        class="flex items-center px-4 py-3 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
+                        class="flex items-center px-3 py-2 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
                         <i class="bi bi-shield-check text-lg"></i>
-                        <span class="sidebar-text ml-3 group-hover:translate-x-1 transition-transform">Audit Logs</span>
+                        <span class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Audit
+                            Logs</span>
+                    </a>
+                    <a href="pages/notifications/index.php"
+                        class="flex items-center px-3 py-2 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
+                        <i class="bi bi-bell text-lg"></i>
+                        <span
+                            class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Notifications</span>
                     </a>
                     <a href="pages/my-profile/index.php"
-                        class="flex items-center px-4 py-3 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
+                        class="flex items-center px-3 py-2 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
                         <i class="bi bi-person-circle text-lg"></i>
-                        <span class="sidebar-text ml-3 group-hover:translate-x-1 transition-transform">My Profile</span>
+                        <span class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">My
+                            Profile</span>
                     </a>
                 </div>
             </nav>
@@ -400,38 +434,158 @@ if ($userId) {
                             <!-- Notifications -->
                             <div class="relative">
                                 <button id="notifications-btn"
-                                    class="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition">
+                                    class="relative p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
                                     <i class="bi bi-bell text-xl"></i>
-                                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                                    <?php
+                                    // Dummy unread count
+                                    $dummyUnreadCount = 3;
+                                    if ($dummyUnreadCount > 0):
+                                        ?>
+                                        <span
+                                            class="absolute -top-1 -right-1 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-600 rounded-full"><?php echo $dummyUnreadCount > 9 ? '9+' : $dummyUnreadCount; ?></span>
+                                    <?php endif; ?>
                                 </button>
 
                                 <div id="notifications-dropdown"
-                                    class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
-                                    <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-                                        <h3 class="text-sm font-semibold text-gray-800">Notifications</h3>
-                                        <button class="text-xs text-red-600 hover:text-red-700">Clear All</button>
+                                    class="hidden absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
+                                    <div
+                                        class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                                        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Notifications
+                                            (<?php echo $dummyUnreadCount; ?>)</h3>
+                                        <button onclick="markAllAsRead()"
+                                            class="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium">Mark
+                                            all read</button>
                                     </div>
                                     <div class="max-h-96 overflow-y-auto">
-                                        <div class="p-4 hover:bg-gray-50 border-b border-gray-100 cursor-pointer">
+                                        <!-- Notification Item 1 -->
+                                        <a href="pages/notifications/index.php"
+                                            class="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700 cursor-pointer transition">
                                             <div class="flex items-start space-x-3">
-                                                <div class="bg-blue-100 rounded-full p-2">
-                                                    <i class="bi bi-file-earmark-text text-blue-600"></i>
+                                                <div
+                                                    class="bg-blue-100 dark:bg-blue-900/30 rounded-full p-2 flex-shrink-0">
+                                                    <i
+                                                        class="bi bi-calendar-event text-blue-600 dark:text-blue-400"></i>
                                                 </div>
-                                                <div class="flex-1">
-                                                    <p class="text-sm text-gray-800">New committee meeting scheduled</p>
-                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">5 minutes
-                                                        ago
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="flex items-start justify-between">
+                                                        <p class="text-sm font-medium text-gray-800 dark:text-white">New
+                                                            Committee Meeting Scheduled</p>
+                                                        <span
+                                                            class="ml-2 w-2 h-2 bg-red-500 rounded-full flex-shrink-0 mt-1.5"></span>
+                                                    </div>
+                                                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Finance
+                                                        Committee meeting on Jan 15, 2026 at 2:00 PM</p>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">5 minutes
+                                                        ago</p>
+                                                </div>
+                                            </div>
+                                        </a>
+
+                                        <!-- Notification Item 2 -->
+                                        <a href="pages/notifications/index.php"
+                                            class="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700 cursor-pointer transition">
+                                            <div class="flex items-start space-x-3">
+                                                <div
+                                                    class="bg-green-100 dark:bg-green-900/30 rounded-full p-2 flex-shrink-0">
+                                                    <i
+                                                        class="bi bi-file-earmark-check text-green-600 dark:text-green-400"></i>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="flex items-start justify-between">
+                                                        <p class="text-sm font-medium text-gray-800 dark:text-white">
+                                                            Agenda Approved</p>
+                                                        <span
+                                                            class="ml-2 w-2 h-2 bg-red-500 rounded-full flex-shrink-0 mt-1.5"></span>
+                                                    </div>
+                                                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Your
+                                                        submitted agenda for Education Committee has been approved</p>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">1 hour ago
                                                     </p>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </a>
+
+                                        <!-- Notification Item 3 -->
+                                        <a href="pages/notifications/index.php"
+                                            class="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700 cursor-pointer transition">
+                                            <div class="flex items-start space-x-3">
+                                                <div
+                                                    class="bg-yellow-100 dark:bg-yellow-900/30 rounded-full p-2 flex-shrink-0">
+                                                    <i
+                                                        class="bi bi-exclamation-triangle text-yellow-600 dark:text-yellow-400"></i>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="flex items-start justify-between">
+                                                        <p class="text-sm font-medium text-gray-800 dark:text-white">
+                                                            Action Item Deadline Approaching</p>
+                                                        <span
+                                                            class="ml-2 w-2 h-2 bg-red-500 rounded-full flex-shrink-0 mt-1.5"></span>
+                                                    </div>
+                                                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Budget
+                                                        review action item due in 2 days</p>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">3 hours ago
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </a>
+
+                                        <!-- Notification Item 4 (Read) -->
+                                        <a href="pages/notifications/index.php"
+                                            class="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700 cursor-pointer transition opacity-75">
+                                            <div class="flex items-start space-x-3">
+                                                <div
+                                                    class="bg-purple-100 dark:bg-purple-900/30 rounded-full p-2 flex-shrink-0">
+                                                    <i class="bi bi-people text-purple-600 dark:text-purple-400"></i>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-sm font-medium text-gray-800 dark:text-white">New
+                                                        Member Added</p>
+                                                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">John Doe
+                                                        has been added to Health Committee</p>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">Yesterday
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </a>
+
+                                        <!-- Notification Item 5 (Read) -->
+                                        <a href="pages/notifications/index.php"
+                                            class="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition opacity-75">
+                                            <div class="flex items-start space-x-3">
+                                                <div
+                                                    class="bg-red-100 dark:bg-red-900/30 rounded-full p-2 flex-shrink-0">
+                                                    <i class="bi bi-inbox text-red-600 dark:text-red-400"></i>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-sm font-medium text-gray-800 dark:text-white">New
+                                                        Referral Received</p>
+                                                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                                        Infrastructure improvement proposal has been referred to your
+                                                        committee</p>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">2 days ago
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </a>
                                     </div>
-                                    <div class="p-3 border-t border-gray-200">
-                                        <a href="#" class="text-sm text-red-600 hover:text-red-700 font-medium">View all
+                                    <div
+                                        class="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                                        <a href="pages/notifications/index.php"
+                                            class="block text-center text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium">View
+                                            all
                                             notifications</a>
                                     </div>
                                 </div>
                             </div>
+
+                            <script>
+                                function markAllAsRead() {
+                                    // This will be implemented when database is ready
+                                    alert('Mark all as read functionality will be implemented with the notification module');
+                                    // For now, just close the dropdown
+                                    document.getElementById('notifications-dropdown').classList.add('hidden');
+                                }
+                            </script>
 
                             <!-- User Profile Dropdown -->
                             <div class="relative">
@@ -613,17 +767,17 @@ if ($userId) {
                                 class="btn-primary w-full flex items-center justify-center transform hover:scale-105 transition-all duration-200">
                                 <i class="bi bi-building mr-2"></i>Committee Profiles
                             </a>
-                            <a href="pages/referral-management/index.php"
+                            <a href="pages/notifications/index.php"
                                 class="btn-outline w-full flex items-center justify-center transform hover:scale-105 transition-all duration-200">
-                                <i class="bi bi-search mr-2"></i>Search Referrals
+                                <i class="bi bi-bell mr-2"></i>Notifications
                             </a>
                             <a href="pages/committee-reports/index.php"
                                 class="btn-outline w-full flex items-center justify-center transform hover:scale-105 transition-all duration-200">
                                 <i class="bi bi-bar-chart mr-2"></i>View Reports
                             </a>
-                            <a href="pages/user-management/index.php"
+                            <a href="portal/index.php" target="_blank"
                                 class="btn-outline w-full flex items-center justify-center transform hover:scale-105 transition-all duration-200">
-                                <i class="bi bi-people mr-2"></i>Manage Users
+                                <i class="bi bi-globe mr-2"></i>Public Portal
                             </a>
                         </div>
                     </div>
@@ -638,7 +792,7 @@ if ($userId) {
                         class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-700">
                         <h3 class="text-lg font-bold text-gray-900 mb-4">Recent Documents</h3>
                         <div class="overflow-x-auto">
-                            <table class="w-full text-sm">
+                            <table class="w-full text-base">
                                 <thead class="border-b border-gray-200">
                                     <tr>
                                         <th class="text-left py-2 text-gray-600 font-semibold">Document</th>
@@ -803,6 +957,36 @@ if ($userId) {
                     });
             }
         }
+    </script>
+
+    <script>
+        // Auto-logout when tab/window is closed (but NOT on page navigation)
+        let isNavigating = false;
+
+        // Track when user is navigating to another page
+        document.addEventListener('click', function (e) {
+            // Check if clicking on a link within the site
+            const link = e.target.closest('a');
+            if (link && link.href && link.href.includes(window.location.hostname)) {
+                isNavigating = true;
+            }
+        });
+
+        // Also track form submissions
+        document.addEventListener('submit', function () {
+            isNavigating = true;
+        });
+
+        // Only logout if actually closing tab/window (not navigating)
+        window.addEventListener('beforeunload', function (e) {
+            // If navigating to another page, don't logout
+            if (isNavigating) {
+                return;
+            }
+
+            // Send logout request only when actually closing tab/window
+            navigator.sendBeacon('../auth/logout_handler.php', 'auto_logout=true');
+        });
     </script>
 </body>
 

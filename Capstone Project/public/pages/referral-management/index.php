@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../../config/session_config.php';
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
     exit();
@@ -27,16 +27,21 @@ $referrals = [
             <h1 class="text-3xl font-bold text-gray-900">Referral Management</h1>
             <p class="text-gray-600 mt-1">Track ordinances, resolutions, and communications</p>
         </div>
-        <a href="create.php" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"><i class="bi bi-plus-lg"></i> New Referral</a>
+        <a href="create.php" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"><i
+                class="bi bi-plus-lg"></i> New Referral</a>
     </div>
 </div>
 
 <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
     <div class="flex flex-wrap gap-2">
-        <a href="index.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold"><i class="bi bi-list"></i> All Referrals</a>
-        <a href="tracking.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i class="bi bi-graph-up"></i> Tracking</a>
-        <a href="assign.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i class="bi bi-person-plus"></i> Assignment</a>
-        <a href="deadlines.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i class="bi bi-calendar-x"></i> Deadlines</a>
+        <a href="index.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold"><i class="bi bi-list"></i>
+            All Referrals</a>
+        <a href="tracking.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i
+                class="bi bi-graph-up"></i> Tracking</a>
+        <a href="assign.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i
+                class="bi bi-person-plus"></i> Assignment</a>
+        <a href="deadlines.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i
+                class="bi bi-calendar-x"></i> Deadlines</a>
     </div>
 </div>
 
@@ -80,33 +85,35 @@ $referrals = [
         </thead>
         <tbody class="divide-y divide-gray-200">
             <?php foreach ($referrals as $referral): ?>
-            <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 font-semibold text-gray-900"><?php echo $referral['title']; ?></td>
-                <td class="px-6 py-4 text-gray-900"><?php echo $referral['type']; ?></td>
-                <td class="px-6 py-4 text-gray-900"><?php echo $referral['committee']; ?></td>
-                <td class="px-6 py-4 text-gray-900"><?php echo date('M j, Y', strtotime($referral['deadline'])); ?></td>
-                <td class="px-6 py-4">
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full 
-                        <?php echo $referral['priority'] === 'High' ? 'bg-red-100 text-red-800' : 
-                                   ($referral['priority'] === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'); ?>">
-                        <?php echo $referral['priority']; ?>
-                    </span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full 
-                        <?php echo $referral['status'] === 'Pending' ? 'bg-gray-100 text-gray-800' : 
-                                   ($referral['status'] === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'); ?>">
-                        <?php echo $referral['status']; ?>
-                    </span>
-                </td>
-                <td class="px-6 py-4">
-                    <a href="view.php?id=<?php echo $referral['id']; ?>" class="text-red-600 hover:text-red-700">View</a>
-                </td>
-            </tr>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-semibold text-gray-900"><?php echo $referral['title']; ?></td>
+                    <td class="px-6 py-4 text-gray-900"><?php echo $referral['type']; ?></td>
+                    <td class="px-6 py-4 text-gray-900"><?php echo $referral['committee']; ?></td>
+                    <td class="px-6 py-4 text-gray-900"><?php echo date('M j, Y', strtotime($referral['deadline'])); ?></td>
+                    <td class="px-6 py-4">
+                        <span
+                            class="px-3 py-1 text-xs font-semibold rounded-full 
+                        <?php echo $referral['priority'] === 'High' ? 'bg-red-100 text-red-800' :
+                            ($referral['priority'] === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'); ?>">
+                            <?php echo $referral['priority']; ?>
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span
+                            class="px-3 py-1 text-xs font-semibold rounded-full 
+                        <?php echo $referral['status'] === 'Pending' ? 'bg-gray-100 text-gray-800' :
+                            ($referral['status'] === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'); ?>">
+                            <?php echo $referral['status']; ?>
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <a href="view.php?id=<?php echo $referral['id']; ?>"
+                            class="text-red-600 hover:text-red-700">View</a>
+                    </td>
+                </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
 </div>
 
 <?php include '../../includes/footer.php'; ?>
-

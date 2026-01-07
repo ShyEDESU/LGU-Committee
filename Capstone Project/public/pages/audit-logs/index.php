@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../../config/session_config.php';
 require_once '../../../config/database.php';
 
 // Check if user is logged in
@@ -36,17 +36,18 @@ include '../../includes/header.php';
                 <option value="logout">Logout</option>
             </select>
         </div>
-        
+
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">User</label>
-            <input type="text" id="filterUser" onkeyup="filterAuditLogs()" placeholder="Search by user..." class="input-field w-full">
+            <input type="text" id="filterUser" onkeyup="filterAuditLogs()" placeholder="Search by user..."
+                class="input-field w-full">
         </div>
-        
+
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
             <input type="date" id="filterDate" onchange="filterAuditLogs()" class="input-field w-full">
         </div>
-        
+
         <div class="flex items-end">
             <button onclick="clearFilters()" class="btn-outline w-full">
                 <i class="bi bi-x-circle mr-2"></i>Clear Filters
@@ -61,11 +62,15 @@ include '../../includes/header.php';
         <table class="w-full">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp
+                    </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Description</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP
+                        Address</th>
                 </tr>
             </thead>
             <tbody id="auditLogsList" class="divide-y divide-gray-200">
@@ -73,7 +78,7 @@ include '../../includes/header.php';
             </tbody>
         </table>
     </div>
-    
+
     <!-- Pagination -->
     <div class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
         <div class="text-sm text-gray-700">

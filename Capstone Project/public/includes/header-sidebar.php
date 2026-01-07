@@ -199,20 +199,20 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
             <nav class="flex-1 px-3 py-4 space-y-1">
                 <!-- Dashboard -->
                 <a href="../../../public/dashboard.php"
-                    class="w-full text-left px-4 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-100"
+                    class="w-full text-left px-3 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-100"
                     title="Dashboard">
                     <i class="bi bi-speedometer2 text-lg flex-shrink-0"></i>
                     <span class="sidebar-text">Dashboard</span>
                 </a>
 
                 <!-- CORE MODULES SECTION -->
-                <div class="px-4 py-3 mt-2 mb-2">
-                    <p class="text-xs font-semibold text-red-300 uppercase tracking-wider">Core Modules</p>
+                <div class="px-3 py-3 mt-2 mb-2">
+                    <p class="text-sm font-semibold text-red-300 uppercase tracking-wider">Core Modules</p>
                 </div>
 
                 <!-- 1: Committee Profiles & Membership -->
                 <a href="../committee-profiles/index.php"
-                    class="w-full text-left px-4 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-100"
+                    class="w-full text-left px-3 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-100"
                     title="Committee Profiles & Membership">
                     <i class="bi bi-building text-lg flex-shrink-0"></i>
                     <span class="sidebar-text group-hover:translate-x-1 transition-transform">Committee Profiles</span>
@@ -220,7 +220,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
                 <!-- 2: Committee Meetings Management -->
                 <a href="../committee-meetings/index.php"
-                    class="w-full text-left px-4 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-200"
+                    class="w-full text-left px-3 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-200"
                     title="Committee Meetings Management">
                     <i class="bi bi-calendar-check text-lg flex-shrink-0"></i>
                     <span class="sidebar-text group-hover:translate-x-1 transition-transform">Meetings</span>
@@ -228,7 +228,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
                 <!-- 3: Agenda & Deliberation Management -->
                 <a href="../agenda-deliberation/index.php"
-                    class="w-full text-left px-4 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-300"
+                    class="w-full text-left px-3 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-300"
                     title="Agenda & Deliberation Management">
                     <i class="bi bi-list-check text-lg flex-shrink-0"></i>
                     <span class="sidebar-text group-hover:translate-x-1 transition-transform">Agendas &
@@ -237,7 +237,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
                 <!-- 4: Referral Tracking & Handling -->
                 <a href="../referral-tracking/index.php"
-                    class="w-full text-left px-4 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-400"
+                    class="w-full text-left px-3 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-400"
                     title="Referral Tracking & Handling">
                     <i class="bi bi-inbox text-lg flex-shrink-0"></i>
                     <span class="sidebar-text group-hover:translate-x-1 transition-transform">Referrals</span>
@@ -245,7 +245,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
                 <!-- 5: Action Items & Follow-Ups -->
                 <a href="../action-tracking/index.php"
-                    class="w-full text-left px-4 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-500"
+                    class="w-full text-left px-3 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-500"
                     title="Action Items & Follow-Ups">
                     <i class="bi bi-list-task text-lg flex-shrink-0"></i>
                     <span class="sidebar-text group-hover:translate-x-1 transition-transform">Action Items</span>
@@ -253,7 +253,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
                 <!-- 6: Committee Reports & Recommendations -->
                 <a href="../committee-reports/index.php"
-                    class="w-full text-left px-4 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-600"
+                    class="w-full text-left px-3 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-600"
                     title="Committee Reports & Recommendations">
                     <i class="bi bi-file-earmark-text text-lg flex-shrink-0"></i>
                     <span class="sidebar-text group-hover:translate-x-1 transition-transform">Reports &
@@ -261,13 +261,13 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
                 </a>
 
                 <!-- SUPPORTING MODULES SECTION -->
-                <div class="px-4 py-3 mt-4 mb-2">
-                    <p class="text-xs font-semibold text-red-300 uppercase tracking-wider">Support Systems</p>
+                <div class="px-3 py-3 mt-4 mb-2">
+                    <p class="text-sm font-semibold text-red-300 uppercase tracking-wider">Support Systems</p>
                 </div>
 
                 <!-- User & Access Management -->
                 <a href="../user-management/index.php"
-                    class="w-full text-left px-4 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-100"
+                    class="w-full text-left px-3 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-100"
                     title="User & Access Management">
                     <i class="bi bi-people-fill text-lg flex-shrink-0"></i>
                     <span class="sidebar-text group-hover:translate-x-1 transition-transform">User Management</span>
@@ -275,7 +275,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
                 <!-- Notification & Communication Hub -->
                 <a href="../notifications/index.php"
-                    class="w-full text-left px-4 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-200"
+                    class="w-full text-left px-3 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-200"
                     title="Notification & Communication Hub">
                     <i class="bi bi-bell text-lg flex-shrink-0"></i>
                     <span class="sidebar-text group-hover:translate-x-1 transition-transform">Notifications</span>
@@ -283,7 +283,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
                 <!-- System Settings & Configuration -->
                 <a href="../system-settings/index.php"
-                    class="w-full text-left px-4 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-300"
+                    class="w-full text-left px-3 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-300"
                     title="System Settings & Configuration">
                     <i class="bi bi-gear text-lg flex-shrink-0"></i>
                     <span class="sidebar-text group-hover:translate-x-1 transition-transform">Settings</span>

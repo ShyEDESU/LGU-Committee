@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../../config/session_config.php';
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
     exit();
@@ -26,16 +26,22 @@ $agendas = [
             <h1 class="text-3xl font-bold text-gray-900">Agendas & Deliberation</h1>
             <p class="text-gray-600 mt-1">Build and manage meeting agendas</p>
         </div>
-        <a href="create.php" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"><i class="bi bi-plus-lg"></i> Create Agenda</a>
+        <a href="create.php" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"><i
+                class="bi bi-plus-lg"></i> Create Agenda</a>
     </div>
 </div>
 
 <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
     <div class="flex flex-wrap gap-2">
-        <a href="index.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold"><i class="bi bi-list"></i> All Agendas</a>
-        <a href="items.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i class="bi bi-list-check"></i> Items</a>
-        <a href="deliberation.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i class="bi bi-chat-left-text"></i> Deliberation</a>
-        <a href="voting.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i class="bi bi-hand-thumbs-up"></i> Voting</a>
+        <a href="index.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold"><i class="bi bi-list"></i>
+            All Agendas</a>
+        <a href="items.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i
+                class="bi bi-list-check"></i> Items</a>
+        <a href="deliberation.php"
+            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i
+                class="bi bi-chat-left-text"></i> Deliberation</a>
+        <a href="voting.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"><i
+                class="bi bi-hand-thumbs-up"></i> Voting</a>
     </div>
 </div>
 
@@ -71,25 +77,25 @@ $agendas = [
         </thead>
         <tbody class="divide-y divide-gray-200">
             <?php foreach ($agendas as $agenda): ?>
-            <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 font-semibold text-gray-900"><?php echo $agenda['meeting']; ?></td>
-                <td class="px-6 py-4 text-gray-900"><?php echo date('M j, Y', strtotime($agenda['date'])); ?></td>
-                <td class="px-6 py-4 text-gray-900"><?php echo $agenda['items']; ?> items</td>
-                <td class="px-6 py-4">
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full 
-                        <?php echo $agenda['status'] === 'Draft' ? 'bg-yellow-100 text-yellow-800' : 
-                                   ($agenda['status'] === 'Final' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'); ?>">
-                        <?php echo $agenda['status']; ?>
-                    </span>
-                </td>
-                <td class="px-6 py-4">
-                    <a href="view.php?id=<?php echo $agenda['id']; ?>" class="text-red-600 hover:text-red-700">View</a>
-                </td>
-            </tr>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-semibold text-gray-900"><?php echo $agenda['meeting']; ?></td>
+                    <td class="px-6 py-4 text-gray-900"><?php echo date('M j, Y', strtotime($agenda['date'])); ?></td>
+                    <td class="px-6 py-4 text-gray-900"><?php echo $agenda['items']; ?> items</td>
+                    <td class="px-6 py-4">
+                        <span
+                            class="px-3 py-1 text-xs font-semibold rounded-full 
+                        <?php echo $agenda['status'] === 'Draft' ? 'bg-yellow-100 text-yellow-800' :
+                            ($agenda['status'] === 'Final' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'); ?>">
+                            <?php echo $agenda['status']; ?>
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <a href="view.php?id=<?php echo $agenda['id']; ?>" class="text-red-600 hover:text-red-700">View</a>
+                    </td>
+                </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
 </div>
 
 <?php include '../../includes/footer.php'; ?>
-

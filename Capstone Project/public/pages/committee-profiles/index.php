@@ -1,6 +1,6 @@
 <?php
-session_start();
-require_once '../../../config/database.php';
+require_once __DIR__ . '/../../../config/session_config.php';
+require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
@@ -15,75 +15,8 @@ $pageTitle = 'Committee Profiles';
 // Include shared header
 include '../../includes/header.php';
 
-// Hardcoded committee data
-$committees = [
-    [
-        'id' => 1,
-        'name' => 'Committee on Finance',
-        'type' => 'Standing',
-        'chair' => 'Hon. Maria Santos',
-        'members' => 7,
-        'jurisdiction' => 'Budget, appropriations, revenue measures, and financial matters',
-        'status' => 'Active',
-        'meetings_held' => 12,
-        'pending_referrals' => 3
-    ],
-    [
-        'id' => 2,
-        'name' => 'Committee on Health',
-        'type' => 'Standing',
-        'chair' => 'Hon. Juan Dela Cruz',
-        'members' => 5,
-        'jurisdiction' => 'Public health, sanitation, and medical services',
-        'status' => 'Active',
-        'meetings_held' => 8,
-        'pending_referrals' => 2
-    ],
-    [
-        'id' => 3,
-        'name' => 'Committee on Education',
-        'type' => 'Standing',
-        'chair' => 'Hon. Ana Reyes',
-        'members' => 6,
-        'jurisdiction' => 'Education, schools, and learning institutions',
-        'status' => 'Active',
-        'meetings_held' => 10,
-        'pending_referrals' => 5
-    ],
-    [
-        'id' => 4,
-        'name' => 'Committee on Infrastructure',
-        'type' => 'Standing',
-        'chair' => 'Hon. Pedro Garcia',
-        'members' => 8,
-        'jurisdiction' => 'Public works, roads, bridges, and infrastructure development',
-        'status' => 'Active',
-        'meetings_held' => 15,
-        'pending_referrals' => 4
-    ],
-    [
-        'id' => 5,
-        'name' => 'Committee on Public Safety',
-        'type' => 'Standing',
-        'chair' => 'Hon. Rosa Martinez',
-        'members' => 6,
-        'jurisdiction' => 'Police, fire protection, and disaster preparedness',
-        'status' => 'Active',
-        'meetings_held' => 9,
-        'pending_referrals' => 1
-    ],
-    [
-        'id' => 6,
-        'name' => 'Special Committee on COVID-19 Response',
-        'type' => 'Special',
-        'chair' => 'Hon. Carlos Ramos',
-        'members' => 5,
-        'jurisdiction' => 'Pandemic response and recovery measures',
-        'status' => 'Active',
-        'meetings_held' => 6,
-        'pending_referrals' => 2
-    ]
-];
+// Get committees from session
+$committees = getAllCommittees();
 
 // Filter and search
 $search = $_GET['search'] ?? '';
@@ -121,11 +54,11 @@ if ($search || $typeFilter || $statusFilter) {
                 <i class="bi bi-download"></i>
                 <span class="hidden sm:inline ml-2">Export</span>
             </button>
-            <button onclick="openModal('createModal')"
+            <a href="create.php"
                 class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition flex items-center space-x-2">
                 <i class="bi bi-plus-lg"></i>
                 <span>New Committee</span>
-            </button>
+            </a>
         </div>
     </div>
 </div>
@@ -136,15 +69,21 @@ if ($search || $typeFilter || $statusFilter) {
         <a href="index.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold">
             <i class="bi bi-list"></i> All Committees
         </a>
-        <a href="members.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+        <span
+            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg cursor-not-allowed"
+            title="Select a committee first">
             <i class="bi bi-people"></i> Members
-        </a>
-        <a href="documents.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+        </span>
+        <span
+            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg cursor-not-allowed"
+            title="Select a committee first">
             <i class="bi bi-file-earmark-text"></i> Documents
-        </a>
-        <a href="history.php" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+        </span>
+        <span
+            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg cursor-not-allowed"
+            title="Select a committee first">
             <i class="bi bi-clock-history"></i> History
-        </a>
+        </span>
     </div>
 </div>
 
@@ -280,7 +219,7 @@ if ($search || $typeFilter || $statusFilter) {
                     </div>
                     <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
                         <i class="bi bi-people w-5"></i>
-                        <span class="ml-2"><?php echo $committee['members']; ?> Members</span>
+                        <span class="ml-2"><?php echo $committee['members_count']; ?> Members</span>
                     </div>
                     <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
                         <i class="bi bi-calendar-check w-5"></i>
@@ -297,18 +236,22 @@ if ($search || $typeFilter || $statusFilter) {
                 </p>
 
                 <div class="flex space-x-2">
-                    <button onclick="viewCommittee(<?php echo $committee['id']; ?>)"
+                    <a href="view.php?id=<?php echo $committee['id']; ?>"
                         class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-center rounded-lg transition text-sm font-semibold">
                         <i class="bi bi-eye mr-1"></i> View Details
-                    </button>
-                    <button onclick="editCommittee(<?php echo $committee['id']; ?>)"
+                    </a>
+                    <a href="edit.php?id=<?php echo $committee['id']; ?>"
                         class="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition">
                         <i class="bi bi-pencil"></i>
-                    </button>
-                    <button onclick="deleteCommittee(<?php echo $committee['id']; ?>)"
-                        class="px-4 py-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg transition">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                    </a>
+                    <form method="POST" action="view.php?id=<?php echo $committee['id']; ?>" class="inline"
+                        onsubmit="return confirm('Are you sure you want to delete this committee?');">
+                        <input type="hidden" name="delete" value="1">
+                        <button type="submit"
+                            class="px-4 py-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg transition">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

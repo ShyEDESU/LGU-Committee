@@ -8,6 +8,15 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+$id = $_GET['id'] ?? 0;
+$meeting = getMeetingById($id);
+
+if (!$meeting) {
+    $_SESSION['error_message'] = 'Meeting not found';
+    header('Location: index.php');
+    exit();
+}
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $committeeId = $_POST['committee_id'] ?? 0;
@@ -34,19 +43,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($data['venue'])) $errors[] = 'Venue is required';
     
     if (empty($errors)) {
-        $newId = createMeeting($data);
-        $_SESSION['success_message'] = 'Meeting scheduled successfully!';
-        header('Location: view.php?id=' . $newId);
+        updateMeeting($id, $data);
+        $_SESSION['success_message'] = 'Meeting updated successfully!';
+        header('Location: view.php?id=' . $id);
         exit();
     }
 }
 
 // Get committees for dropdown
 $committees = getAllCommittees();
-$preselectedCommittee = $_GET['committee'] ?? '';
 
 $userName = $_SESSION['user_name'] ?? 'User';
-$pageTitle = 'Schedule Meeting';
+$pageTitle = 'Edit Meeting';
 include '../../includes/header.php';
 ?>
 
@@ -55,16 +63,17 @@ include '../../includes/header.php';
         <ol class="breadcrumb bg-transparent p-0">
             <li class="breadcrumb-item"><a href="../../dashboard.php" class="text-red-600">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="index.php" class="text-red-600">Meetings</a></li>
-            <li class="breadcrumb-item active">Schedule Meeting</li>
+            <li class="breadcrumb-item"><a href="view.php?id=<?php echo $id; ?>" class="text-red-600"><?php echo htmlspecialchars($meeting['title']); ?></a></li>
+            <li class="breadcrumb-item active">Edit</li>
         </ol>
     </nav>
 
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Schedule New Meeting</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">Create a new committee meeting</p>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Edit Meeting</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Update meeting details</p>
         </div>
-        <a href="index.php" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
+        <a href="view.php?id=<?php echo $id; ?>" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
             <i class="bi bi-x-lg mr-2"></i>Cancel
         </a>
     </div>
@@ -85,8 +94,7 @@ include '../../includes/header.php';
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Meeting Title <span class="text-red-500">*</span>
                 </label>
-                <input type="text" name="title" required value="<?php echo htmlspecialchars($_POST['title'] ?? ''); ?>"
-                    placeholder="e.g., 2025 Budget Review"
+                <input type="text" name="title" required value="<?php echo htmlspecialchars($meeting['title']); ?>"
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
             </div>
 
@@ -98,7 +106,7 @@ include '../../includes/header.php';
                     <option value="">Select Committee</option>
                     <?php foreach ($committees as $committee): ?>
                         <option value="<?php echo $committee['id']; ?>" 
-                            <?php echo ($preselectedCommittee == $committee['id'] || ($_POST['committee_id'] ?? '') == $committee['id']) ? 'selected' : ''; ?>>
+                            <?php echo $meeting['committee_id'] == $committee['id'] ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($committee['name']); ?>
                         </option>
                     <?php endforeach; ?>
@@ -111,11 +119,11 @@ include '../../includes/header.php';
                 </label>
                 <select name="venue" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                     <option value="">Select Venue</option>
-                    <option value="City Hall Conference Room A" <?php echo ($_POST['venue'] ?? '') === 'City Hall Conference Room A' ? 'selected' : ''; ?>>City Hall Conference Room A</option>
-                    <option value="City Hall Conference Room B" <?php echo ($_POST['venue'] ?? '') === 'City Hall Conference Room B' ? 'selected' : ''; ?>>City Hall Conference Room B</option>
-                    <option value="City Hall Main Hall" <?php echo ($_POST['venue'] ?? '') === 'City Hall Main Hall' ? 'selected' : ''; ?>>City Hall Main Hall</option>
-                    <option value="Session Hall" <?php echo ($_POST['venue'] ?? '') === 'Session Hall' ? 'selected' : ''; ?>>Session Hall</option>
-                    <option value="Virtual Meeting" <?php echo ($_POST['venue'] ?? '') === 'Virtual Meeting' ? 'selected' : ''; ?>>Virtual Meeting</option>
+                    <option value="City Hall Conference Room A" <?php echo $meeting['venue'] === 'City Hall Conference Room A' ? 'selected' : ''; ?>>City Hall Conference Room A</option>
+                    <option value="City Hall Conference Room B" <?php echo $meeting['venue'] === 'City Hall Conference Room B' ? 'selected' : ''; ?>>City Hall Conference Room B</option>
+                    <option value="City Hall Main Hall" <?php echo $meeting['venue'] === 'City Hall Main Hall' ? 'selected' : ''; ?>>City Hall Main Hall</option>
+                    <option value="Session Hall" <?php echo $meeting['venue'] === 'Session Hall' ? 'selected' : ''; ?>>Session Hall</option>
+                    <option value="Virtual Meeting" <?php echo $meeting['venue'] === 'Virtual Meeting' ? 'selected' : ''; ?>>Virtual Meeting</option>
                 </select>
             </div>
 
@@ -123,7 +131,7 @@ include '../../includes/header.php';
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Date <span class="text-red-500">*</span>
                 </label>
-                <input type="date" name="date" required value="<?php echo htmlspecialchars($_POST['date'] ?? ''); ?>"
+                <input type="date" name="date" required value="<?php echo htmlspecialchars($meeting['date']); ?>"
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
             </div>
 
@@ -131,7 +139,7 @@ include '../../includes/header.php';
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Start Time <span class="text-red-500">*</span>
                 </label>
-                <input type="time" name="time_start" required value="<?php echo htmlspecialchars($_POST['time_start'] ?? ''); ?>"
+                <input type="time" name="time_start" required value="<?php echo htmlspecialchars($meeting['time_start']); ?>"
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
             </div>
 
@@ -139,7 +147,7 @@ include '../../includes/header.php';
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     End Time
                 </label>
-                <input type="time" name="time_end" value="<?php echo htmlspecialchars($_POST['time_end'] ?? ''); ?>"
+                <input type="time" name="time_end" value="<?php echo htmlspecialchars($meeting['time_end'] ?? ''); ?>"
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
             </div>
 
@@ -147,13 +155,13 @@ include '../../includes/header.php';
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Description
                 </label>
-                <textarea name="description" rows="4" placeholder="Meeting purpose and objectives..."
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
+                <textarea name="description" rows="4"
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"><?php echo htmlspecialchars($meeting['description'] ?? ''); ?></textarea>
             </div>
 
             <div class="md:col-span-2">
                 <label class="flex items-center">
-                    <input type="checkbox" name="is_public" value="1" <?php echo isset($_POST['is_public']) ? 'checked' : 'checked'; ?>
+                    <input type="checkbox" name="is_public" value="1" <?php echo $meeting['is_public'] ? 'checked' : ''; ?>
                         class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
                     <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Public Meeting (visible on public portal)</span>
                 </label>
@@ -161,11 +169,11 @@ include '../../includes/header.php';
         </div>
 
         <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <a href="index.php" class="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <a href="view.php?id=<?php echo $id; ?>" class="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
                 Cancel
             </a>
             <button type="submit" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg">
-                <i class="bi bi-calendar-check mr-2"></i>Schedule Meeting
+                <i class="bi bi-check-circle mr-2"></i>Update Meeting
             </button>
         </div>
     </form>

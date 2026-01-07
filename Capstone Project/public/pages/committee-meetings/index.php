@@ -1,5 +1,7 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../../config/session_config.php';
+require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
     exit();
@@ -9,24 +11,15 @@ $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Committee Meetings';
 include '../../includes/header.php';
 
-// Hardcoded meetings data
-$meetings = [
-    ['id' => 1, 'committee' => 'Finance', 'title' => '2025 Budget Review', 'date' => '2024-12-15', 'time' => '14:00', 'location' => 'Session Hall', 'status' => 'Scheduled', 'attendees' => 7],
-    ['id' => 2, 'committee' => 'Health', 'title' => 'Healthcare Facilities Inspection Report', 'date' => '2024-12-14', 'time' => '10:00', 'location' => 'Conference Room A', 'status' => 'Scheduled', 'attendees' => 5],
-    ['id' => 3, 'committee' => 'Education', 'title' => 'School Infrastructure Assessment', 'date' => '2024-12-13', 'time' => '09:00', 'location' => 'Conference Room B', 'status' => 'Held', 'attendees' => 6],
-    ['id' => 4, 'committee' => 'Infrastructure', 'title' => 'Road Maintenance Program Review', 'date' => '2024-12-12', 'time' => '15:00', 'location' => 'Session Hall', 'status' => 'Held', 'attendees' => 8],
-    ['id' => 5, 'committee' => 'Public Safety', 'title' => 'Disaster Preparedness Planning', 'date' => '2024-12-11', 'time' => '13:00', 'location' => 'Conference Room A', 'status' => 'Held', 'attendees' => 6],
-    ['id' => 6, 'committee' => 'Finance', 'title' => 'Revenue Enhancement Measures', 'date' => '2024-12-18', 'time' => '14:00', 'location' => 'Session Hall', 'status' => 'Scheduled', 'attendees' => 7],
-    ['id' => 7, 'committee' => 'Health', 'title' => 'Public Health Emergency Response', 'date' => '2024-12-20', 'time' => '10:00', 'location' => 'Conference Room B', 'status' => 'Scheduled', 'attendees' => 5],
-    ['id' => 8, 'committee' => 'Education', 'title' => 'Scholarship Program Evaluation', 'date' => '2024-12-22', 'time' => '09:00', 'location' => 'Conference Room A', 'status' => 'Scheduled', 'attendees' => 6],
-];
+// Get meetings from session
+$meetings = getAllMeetings();
 
 $search = $_GET['search'] ?? '';
 $statusFilter = $_GET['status'] ?? '';
 
 if ($search || $statusFilter) {
     $meetings = array_filter($meetings, function ($meeting) use ($search, $statusFilter) {
-        $matchesSearch = empty($search) || stripos($meeting['title'], $search) !== false || stripos($meeting['committee'], $search) !== false;
+        $matchesSearch = empty($search) || stripos($meeting['title'], $search) !== false || stripos($meeting['committee_name'], $search) !== false;
         $matchesStatus = empty($statusFilter) || $meeting['status'] === $statusFilter;
         return $matchesSearch && $matchesStatus;
     });
@@ -84,9 +77,15 @@ if ($search || $statusFilter) {
             <option value="Held" <?php echo $statusFilter === 'Held' ? 'selected' : ''; ?>>Held</option>
             <option value="Cancelled" <?php echo $statusFilter === 'Cancelled' ? 'selected' : ''; ?>>Cancelled</option>
         </select>
-        <button type="submit" class="md:col-span-3 btn-primary">
-            <i class="bi bi-funnel mr-2"></i> Apply Filters
-        </button>
+        <div class="md:col-span-3 flex justify-end gap-2">
+            <a href="index.php"
+                class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                Clear
+            </a>
+            <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+                <i class="bi bi-funnel mr-2"></i> Apply Filters
+            </button>
+        </div>
     </form>
 </div>
 
@@ -179,26 +178,27 @@ if ($search || $statusFilter) {
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <td class="px-6 py-4">
                             <p class="font-semibold text-gray-900 dark:text-white">
-                                <?php echo htmlspecialchars($meeting['title']); ?></p>
-                            <p class="text-sm text-gray-600 dark:text-gray-400"><?php echo $meeting['attendees']; ?>
-                                attendees</p>
+                                <?php echo htmlspecialchars($meeting['title']); ?>
+                            </p>
                         </td>
                         <td class="px-6 py-4">
                             <span
                                 class="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                <?php echo $meeting['committee']; ?>
+                                <?php echo htmlspecialchars($meeting['committee_name']); ?>
                             </span>
                         </td>
                         <td class="px-6 py-4 text-gray-900 dark:text-white">
                             <?php echo date('M j, Y', strtotime($meeting['date'])); ?><br>
                             <span
-                                class="text-sm text-gray-600 dark:text-gray-400"><?php echo date('g:i A', strtotime($meeting['time'])); ?></span>
+                                class="text-sm text-gray-600 dark:text-gray-400"><?php echo date('g:i A', strtotime($meeting['time_start'])); ?></span>
                         </td>
-                        <td class="px-6 py-4 text-gray-900 dark:text-white"><?php echo $meeting['location']; ?></td>
+                        <td class="px-6 py-4 text-gray-900 dark:text-white">
+                            <?php echo htmlspecialchars($meeting['venue']); ?>
+                        </td>
                         <td class="px-6 py-4">
                             <span class="px-3 py-1 text-xs font-semibold rounded-full 
                             <?php echo $meeting['status'] === 'Scheduled' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                                ($meeting['status'] === 'Held' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                                ($meeting['status'] === 'Completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
                                     'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'); ?>">
                                 <?php echo $meeting['status']; ?>
                             </span>
