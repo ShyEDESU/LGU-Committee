@@ -59,23 +59,20 @@ $committees = getAllCommittees();
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
     <div class="flex flex-wrap gap-2">
         <a href="index.php"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            class="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">
             <i class="bi bi-list"></i> All Agendas
         </a>
-        <a href="items-list.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold">
-            <i class="bi bi-list-check"></i> Items
+        <a href="items-list.php"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
+            <i class="bi bi-card-list"></i> All Items
         </a>
         <a href="templates.php"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            class="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">
             <i class="bi bi-file-earmark-text"></i> Templates
         </a>
-        <a href="deliberation.php"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-            <i class="bi bi-chat-left-text"></i> Deliberation
-        </a>
-        <a href="voting.php"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-            <i class="bi bi-hand-thumbs-up"></i> Voting
+        <a href="archive.php"
+            class="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+            <i class="bi bi-archive"></i> Archive
         </a>
     </div>
 </div>

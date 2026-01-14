@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $id = $_GET['id'] ?? 0;
-$committee = getCommitteeById($id);
+$committee = getCommitteeWithStats($id);  // Get committee with dynamic statistics
 
 if (!$committee) {
     $_SESSION['error_message'] = 'Committee not found';
@@ -64,21 +64,52 @@ include '../../includes/header.php';
                 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
                 <i class="bi bi-pencil mr-2"></i>Edit
             </a>
-            <a href="members.php?id=<?php echo $id; ?>"
-                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
-                <i class="bi bi-people mr-2"></i>Members
-            </a>
-            <a href="documents.php?id=<?php echo $id; ?>"
-                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
-                <i class="bi bi-file-earmark mr-2"></i>Documents
-            </a>
-            <a href="history.php?id=<?php echo $id; ?>"
-                class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
-                <i class="bi bi-clock-history mr-2"></i>History
-            </a>
+            <button onclick="window.print()"
+                class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                <i class="bi bi-printer mr-2"></i>Print
+            </button>
         </div>
     </div>
 
+    <!-- Navigation Tabs -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200 dark:border-gray-700">
+            <nav class="-mb-px flex space-x-8">
+                <a href="view.php?id=<?php echo $id; ?>"
+                    class="border-red-500 text-red-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                    Overview
+                </a>
+                <a href="members.php?id=<?php echo $id; ?>"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                    Members
+                </a>
+                <a href="meetings.php?id=<?php echo $id; ?>"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                    Meetings
+                </a>
+                <a href="referrals.php?id=<?php echo $id; ?>"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                    Referrals
+                </a>
+                <a href="action-items.php?id=<?php echo $id; ?>"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                    Action Items
+                </a>
+                <a href="reports.php?id=<?php echo $id; ?>"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                    Reports
+                </a>
+                <a href="documents.php?id=<?php echo $id; ?>"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                    Documents
+                </a>
+                <a href="history.php?id=<?php echo $id; ?>"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                    History
+                </a>
+            </nav>
+        </div>
+    </div>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Main Info -->
         <div class="lg:col-span-2 space-y-6">
@@ -249,10 +280,81 @@ include '../../includes/header.php';
                                 </a>
                             </div>
                         <?php endforeach; ?>
-                        <?php if (count($committeeReferrals) > 5): ?>
-                            <a href="../referral-management/index.php?committee=<?php echo $id; ?>"
+                    </div>
+                    <?php if (count($committeeReferrals) > 5): ?>
+                        <a href="../referral-management/index.php?committee=<?php echo $id; ?>"
+                            class="text-red-600 hover:text-red-700 text-sm mt-3 inline-block">
+                            View All Referrals (<?php echo count($committeeReferrals); ?>) →
+                        </a>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+
+            <!-- Committee Action Items -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold">Action Items</h2>
+                    <a href="../action-items/create.php?committee_id=<?php echo $id; ?>"
+                        class="text-red-600 hover:text-red-700">
+                        <i class="bi bi-plus-circle mr-1"></i>Create New
+                    </a>
+                </div>
+                <?php
+                require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+                $committeeActionItems = getActionItemsByCommittee($id);
+                ?>
+                <?php if (empty($committeeActionItems)): ?>
+                    <p class="text-gray-500">No action items assigned yet</p>
+                <?php else: ?>
+                    <div class="space-y-3">
+                        <?php foreach (array_slice($committeeActionItems, 0, 5) as $actionItem): ?>
+                            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div class="flex justify-between items-start mb-2">
+                                    <p class="font-semibold"><?php echo htmlspecialchars($actionItem['title']); ?></p>
+                                    <span
+                                        class="px-2 py-1 text-xs rounded-full <?php echo ($actionItem['status'] ?? '') === 'Done' ? 'bg-green-100 text-green-800' :
+                                            (($actionItem['status'] ?? '') === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'); ?>">
+                                        <?php echo htmlspecialchars($actionItem['status'] ?? 'To Do'); ?>
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                    <span>
+                                        <i class="bi bi-person mr-1"></i>
+                                        <?php echo htmlspecialchars($actionItem['assigned_to']); ?>
+                                    </span>
+                                    <span
+                                        class="px-2 py-1 rounded-full <?php echo ($actionItem['priority'] ?? '') === 'High' ? 'bg-red-100 text-red-800' :
+                                            (($actionItem['priority'] ?? '') === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'); ?>">
+                                        <?php echo htmlspecialchars($actionItem['priority'] ?? 'Medium'); ?> Priority
+                                    </span>
+                                    <?php if (!empty($actionItem['due_date'])): ?>
+                                        <span>
+                                            <i class="bi bi-calendar-x mr-1"></i>
+                                            Due: <?php echo date('M j, Y', strtotime($actionItem['due_date'])); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if (($actionItem['progress'] ?? 0) > 0): ?>
+                                    <div class="mb-2">
+                                        <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                                            <div class="bg-blue-600 h-2 rounded-full"
+                                                style="width: <?php echo ($actionItem['progress'] ?? 0); ?>%"></div>
+                                        </div>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                            <?php echo ($actionItem['progress'] ?? 0); ?>% complete
+                                        </p>
+                                    </div>
+                                <?php endif; ?>
+                                <a href="../action-items/view.php?id=<?php echo $actionItem['id']; ?>"
+                                    class="text-red-600 hover:text-red-700 text-sm mt-2 inline-block">
+                                    View Details →
+                                </a>
+                            </div>
+                        <?php endforeach; ?>
+                        <?php if (count($committeeActionItems) > 5): ?>
+                            <a href="../action-items/index.php?committee_id=<?php echo $id; ?>"
                                 class="block text-center text-red-600 hover:text-red-700 text-sm mt-2">
-                                View all <?php echo count($committeeReferrals); ?> referrals →
+                                View all <?php echo count($committeeActionItems); ?> action items →
                             </a>
                         <?php endif; ?>
                     </div>

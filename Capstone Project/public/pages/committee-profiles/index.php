@@ -16,15 +16,16 @@ $pageTitle = 'Committee Profiles';
 // Include shared header
 include '../../includes/header.php';
 
-// Get committees from session
+// Get committees from session and enhance with dynamic statistics
 $committees = getAllCommittees();
 
-// Get agenda counts for each committee
-$agendaCounts = [];
-foreach ($committees as $committee) {
-    $committeeAgendas = getAgendasByCommittee($committee['id']);
-    $agendaCounts[$committee['id']] = count($committeeAgendas);
+// Calculate dynamic statistics for each committee
+foreach ($committees as &$committee) {
+    $stats = getCommitteeStatistics($committee['id']);
+    // Merge dynamic stats into committee data
+    $committee = array_merge($committee, $stats);
 }
+unset($committee); // Break reference
 
 // Filter and search
 $search = $_GET['search'] ?? '';
@@ -52,15 +53,10 @@ if ($search || $typeFilter || $statusFilter) {
             <p class="text-gray-600 dark:text-gray-400 mt-1">Manage committee information and membership</p>
         </div>
         <div class="flex space-x-3">
-            <button onclick="window.print()"
-                class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                <i class="bi bi-printer"></i>
-                <span class="hidden sm:inline ml-2">Print</span>
-            </button>
             <button onclick="exportData()"
-                class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition flex items-center space-x-2">
                 <i class="bi bi-download"></i>
-                <span class="hidden sm:inline ml-2">Export</span>
+                <span>Export CSV</span>
             </button>
             <a href="create.php"
                 class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition flex items-center space-x-2">
@@ -71,27 +67,13 @@ if ($search || $typeFilter || $statusFilter) {
     </div>
 </div>
 
-<!-- Sub-Module Navigation -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
-    <div class="flex flex-wrap gap-2">
-        <a href="index.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold">
-            <i class="bi bi-list"></i> All Committees
-        </a>
-        <span
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg cursor-not-allowed"
-            title="Select a committee first">
-            <i class="bi bi-people"></i> Members
-        </span>
-        <span
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg cursor-not-allowed"
-            title="Select a committee first">
-            <i class="bi bi-file-earmark-text"></i> Documents
-        </span>
-        <span
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg cursor-not-allowed"
-            title="Select a committee first">
-            <i class="bi bi-clock-history"></i> History
-        </span>
+<!-- Info Message -->
+<div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mb-6">
+    <div class="flex items-center space-x-2">
+        <i class="bi bi-info-circle text-blue-600 dark:text-blue-400"></i>
+        <p class="text-sm text-gray-700 dark:text-gray-300">
+            Click on any committee card below to view full details, members, documents, and more
+        </p>
     </div>
 </div>
 
@@ -239,7 +221,7 @@ if ($search || $typeFilter || $statusFilter) {
                     </div>
                     <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
                         <i class="bi bi-file-earmark-text w-5"></i>
-                        <span class="ml-2"><?php echo $agendaCounts[$committee['id']] ?? 0; ?> Agendas</span>
+                        <span class="ml-2"><?php echo $committee['agendas_count'] ?? 0; ?> Agendas</span>
                     </div>
                 </div>
 
@@ -247,23 +229,11 @@ if ($search || $typeFilter || $statusFilter) {
                     <?php echo htmlspecialchars($committee['jurisdiction']); ?>
                 </p>
 
-                <div class="flex space-x-2">
+                <div>
                     <a href="view.php?id=<?php echo $committee['id']; ?>"
-                        class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-center rounded-lg transition text-sm font-semibold">
+                        class="block w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-center rounded-lg transition text-sm font-semibold">
                         <i class="bi bi-eye mr-1"></i> View Details
                     </a>
-                    <a href="edit.php?id=<?php echo $committee['id']; ?>"
-                        class="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition">
-                        <i class="bi bi-pencil"></i>
-                    </a>
-                    <form method="POST" action="view.php?id=<?php echo $committee['id']; ?>" class="inline"
-                        onsubmit="return confirm('Are you sure you want to delete this committee?');">
-                        <input type="hidden" name="delete" value="1">
-                        <button type="submit"
-                            class="px-4 py-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg transition">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </form>
                 </div>
             </div>
         </div>

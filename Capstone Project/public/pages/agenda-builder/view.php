@@ -17,15 +17,6 @@ if (!$meeting) {
     exit();
 }
 
-// Handle status changes BEFORE any output
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_status'])) {
-    $newStatus = $_POST['new_status'];
-    updateMeeting($meetingId, ['agenda_status' => $newStatus]);
-    $_SESSION['success_message'] = "Agenda status changed to: $newStatus";
-    header('Location: view.php?id=' . $meetingId);
-    exit();
-}
-
 // Get agenda items
 $agendaItems = getAgendaByMeeting($meetingId);
 $committee = getCommitteeById($meeting['committee_id']);
@@ -53,6 +44,7 @@ include '../../includes/header.php';
     </div>
 <?php endif; ?>
 
+<!-- Page Header -->
 <div class="mb-6">
     <div class="flex items-center justify-between">
         <div>
@@ -62,63 +54,58 @@ include '../../includes/header.php';
             </p>
         </div>
         <div class="flex space-x-2">
-            <!-- Status Change Buttons -->
-            <?php if ($agendaStatus === 'Draft'): ?>
-                <form method="POST" class="inline">
-                    <input type="hidden" name="change_status" value="1">
-                    <input type="hidden" name="new_status" value="Under Review">
-                    <button type="submit"
-                        class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition">
-                        <i class="bi bi-send mr-2"></i> Submit for Review
-                    </button>
-                </form>
-            <?php endif; ?>
-
-            <?php if ($agendaStatus === 'Draft' || $agendaStatus === 'Under Review'): ?>
-                <form method="POST" class="inline">
-                    <input type="hidden" name="change_status" value="1">
-                    <input type="hidden" name="new_status" value="Approved">
-                    <button type="submit"
-                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
-                        <i class="bi bi-check-circle mr-2"></i> Approve
-                    </button>
-                </form>
-            <?php endif; ?>
-
-            <?php if ($agendaStatus === 'Approved'): ?>
-                <form method="POST" class="inline">
-                    <input type="hidden" name="change_status" value="1">
-                    <input type="hidden" name="new_status" value="Published">
-                    <button type="submit"
-                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition">
-                        <i class="bi bi-megaphone mr-2"></i> Publish
-                    </button>
-                </form>
-            <?php endif; ?>
-
-            <?php if ($agendaStatus !== 'Draft'): ?>
-                <form method="POST" class="inline">
-                    <input type="hidden" name="change_status" value="1">
-                    <input type="hidden" name="new_status" value="Draft">
-                    <button type="submit" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition">
-                        <i class="bi bi-arrow-counterclockwise mr-2"></i> Set to Draft
-                    </button>
-                </form>
-            <?php endif; ?>
+            <!-- Status Change Dropdown (AJAX-based) -->
+            <div class="inline">
+                <select onchange="changeStatus(this.value)" id="statusSelect"
+                    class="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-red-600 transition">
+                    <option value="">Change Status...</option>
+                    <?php if ($agendaStatus === 'Draft'): ?>
+                        <option value="Under Review">📤 Submit for Review</option>
+                    <?php endif; ?>
+                    <?php if ($agendaStatus === 'Draft' || $agendaStatus === 'Under Review'): ?>
+                        <option value="Approved">✅ Approve</option>
+                    <?php endif; ?>
+                    <?php if ($agendaStatus === 'Approved'): ?>
+                        <option value="Published">📢 Publish</option>
+                    <?php endif; ?>
+                    <?php if ($agendaStatus !== 'Draft'): ?>
+                        <option value="Draft">↩️ Revert to Draft</option>
+                    <?php endif; ?>
+                </select>
+            </div>
 
             <button onclick="window.print()"
                 class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                 <i class="bi bi-printer mr-2"></i> Print
             </button>
             <a href="items.php?meeting_id=<?php echo $meetingId; ?>"
-                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
                 <i class="bi bi-pencil mr-2"></i> Edit Items
             </a>
-            <a href="index.php"
-                class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            <a href="index.php" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition">
                 <i class="bi bi-arrow-left mr-2"></i> Back
             </a>
         </div>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="mb-6">
+    <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="-mb-px flex space-x-8">
+            <a href="view.php?id=<?php echo $meetingId; ?>"
+                class="border-red-500 text-red-600 dark:text-red-400 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                <i class="bi bi-list-ol mr-1"></i>Agenda Items
+            </a>
+            <a href="comments.php?id=<?php echo $meetingId; ?>"
+                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                <i class="bi bi-chat-dots mr-1"></i>Comments
+            </a>
+            <a href="distribute.php?id=<?php echo $meetingId; ?>"
+                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                <i class="bi bi-send mr-1"></i>Distribution
+            </a>
+        </nav>
     </div>
 </div>
 
@@ -171,8 +158,8 @@ include '../../includes/header.php';
                     <?php echo count($agendaItems); ?>
                 </p>
             </div>
-            <div class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3">
-                <i class="bi bi-list-check text-blue-600 dark:text-blue-400 text-2xl"></i>
+            <div class="bg-red-100 dark:bg-red-900/30 rounded-lg p-3">
+                <i class="bi bi-list-check text-red-600 dark:text-red-400 text-2xl"></i>
             </div>
         </div>
     </div>
@@ -200,15 +187,16 @@ include '../../includes/header.php';
                     ?>
                 </p>
             </div>
-            <div class="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-3">
-                <i class="bi bi-calendar-check text-purple-600 dark:text-purple-400 text-2xl"></i>
+            <div class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3">
+                <i class="bi bi-calendar-check text-blue-600 dark:text-blue-400 text-2xl"></i>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Agenda Items -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+<div
+    class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
     <div class="p-6 border-b border-gray-200 dark:border-gray-700">
         <h2 class="text-xl font-bold text-gray-900 dark:text-white">
             <i class="bi bi-list-ol mr-2"></i> Agenda Items
@@ -221,7 +209,7 @@ include '../../includes/header.php';
             <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">No Agenda Items</h3>
             <p class="text-gray-600 dark:text-gray-400 mb-4">This agenda doesn't have any items yet</p>
             <a href="items.php?meeting_id=<?php echo $meetingId; ?>"
-                class="inline-block px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+                class="inline-block px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition">
                 <i class="bi bi-plus-lg mr-2"></i> Add Items
             </a>
         </div>
@@ -232,11 +220,11 @@ include '../../includes/header.php';
             foreach ($agendaItems as $index => $item):
                 $itemNumber = $item['item_number'] ?? ($index + 1);
                 $startTime = date('g:i A', $currentTime);
-                $itemDuration = $item['duration'] ?? 0; // Fix: use null coalescing
+                $itemDuration = $item['duration'] ?? 0;
                 $currentTime += ($itemDuration * 60);
                 $endTime = date('g:i A', $currentTime);
                 ?>
-                <div class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <div class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <div class="flex items-start space-x-4">
                         <div class="flex-shrink-0">
                             <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
@@ -284,7 +272,7 @@ include '../../includes/header.php';
 
 <!-- Meeting Description -->
 <?php if (!empty($meeting['description'])): ?>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mt-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
         <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-3">
             <i class="bi bi-info-circle mr-2"></i> Meeting Description
         </h2>
@@ -295,29 +283,35 @@ include '../../includes/header.php';
 <?php endif; ?>
 
 <!-- Quick Actions -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mt-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
     <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
         <i class="bi bi-lightning mr-2"></i> Quick Actions
     </h2>
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <a href="items.php?meeting_id=<?php echo $meetingId; ?>"
-            class="flex items-center justify-center px-4 py-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition">
-            <i class="bi bi-pencil mr-2"></i> Edit Items
-        </a>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <a href="deliberation.php?meeting_id=<?php echo $meetingId; ?>"
             class="flex items-center justify-center px-4 py-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition">
             <i class="bi bi-chat-left-text mr-2"></i> Start Deliberation
         </a>
         <a href="voting.php?meeting_id=<?php echo $meetingId; ?>"
-            class="flex items-center justify-center px-4 py-3 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition">
+            class="flex items-center justify-center px-4 py-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition">
             <i class="bi bi-hand-thumbs-up mr-2"></i> Manage Voting
-        </a>
-        <a href="../committee-meetings/view.php?id=<?php echo $meetingId; ?>"
-            class="flex items-center justify-center px-4 py-3 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition">
-            <i class="bi bi-calendar-event mr-2"></i> View Meeting
         </a>
     </div>
 </div>
+
+<script>
+    function changeStatus(newStatus) {
+        if (newStatus) {
+            if (confirm('Are you sure you want to change the agenda status to: ' + newStatus + '?')) {
+                document.getElementById('newStatusInput').value = newStatus;
+                document.getElementById('statusForm').submit();
+            } else {
+                // Reset dropdown
+                document.querySelector('select[onchange]').value = '';
+            }
+        }
+    }
+</script>
 
 <style>
     @media print {
@@ -327,8 +321,10 @@ include '../../includes/header.php';
         header,
         footer,
         button,
+        select,
         a[href*="edit"],
-        a[href*="Back"] {
+        a[href*="Back"],
+        .bi-lightning {
             display: none !important;
         }
 
@@ -347,5 +343,131 @@ include '../../includes/header.php';
         }
     }
 </style>
+
+<script>
+    // AJAX function to change status without page reload
+    function changeStatus(newStatus) {
+        if (!newStatus) return;
+
+        // Confirm the change
+        if (!confirm(`Are you sure you want to change the agenda status to: ${newStatus}?`)) {
+            // Reset dropdown if user cancels
+            document.getElementById('statusSelect').value = '';
+            return;
+        }
+
+        // Show loading state
+        const select = document.getElementById('statusSelect');
+        const originalHTML = select.innerHTML;
+        select.disabled = true;
+        select.innerHTML = '<option>Updating...</option>';
+
+        // Send AJAX request
+        fetch('update-status.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `meeting_id=<?php echo $meetingId; ?>&new_status=${encodeURIComponent(newStatus)}`
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showMessage(data.message, 'success');
+
+                    // Update the status badge on the page
+                    updateStatusBadge(data.new_status);
+
+                    // Reset and re-enable dropdown
+                    select.disabled = false;
+                    select.innerHTML = originalHTML;
+                    select.value = '';
+
+                    // Update dropdown options based on new status
+                    updateDropdownOptions(data.new_status);
+                } else {
+                    // Show error message
+                    showMessage(data.message || 'Failed to update status', 'error');
+
+                    // Restore dropdown
+                    select.disabled = false;
+                    select.innerHTML = originalHTML;
+                    select.value = '';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('An error occurred while updating the status', 'error');
+
+                // Restore dropdown
+                select.disabled = false;
+                select.innerHTML = originalHTML;
+                select.value = '';
+            });
+    }
+
+    // Function to update the status badge
+    function updateStatusBadge(newStatus) {
+        const statusBadge = document.querySelector('.inline-block.px-3.py-1.text-sm.font-semibold.rounded-full');
+        if (statusBadge) {
+            // Update badge text
+            statusBadge.textContent = newStatus;
+
+            // Update badge color based on status
+            statusBadge.className = 'inline-block px-3 py-1 text-sm font-semibold rounded-full ';
+            if (newStatus === 'Draft') {
+                statusBadge.className += 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+            } else if (newStatus === 'Under Review') {
+                statusBadge.className += 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+            } else if (newStatus === 'Approved') {
+                statusBadge.className += 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+            } else if (newStatus === 'Published') {
+                statusBadge.className += 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
+            }
+        }
+    }
+
+    // Function to update dropdown options based on current status
+    function updateDropdownOptions(currentStatus) {
+        const select = document.getElementById('statusSelect');
+        let options = '<option value="">Change Status...</option>';
+
+        if (currentStatus === 'Draft') {
+            options += '<option value="Under Review">📤 Submit for Review</option>';
+            options += '<option value="Approved">✅ Approve</option>';
+        } else if (currentStatus === 'Under Review') {
+            options += '<option value="Approved">✅ Approve</option>';
+            options += '<option value="Draft">↩️ Revert to Draft</option>';
+        } else if (currentStatus === 'Approved') {
+            options += '<option value="Published">📢 Publish</option>';
+            options += '<option value="Draft">↩️ Revert to Draft</option>';
+        } else if (currentStatus === 'Published') {
+            options += '<option value="Draft">↩️ Revert to Draft</option>';
+        }
+
+        select.innerHTML = options;
+    }
+
+    // Function to show toast messages
+    function showMessage(message, type) {
+        const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+        const icon = type === 'success' ? 'bi-check-circle' : 'bi-x-circle';
+
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2`;
+        toast.innerHTML = `
+            <i class="bi ${icon}"></i>
+            <span>${message}</span>
+        `;
+
+        document.body.appendChild(toast);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+</script>
 
 <?php include '../../includes/footer.php'; ?>

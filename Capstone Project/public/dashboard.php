@@ -8,23 +8,60 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
     exit();
 }
 
-// Get user info from session
-$userName = $_SESSION['user_name'] ?? 'User';
-$userRole = $_SESSION['user_role'] ?? 'User';
 $userId = $_SESSION['user_id'];
 
-// Fetch user email from database
-$userEmail = 'user@example.com';
-if ($userId) {
-    $query = "SELECT email FROM users WHERE user_id = ?";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("i", $userId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($row = $result->fetch_assoc()) {
-        $userEmail = $row['email'];
-    }
-    $stmt->close();
+// Fetch complete user data from database (same as other modules)
+$query = "SELECT u.*, r.role_name FROM users u LEFT JOIN roles r ON u.role_id = r.role_id WHERE u.user_id = ?";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+$stmt->close();
+
+if (!$user) {
+    error_log("User not found in database: user_id = " . $userId);
+    die("Error: User profile not found. Please contact administrator.");
+}
+
+// Set user variables
+$userName = $user['first_name'] . ' ' . $user['last_name'];
+$userEmail = $user['email'];
+$userRole = $user['role_name'] ?? $user['user_role'] ?? 'User';
+$profilePicture = $user['profile_picture'] ?? null;
+$userInitials = strtoupper(substr($user['first_name'], 0, 1) . substr($user['last_name'], 0, 1));
+
+// Update session with latest data
+$_SESSION['user_name'] = $userName;
+$_SESSION['user_email'] = $userEmail;
+$_SESSION['user_role'] = $userRole;
+
+// Fetch profile picture from database
+$userId = $_SESSION['user_id'];
+$query = "SELECT profile_picture FROM users WHERE user_id = ?";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+$stmt->close();
+
+// Get profile picture path
+$profilePicture = $user['profile_picture'] ?? null;
+
+// Verify profile picture file exists
+$profilePictureExists = false;
+$displayPath = '';
+
+if ($profilePicture) {
+    // Database stores: uploads/profiles/file.jpg
+    // Dashboard is in public/, so path is direct
+    $fullPath = __DIR__ . '/' . $profilePicture;
+    $profilePictureExists = file_exists($fullPath);
+    $displayPath = $profilePicture; // No prefix needed for dashboard
+}
+if ($profilePicture) {
+    $_SESSION['profile_picture'] = $profilePicture;
 }
 ?>
 <!DOCTYPE html>
@@ -590,40 +627,61 @@ if ($userId) {
                             <!-- User Profile Dropdown -->
                             <div class="relative">
                                 <button id="profile-btn"
-                                    class="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg transition">
+                                    class="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
                                     <div
-                                        class="bg-red-600 rounded-full w-8 h-8 flex items-center justify-center text-white">
-                                        <i class="bi bi-person-fill"></i>
+                                        class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gray-200">
+                                        <?php if ($profilePicture && $profilePictureExists): ?>
+                                            <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
+                                                class="w-full h-full object-cover"
+                                                onerror="this.src='assets/images/default-avatar.png'">
+                                        <?php else: ?>
+                                            <img src="assets/images/default-avatar.png" alt="Default Avatar"
+                                                class="w-full h-full object-cover">
+                                        <?php endif; ?>
                                     </div>
                                     <div class="hidden sm:block text-left">
                                         <p
                                             class="text-sm font-medium text-gray-800 truncate max-w-[120px] md:max-w-none">
                                             <?php echo htmlspecialchars($userName); ?>
                                         </p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            <?php echo htmlspecialchars($userRole); ?>
+                                        </p>
                                     </div>
                                     <i class="bi bi-chevron-down text-gray-600 text-xs hidden sm:inline"></i>
                                 </button>
 
                                 <div id="profile-dropdown"
                                     class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
-                                    <div class="p-4 border-b border-gray-200">
-                                        <p class="text-sm font-medium text-gray-800">
-                                            <?php echo htmlspecialchars($userEmail); ?>
-                                        </p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Committee Office</p>
+                                    <div
+                                        class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-3">
+                                        <div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-gray-200">
+                                            <?php if ($profilePicture && $profilePictureExists): ?>
+                                                <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
+                                                    class="w-full h-full object-cover"
+                                                    onerror="this.src='assets/images/default-avatar.png'">
+                                            <?php else: ?>
+                                                <img src="assets/images/default-avatar.png" alt="Default Avatar"
+                                                    class="w-full h-full object-cover">
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-gray-800 dark:text-white truncate">
+                                                <?php echo htmlspecialchars($userName); ?>
+                                            </p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                <?php echo htmlspecialchars($userEmail); ?>
+                                            </p>
+                                        </div>
                                     </div>
                                     <div class="py-2">
-                                        <a href="pages/user-management/index.php"
-                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                            <i class="bi bi-person mr-2"></i>My Profile
+                                        <a href="pages/my-profile/index.php"
+                                            class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                            <i class="bi bi-person mr-3 text-base"></i>My Profile
                                         </a>
-                                        <a href="pages/system-settings/index.php"
-                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                            <i class="bi bi-gear mr-2"></i>Settings
-                                        </a>
-                                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                            <i class="bi bi-question-circle mr-2"></i>Help & Support
+                                        <a href="pages/notifications/index.php"
+                                            class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                            <i class="bi bi-bell mr-3 text-base"></i>Notifications
                                         </a>
                                     </div>
                                     <div class="border-t border-gray-200 py-2">
@@ -850,8 +908,7 @@ if ($userId) {
                             </div>
                             <div class="p-3 bg-gray-50 rounded border-l-4 border-blue-500 hover:shadow-md transition">
                                 <p class="font-semibold text-sm text-gray-900">General Assembly</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Dec 8, 2025 at 3:30 PM
-                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Dec 8, 2025 at 3:30 PM</p>
                             </div>
                         </div>
                     </div>
@@ -959,35 +1016,8 @@ if ($userId) {
         }
     </script>
 
-    <script>
-        // Auto-logout when tab/window is closed (but NOT on page navigation)
-        let isNavigating = false;
-
-        // Track when user is navigating to another page
-        document.addEventListener('click', function (e) {
-            // Check if clicking on a link within the site
-            const link = e.target.closest('a');
-            if (link && link.href && link.href.includes(window.location.hostname)) {
-                isNavigating = true;
-            }
-        });
-
-        // Also track form submissions
-        document.addEventListener('submit', function () {
-            isNavigating = true;
-        });
-
-        // Only logout if actually closing tab/window (not navigating)
-        window.addEventListener('beforeunload', function (e) {
-            // If navigating to another page, don't logout
-            if (isNavigating) {
-                return;
-            }
-
-            // Send logout request only when actually closing tab/window
-            navigator.sendBeacon('../auth/logout_handler.php', 'auto_logout=true');
-        });
-    </script>
+    <!-- Unified Session Management -->
+    <script src="assets/js/session-manager.js"></script>
 </body>
 
 </html>

@@ -1,165 +1,264 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
     exit();
 }
 
-$id = $_GET['id'] ?? 0;
-$item = getActionItemById($id);
+// Get action item ID
+$itemId = $_GET['id'] ?? 0;
+$item = getActionItemById($itemId);
 
 if (!$item) {
-    $_SESSION['error_message'] = 'Action item not found';
     header('Location: index.php');
     exit();
 }
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $data = [
-        'meeting_id' => $_POST['meeting_id'] ?? null,
-        'title' => trim($_POST['title'] ?? ''),
-        'description' => trim($_POST['description'] ?? ''),
-        'assigned_to' => trim($_POST['assigned_to'] ?? ''),
+    $tags = !empty($_POST['tags']) ? array_map('trim', explode(',', $_POST['tags'])) : [];
+
+    updateActionItem($itemId, [
+        'title' => $_POST['title'],
+        'description' => $_POST['description'] ?? '',
+        'assigned_to' => $_POST['assigned_to'] ?? '',
         'due_date' => $_POST['due_date'] ?? '',
         'priority' => $_POST['priority'] ?? 'Medium',
-        'status' => $_POST['status'] ?? 'Pending'
-    ];
-    
-    // Validation
-    $errors = [];
-    if (empty($data['title'])) $errors[] = 'Title is required';
-    if (empty($data['assigned_to'])) $errors[] = 'Assigned to is required';
-    
-    if (empty($errors)) {
-        updateActionItem($id, $data);
-        $_SESSION['success_message'] = 'Action item updated successfully!';
-        header('Location: view.php?id=' . $id);
-        exit();
-    }
+        'status' => $_POST['status'] ?? 'To Do',
+        'progress' => !empty($_POST['progress']) ? (int) $_POST['progress'] : 0,
+        'category' => $_POST['category'] ?? 'General',
+        'tags' => $tags,
+        'estimated_hours' => !empty($_POST['estimated_hours']) ? (int) $_POST['estimated_hours'] : null,
+        'actual_hours' => !empty($_POST['actual_hours']) ? (int) $_POST['actual_hours'] : null,
+        'committee_id' => !empty($_POST['committee_id']) ? (int) $_POST['committee_id'] : null,
+        'meeting_id' => !empty($_POST['meeting_id']) ? (int) $_POST['meeting_id'] : null,
+        'referral_id' => !empty($_POST['referral_id']) ? (int) $_POST['referral_id'] : null,
+        'notes' => $_POST['notes'] ?? '',
+    ]);
+
+    header('Location: index.php?updated=1');
+    exit();
 }
 
-// Get meetings for dropdown
+// Load data for dropdowns
+$committees = getAllCommittees();
 $meetings = getAllMeetings();
+$referrals = getAllReferrals();
+
+// Convert tags array to comma-separated string for display
+$tagsString = is_array($item['tags'] ?? null) ? implode(', ', $item['tags']) : '';
 
 $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Edit Action Item';
 include '../../includes/header.php';
 ?>
 
-<div class="container-fluid">
-    <nav class="mb-4" aria-label="breadcrumb">
-        <ol class="breadcrumb bg-transparent p-0">
-            <li class="breadcrumb-item"><a href="../../dashboard.php" class="text-red-600">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="index.php" class="text-red-600">Action Items</a></li>
-            <li class="breadcrumb-item"><a href="view.php?id=<?php echo $id; ?>" class="text-red-600"><?php echo htmlspecialchars($item['title']); ?></a></li>
-            <li class="breadcrumb-item active">Edit</li>
-        </ol>
-    </nav>
-
-    <div class="flex items-center justify-between mb-6">
+<div class="mb-6">
+    <div class="flex items-center justify-between">
         <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Edit Action Item</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">Update action item details</p>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Update action item details and progress</p>
         </div>
-        <a href="view.php?id=<?php echo $id; ?>" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
-            <i class="bi bi-x-lg mr-2"></i>Cancel
+        <a href="index.php"
+            class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            <i class="bi bi-x-lg"></i> Cancel
         </a>
     </div>
-
-    <?php if (!empty($errors)): ?>
-    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-        <ul class="list-disc list-inside text-red-700">
-            <?php foreach ($errors as $error): ?>
-                <li><?php echo htmlspecialchars($error); ?></li>
-            <?php endforeach; ?>
-        </ul>
-    </div>
-    <?php endif; ?>
-
-    <form method="POST" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Action Item Title <span class="text-red-500">*</span>
-                </label>
-                <input type="text" name="title" required value="<?php echo htmlspecialchars($item['title']); ?>"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Related Meeting (Optional)
-                </label>
-                <select name="meeting_id" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-                    <option value="">No meeting</option>
-                    <?php foreach ($meetings as $meeting): ?>
-                        <option value="<?php echo $meeting['id']; ?>" 
-                            <?php echo ($item['meeting_id'] ?? '') == $meeting['id'] ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($meeting['title']); ?> - <?php echo date('M j, Y', strtotime($meeting['date'])); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Assigned To <span class="text-red-500">*</span>
-                </label>
-                <input type="text" name="assigned_to" required value="<?php echo htmlspecialchars($item['assigned_to']); ?>"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Priority
-                </label>
-                <select name="priority" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-                    <option value="High" <?php echo $item['priority'] === 'High' ? 'selected' : ''; ?>>High</option>
-                    <option value="Medium" <?php echo $item['priority'] === 'Medium' ? 'selected' : ''; ?>>Medium</option>
-                    <option value="Low" <?php echo $item['priority'] === 'Low' ? 'selected' : ''; ?>>Low</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Status
-                </label>
-                <select name="status" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-                    <option value="Pending" <?php echo $item['status'] === 'Pending' ? 'selected' : ''; ?>>Pending</option>
-                    <option value="In Progress" <?php echo $item['status'] === 'In Progress' ? 'selected' : ''; ?>>In Progress</option>
-                    <option value="Completed" <?php echo $item['status'] === 'Completed' ? 'selected' : ''; ?>>Completed</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Due Date
-                </label>
-                <input type="date" name="due_date" value="<?php echo htmlspecialchars($item['due_date'] ?? ''); ?>"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-            </div>
-
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Description
-                </label>
-                <textarea name="description" rows="4"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"><?php echo htmlspecialchars($item['description'] ?? ''); ?></textarea>
-            </div>
-        </div>
-
-        <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <a href="view.php?id=<?php echo $id; ?>" class="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-                Cancel
-            </a>
-            <button type="submit" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg">
-                <i class="bi bi-check-circle mr-2"></i>Update Action Item
-            </button>
-        </div>
-    </form>
 </div>
+
+<form method="POST" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-card-heading"></i> Task Title *
+            </label>
+            <input type="text" name="title" required value="<?php echo htmlspecialchars($item['title']); ?>"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-person"></i> Assign To *
+            </label>
+            <input type="text" name="assigned_to" required value="<?php echo htmlspecialchars($item['assigned_to']); ?>"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-calendar-x"></i> Due Date *
+            </label>
+            <input type="date" name="due_date" required value="<?php echo htmlspecialchars($item['due_date'] ?? ''); ?>"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-exclamation-triangle"></i> Priority *
+            </label>
+            <select name="priority" required
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                <option value="High" <?php echo ($item['priority'] ?? '') === 'High' ? 'selected' : ''; ?>>High</option>
+                <option value="Medium" <?php echo ($item['priority'] ?? '') === 'Medium' ? 'selected' : ''; ?>>Medium
+                </option>
+                <option value="Low" <?php echo ($item['priority'] ?? '') === 'Low' ? 'selected' : ''; ?>>Low</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-list-check"></i> Status *
+            </label>
+            <select name="status" required
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                <option value="To Do" <?php echo ($item['status'] ?? '') === 'To Do' ? 'selected' : ''; ?>>To Do</option>
+                <option value="In Progress" <?php echo ($item['status'] ?? '') === 'In Progress' ? 'selected' : ''; ?>>In
+                    Progress</option>
+                <option value="Done" <?php echo ($item['status'] ?? '') === 'Done' ? 'selected' : ''; ?>>Done</option>
+            </select>
+        </div>
+
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-graph-up"></i> Progress: <span
+                    id="progressValue"><?php echo ($item['progress'] ?? 0); ?>%</span>
+            </label>
+            <input type="range" name="progress" min="0" max="100" value="<?php echo ($item['progress'] ?? 0); ?>"
+                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                oninput="document.getElementById('progressValue').textContent = this.value + '%'">
+            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <span>0%</span>
+                <span>25%</span>
+                <span>50%</span>
+                <span>75%</span>
+                <span>100%</span>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-folder"></i> Category
+            </label>
+            <select name="category"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                <option value="General" <?php echo ($item['category'] ?? '') === 'General' ? 'selected' : ''; ?>>General
+                </option>
+                <option value="Research" <?php echo ($item['category'] ?? '') === 'Research' ? 'selected' : ''; ?>>
+                    Research</option>
+                <option value="Review" <?php echo ($item['category'] ?? '') === 'Review' ? 'selected' : ''; ?>>Review
+                </option>
+                <option value="Draft" <?php echo ($item['category'] ?? '') === 'Draft' ? 'selected' : ''; ?>>Draft
+                </option>
+                <option value="Coordinate" <?php echo ($item['category'] ?? '') === 'Coordinate' ? 'selected' : ''; ?>>
+                    Coordinate</option>
+                <option value="Report" <?php echo ($item['category'] ?? '') === 'Report' ? 'selected' : ''; ?>>Report
+                </option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-clock-history"></i> Estimated Hours
+            </label>
+            <input type="number" name="estimated_hours" min="1" max="1000"
+                value="<?php echo ($item['estimated_hours'] ?? ''); ?>" placeholder="e.g., 8"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-clock"></i> Actual Hours
+            </label>
+            <input type="number" name="actual_hours" min="1" max="1000"
+                value="<?php echo ($item['actual_hours'] ?? ''); ?>" placeholder="e.g., 10"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-building"></i> Related Committee
+            </label>
+            <select name="committee_id"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                <option value="">Select Committee (Optional)</option>
+                <?php foreach ($committees as $committee): ?>
+                    <option value="<?php echo $committee['id']; ?>" <?php echo ($item['committee_id'] ?? '') == $committee['id'] ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($committee['name']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-calendar-event"></i> Related Meeting
+            </label>
+            <select name="meeting_id"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                <option value="">Select Meeting (Optional)</option>
+                <?php foreach ($meetings as $meeting): ?>
+                    <option value="<?php echo $meeting['id']; ?>" <?php echo ($item['meeting_id'] ?? '') == $meeting['id'] ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($meeting['title']); ?> -
+                        <?php echo date('M j, Y', strtotime($meeting['date'])); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-file-earmark-text"></i> Related Referral
+            </label>
+            <select name="referral_id"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                <option value="">Select Referral (Optional)</option>
+                <?php foreach ($referrals as $referral): ?>
+                    <option value="<?php echo $referral['id']; ?>" <?php echo ($item['referral_id'] ?? '') == $referral['id'] ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($referral['title']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-tags"></i> Tags
+            </label>
+            <input type="text" name="tags" value="<?php echo htmlspecialchars($tagsString); ?>"
+                placeholder="e.g., budget, urgent, review (comma-separated)"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Separate tags with commas</p>
+        </div>
+
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-card-text"></i> Description *
+            </label>
+            <textarea name="description" rows="5" required placeholder="Detailed description of the task..."
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"><?php echo htmlspecialchars($item['description'] ?? ''); ?></textarea>
+        </div>
+
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-sticky"></i> Internal Notes
+            </label>
+            <textarea name="notes" rows="3" placeholder="Internal notes (not visible to assignee)..."
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"><?php echo htmlspecialchars($item['notes'] ?? ''); ?></textarea>
+        </div>
+    </div>
+
+    <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <a href="index.php"
+            class="px-6 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            Cancel
+        </a>
+        <button type="submit" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+            <i class="bi bi-check-lg"></i> Update Action Item
+        </button>
+    </div>
+</form>
 
 <?php include '../../includes/footer.php'; ?>

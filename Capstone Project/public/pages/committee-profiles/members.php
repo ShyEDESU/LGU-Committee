@@ -37,9 +37,10 @@ include '../../includes/header.php';
             <p class="text-gray-600">Committee Members</p>
         </div>
         <div class="flex gap-2">
-            <button class="bg-gray-400 cursor-not-allowed text-white px-4 py-2 rounded-lg" disabled title="Coming Soon">
+            <a href="add-member.php?committee_id=<?php echo $id; ?>"
+                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg cursor-pointer inline-flex items-center">
                 <i class="bi bi-plus-circle mr-2"></i>Add Member
-            </button>
+            </a>
             <a href="view.php?id=<?php echo $id; ?>"
                 class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
                 <i class="bi bi-arrow-left mr-2"></i>Back
@@ -52,8 +53,10 @@ include '../../includes/header.php';
             <div class="p-12 text-center">
                 <i class="bi bi-people text-6xl text-gray-300 mb-4"></i>
                 <p class="text-gray-500 text-lg">No members assigned yet</p>
-                <button class="mt-4 bg-gray-400 cursor-not-allowed text-white px-6 py-2 rounded-lg" disabled
-                    title="Coming Soon">Add First Member</button>
+                <a href="add-member.php?committee_id=<?php echo $id; ?>"
+                    class="mt-4 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg cursor-pointer inline-block">
+                    Add First Member
+                </a>
             </div>
         <?php else: ?>
             <table class="w-full">
@@ -86,12 +89,19 @@ include '../../includes/header.php';
                             <td class="px-6 py-4"><?php echo htmlspecialchars($member['position']); ?></td>
                             <td class="px-6 py-4"><?php echo htmlspecialchars($member['district']); ?></td>
                             <td class="px-6 py-4 text-right">
-                                <button class="text-blue-600 hover:text-blue-700 mr-3">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="text-red-600 hover:text-red-700">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+                                <div class="flex justify-end gap-2">
+                                    <a href="edit-member.php?committee_id=<?php echo $id; ?>&member_id=<?php echo $member['member_id']; ?>"
+                                        class="text-blue-600 hover:text-blue-700" title="Edit Member">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('Remove this member from the committee?');">
+                                        <input type="hidden" name="delete_member" value="<?php echo $member['member_id']; ?>">
+                                        <button type="submit" class="text-red-600 hover:text-red-700" title="Delete Member">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>

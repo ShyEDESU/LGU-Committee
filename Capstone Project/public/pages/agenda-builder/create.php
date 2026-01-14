@@ -159,7 +159,8 @@ $selectedCommittee = $_GET['committee'] ?? '';
                     onchange="previewTemplate()">
                     <option value="">No Template (Add items manually)</option>
                     <?php foreach ($templates as $template): ?>
-                        <option value="<?php echo $template['id']; ?>" data-items='<?php echo json_encode($template['items']); ?>'>
+                        <option value="<?php echo $template['id']; ?>"
+                            data-items='<?php echo json_encode($template['items']); ?>'>
                             <?php echo htmlspecialchars($template['name']); ?> (
                             <?php echo count($template['items']); ?> items)
                         </option>

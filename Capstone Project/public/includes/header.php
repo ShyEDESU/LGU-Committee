@@ -9,6 +9,54 @@ $userName = $_SESSION['user_name'] ?? 'User';
 $userEmail = $_SESSION['user_email'] ?? 'user@example.com';
 $userRole = $_SESSION['user_role'] ?? 'User';
 
+// ALWAYS fetch fresh profile picture from database
+require_once __DIR__ . '/../../config/database.php';
+$userId = $_SESSION['user_id'];
+$query = "SELECT profile_picture FROM users WHERE user_id = ?";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+$stmt->close();
+
+// Get profile picture path
+$profilePicture = $user['profile_picture'] ?? null;
+
+// Debug: Log profile picture status
+error_log("Header: User ID = $userId, Profile Picture = " . ($profilePicture ?? 'NULL'));
+
+// Generate user initials for fallback
+$userInitials = '';
+if ($userName !== 'User') {
+    $nameParts = explode(' ', $userName);
+    $userInitials = strtoupper(substr($nameParts[0], 0, 1) . (isset($nameParts[1]) ? substr($nameParts[1], 0, 1) : ''));
+}
+
+// Detect if we're in a module subdirectory or dashboard
+// For modules in pages/module-name/: ../../assets/images/file.jpg
+// For dashboard: assets/images/file.jpg
+$isInModuleSubdir = strpos($_SERVER['PHP_SELF'], '/pages/') !== false;
+$imagePathPrefix = $isInModuleSubdir ? '../../' : '';
+
+// Verify profile picture file exists and build correct path
+$profilePictureExists = false;
+$displayPath = '';
+
+if ($profilePicture) {
+    // Database stores: uploads/profiles/file.jpg
+    // Current file: public/includes/header.php
+    // Full filesystem path: public/uploads/profiles/file.jpg
+    // From includes, go up one level to public, then to uploads
+    $fullPath = __DIR__ . '/../' . $profilePicture;
+    $profilePictureExists = file_exists($fullPath);
+
+    // Display path depends on current location
+    // From modules (pages/module-name/): ../../uploads/profiles/file.jpg
+    // From dashboard: uploads/profiles/file.jpg
+    $displayPath = $imagePathPrefix . $profilePicture;
+}
+
 // Get current page for active menu highlighting
 $currentPage = basename($_SERVER['PHP_SELF']);
 $currentDir = basename(dirname($_SERVER['PHP_SELF']));
@@ -17,7 +65,6 @@ $currentDir = basename(dirname($_SERVER['PHP_SELF']));
 require_once __DIR__ . '/../../app/helpers/NotificationHelper.php';
 
 // Get user notifications
-$userId = $_SESSION['user_id'];
 $unreadCount = NotificationHelper::getUnreadCount($userId);
 $recentNotifications = NotificationHelper::getRecentNotifications($userId, 5);
 ?>
@@ -237,8 +284,15 @@ $recentNotifications = NotificationHelper::getRecentNotifications($userId, 5);
 
         <div class="p-3 mt-auto border-t border-red-700/40">
             <div class="flex items-center space-x-2.5 mb-2.5">
-                <div class="w-9 h-9 rounded-full bg-red-700 flex items-center justify-center">
-                    <i class="bi bi-person-fill text-white text-base"></i>
+                <div class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                    <?php if ($profilePicture && $profilePictureExists): ?>
+                        <img src="<?php echo $imagePathPrefix . htmlspecialchars($profilePicture); ?>" alt="Profile"
+                            class="w-full h-full object-cover"
+                            onerror="this.src='<?php echo $imagePathPrefix; ?>assets/images/default-avatar.png'">
+                    <?php else: ?>
+                        <img src="<?php echo $imagePathPrefix; ?>assets/images/default-avatar.png" alt="Default Avatar"
+                            class="w-full h-full object-cover">
+                    <?php endif; ?>
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-white truncate"><?php echo htmlspecialchars($userName); ?></p>
@@ -585,40 +639,62 @@ $recentNotifications = NotificationHelper::getRecentNotifications($userId, 5);
                             <!-- User Profile Dropdown -->
                             <div class="relative">
                                 <button id="profile-btn"
-                                    class="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg transition">
+                                    class="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
                                     <div
-                                        class="bg-red-600 rounded-full w-8 h-8 flex items-center justify-center text-white">
-                                        <i class="bi bi-person-fill"></i>
+                                        class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gray-200">
+                                        <?php if ($profilePicture && $profilePictureExists): ?>
+                                            <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
+                                                class="w-full h-full object-cover"
+                                                onerror="this.src='<?php echo $imagePathPrefix; ?>assets/images/default-avatar.png'">
+                                        <?php else: ?>
+                                            <img src="<?php echo $imagePathPrefix; ?>assets/images/default-avatar.png"
+                                                alt="Default Avatar" class="w-full h-full object-cover">
+                                        <?php endif; ?>
                                     </div>
                                     <div class="hidden sm:block text-left">
                                         <p
-                                            class="text-sm font-medium text-gray-800 truncate max-w-[120px] md:max-w-none">
+                                            class="text-sm font-medium text-gray-800 dark:text-white truncate max-w-[120px] md:max-w-none">
                                             <?php echo htmlspecialchars($userName); ?>
                                         </p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            <?php echo htmlspecialchars($userRole); ?>
+                                        </p>
                                     </div>
-                                    <i class="bi bi-chevron-down text-gray-600 text-xs hidden sm:inline"></i>
+                                    <i
+                                        class="bi bi-chevron-down text-gray-600 dark:text-gray-400 text-xs hidden sm:inline"></i>
                                 </button>
 
                                 <div id="profile-dropdown"
-                                    class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
-                                    <div class="p-4 border-b border-gray-200">
-                                        <p class="text-sm font-medium text-gray-800">
-                                            <?php echo htmlspecialchars($userEmail); ?>
-                                        </p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Committee Office</p>
+                                    class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
+                                    <div
+                                        class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-3">
+                                        <div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-gray-200">
+                                            <?php if ($profilePicture && $profilePictureExists): ?>
+                                                <img src="<?php echo $imagePathPrefix . htmlspecialchars($profilePicture); ?>"
+                                                    alt="Profile" class="w-full h-full object-cover"
+                                                    onerror="this.src='<?php echo $imagePathPrefix; ?>assets/images/default-avatar.png'">
+                                            <?php else: ?>
+                                                <img src="<?php echo $imagePathPrefix; ?>assets/images/default-avatar.png"
+                                                    alt="Default Avatar" class="w-full h-full object-cover">
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-gray-800 dark:text-white truncate">
+                                                <?php echo htmlspecialchars($userName); ?>
+                                            </p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                <?php echo htmlspecialchars($userEmail); ?>
+                                            </p>
+                                        </div>
                                     </div>
                                     <div class="py-2">
-                                        <a href="../user-management/index.php"
-                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                            <i class="bi bi-person mr-2"></i>My Profile
+                                        <a href="../my-profile/index.php"
+                                            class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                            <i class="bi bi-person mr-3 text-base"></i>My Profile
                                         </a>
-                                        <a href="../system-settings/index.php"
-                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                            <i class="bi bi-gear mr-2"></i>Settings
-                                        </a>
-                                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                            <i class="bi bi-question-circle mr-2"></i>Help & Support
+                                        <a href="../notifications/index.php"
+                                            class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                            <i class="bi bi-bell mr-3 text-base"></i>Notifications
                                         </a>
                                     </div>
                                     <div class="border-t border-gray-200 py-2">
@@ -638,55 +714,5 @@ $recentNotifications = NotificationHelper::getRecentNotifications($userId, 5);
             <main class="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-900 p-3 sm:p-4 lg:p-6" id="main-content">
                 <!-- Module content goes here -->
 
-
-                <script>
-                    // Session activity tracking
-                    let lastActivity = Date.now();
-                    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
-                    const HEARTBEAT_INTERVAL = 60 * 1000; // Send heartbeat every 1 minute
-
-                    // Update last activity time on user interaction
-                    function updateActivity() {
-                        lastActivity = Date.now();
-                    }
-
-                    // Track user activity
-                    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
-                        document.addEventListener(event, updateActivity, true);
-                    });
-
-                    // Send heartbeat to server to keep session alive
-                    function sendHeartbeat() {
-                        fetch('../../../app/controllers/AuthController.php', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: 'action=heartbeat'
-                        }).catch(() => {
-                            // If heartbeat fails, session might be expired
-                            console.log('Heartbeat failed');
-                        });
-                    }
-
-                    // Check session timeout
-                    function checkSessionTimeout() {
-                        const timeSinceActivity = Date.now() - lastActivity;
-
-                        if (timeSinceActivity > SESSION_TIMEOUT) {
-                            // Session timed out due to inactivity
-                            alert('Your session has expired due to inactivity. Please login again.');
-                            window.location.href = '../../../auth/login.php';
-                        }
-                    }
-
-                    // Send heartbeat every minute if user is active
-                    setInterval(() => {
-                        const timeSinceActivity = Date.now() - lastActivity;
-                        // Only send heartbeat if user was active in last 5 minutes
-                        if (timeSinceActivity < 5 * 60 * 1000) {
-                            sendHeartbeat();
-                        }
-                        checkSessionTimeout();
-                    }, HEARTBEAT_INTERVAL);
-                </script>
+                <!-- Unified Session Management -->
+                <script src="../../assets/js/session-manager.js"></script>

@@ -1,36 +1,64 @@
 <?php
 /**
- * Session Configuration
- * Centralized session management for the Committee Management System
+ * ULTRA-SIMPLE SESSION CONFIGURATION
  * 
- * This file configures sessions to:
- * - Use session cookies (deleted when browser closes)
- * - Maintain session during normal navigation
- * - Auto-logout when tab/window is closed
+ * ONLY ONE LOGOUT TRIGGER: 8 hours of inactivity
+ * NO logout on browser close
+ * NO logout on refresh
+ * NO logout on navigation
+ * NO session regeneration
  */
 
-// Set ini settings BEFORE session_start to avoid warnings
-ini_set('session.gc_maxlifetime', 3600); // 1 hour of inactivity
-ini_set('session.cookie_lifetime', 0);   // Session cookie (expires on browser close)
+// Prevent multiple session starts
+if (session_status() === PHP_SESSION_NONE) {
 
-// Session cookie configuration - must be set BEFORE session_start()
-session_set_cookie_params([
-    'lifetime' => 0,       // Session cookie - deleted on browser close
-    'path' => '/',
-    'domain' => '',
-    'secure' => false,     // Set to true in production with HTTPS
-    'httponly' => true,    // Prevent JavaScript access to session cookie
-    'samesite' => 'Lax'    // CSRF protection
-]);
+    // Session lasts 30 days
+    ini_set('session.gc_maxlifetime', 2592000); // 30 days
+    ini_set('session.cookie_lifetime', 2592000); // 30 days
 
-// Start the session
-session_start();
+    // Configure persistent session cookie
+    session_set_cookie_params([
+        'lifetime' => 2592000,  // 30 days - survives browser close
+        'path' => '/',
+        'domain' => '',
+        'secure' => false,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
 
-// Regenerate session ID periodically to prevent session fixation
-if (!isset($_SESSION['last_regeneration'])) {
-    $_SESSION['last_regeneration'] = time();
-} elseif (time() - $_SESSION['last_regeneration'] > 300) { // Every 5 minutes
-    session_regenerate_id(true);
-    $_SESSION['last_regeneration'] = time();
+    // Start session
+    session_start();
+}
+
+// ONLY check for inactivity timeout
+if (isset($_SESSION['user_id'])) {
+
+    // Initialize last activity if not set
+    if (!isset($_SESSION['LAST_ACTIVITY'])) {
+        $_SESSION['LAST_ACTIVITY'] = time();
+    }
+
+    // Check if inactive for more than 8 hours
+    $inactive_time = time() - $_SESSION['LAST_ACTIVITY'];
+    $timeout = 28800; // 8 hours in seconds
+
+    if ($inactive_time > $timeout) {
+        // ONLY logout trigger: 8 hours of inactivity
+        session_unset();
+        session_destroy();
+
+        // Restart session for redirect message
+        session_start();
+        $_SESSION['timeout_message'] = 'Session expired due to inactivity.';
+
+        // Redirect to login
+        if (php_sapi_name() !== 'cli') {
+            header('Location: /auth/login.php');
+            exit();
+        }
+    }
+
+    // Update activity timestamp on EVERY request
+    $_SESSION['LAST_ACTIVITY'] = time();
 }
 ?>

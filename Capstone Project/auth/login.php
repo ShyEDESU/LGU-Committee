@@ -249,24 +249,7 @@ if ($_SESSION['login_attempts'] >= 5) {
                 </div>
             <?php endif; ?>
 
-            <!-- Demo Credentials Box -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <p class="text-blue-900 font-semibold text-sm mb-3">
-                    <i class="bi bi-info-circle mr-2 text-blue-600"></i> Demo Credentials
-                </p>
-                <div class="space-y-2 text-sm">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-700 font-medium">Email:</span>
-                        <code
-                            class="bg-white px-3 py-1 rounded border border-blue-300 text-red-600 font-semibold font-mono">LGU@admin.com</code>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-700 font-medium">Password:</span>
-                        <code
-                            class="bg-white px-3 py-1 rounded border border-blue-300 text-red-600 font-semibold font-mono">admin123</code>
-                    </div>
-                </div>
-            </div>
+
 
             <!-- Logout Success Notification -->
             <?php if (isset($_GET['logout']) && $_GET['logout'] === 'success'): ?>
@@ -334,13 +317,8 @@ if ($_SESSION['login_attempts'] >= 5) {
                     <span class="text-red-500 text-xs hidden mt-1" id="password-error"></span>
                 </div>
 
-                <!-- Remember Me & Forgot Password -->
-                <div class="flex items-center justify-between">
-                    <label class="flex items-center cursor-pointer">
-                        <input type="checkbox" name="remember" id="remember"
-                            class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-2 focus:ring-red-500 cursor-pointer">
-                        <span class="ml-2 text-sm text-gray-700">Remember me</span>
-                    </label>
+                <!-- Forgot Password -->
+                <div class="flex items-center justify-end">
                     <a href="reset_password.php"
                         class="text-sm text-red-600 hover:text-red-700 font-medium transition-colors">
                         Forgot password?

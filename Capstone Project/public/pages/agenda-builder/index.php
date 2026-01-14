@@ -94,24 +94,21 @@ $approvedCount = count(array_filter($agendas, fn($a) => $a['status'] === 'Approv
 <!-- Sub-Module Navigation -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
     <div class="flex flex-wrap gap-2">
-        <a href="index.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold">
+        <a href="index.php"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold transition hover:bg-red-700">
             <i class="bi bi-list"></i> All Agendas
         </a>
         <a href="items-list.php"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-            <i class="bi bi-list-check"></i> Items
+            class="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+            <i class="bi bi-card-list"></i> All Items
         </a>
         <a href="templates.php"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            class="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">
             <i class="bi bi-file-earmark-text"></i> Templates
         </a>
-        <a href="deliberation.php"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-            <i class="bi bi-chat-left-text"></i> Deliberation
-        </a>
-        <a href="voting.php"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-            <i class="bi bi-hand-thumbs-up"></i> Voting
+        <a href="archive.php"
+            class="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+            <i class="bi bi-archive"></i> Archive
         </a>
     </div>
 </div>
@@ -300,16 +297,16 @@ $approvedCount = count(array_filter($agendas, fn($a) => $a['status'] === 'Approv
                                 </span>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="flex space-x-2">
+                                <div class="flex items-center gap-3">
                                     <a href="view.php?id=<?php echo $agenda['meeting_id']; ?>"
-                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold"
+                                        class="inline-flex items-center px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
                                         title="View Agenda">
-                                        <i class="bi bi-eye"></i>
+                                        <i class="bi bi-eye mr-1.5"></i> View
                                     </a>
                                     <a href="items.php?meeting_id=<?php echo $agenda['meeting_id']; ?>"
-                                        class="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-semibold"
+                                        class="inline-flex items-center px-3 py-1.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition"
                                         title="Manage Items">
-                                        <i class="bi bi-list-check"></i>
+                                        <i class="bi bi-pencil mr-1.5"></i> Edit
                                     </a>
                                     <form method="POST" class="inline"
                                         onsubmit="return confirm('Are you sure you want to delete this agenda and all its items?');">

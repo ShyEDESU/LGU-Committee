@@ -43,22 +43,16 @@ if ($search || $statusFilter) {
 
 <!-- Sub-Module Navigation -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
-    <div class="flex flex-wrap gap-2">
-        <a href="index.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold">
-            <i class="bi bi-list"></i> All Meetings
-        </a>
-        <a href="schedule.php"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-            <i class="bi bi-calendar-plus"></i> Schedule
-        </a>
-        <a href="attendance.php"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-            <i class="bi bi-person-check"></i> Attendance
-        </a>
-        <a href="minutes.php"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-            <i class="bi bi-file-earmark-text"></i> Minutes
-        </a>
+    <div class="flex items-center justify-between">
+        <div class="flex gap-2">
+            <a href="index.php" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold">
+                <i class="bi bi-list"></i> All Meetings
+            </a>
+        </div>
+        <div class="text-sm text-gray-600 dark:text-gray-400">
+            <i class="bi bi-info-circle mr-1"></i>
+            Select a meeting to view attendance, minutes, and documents
+        </div>
     </div>
 </div>
 
@@ -136,7 +130,17 @@ if ($search || $statusFilter) {
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-600 dark:text-gray-400">This Week</p>
-                <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1">4</p>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+                    <?php
+                    $thisWeek = count(array_filter($meetings, function ($m) {
+                        $meetingDate = strtotime($m['date']);
+                        $weekStart = strtotime('monday this week');
+                        $weekEnd = strtotime('sunday this week 23:59:59');
+                        return $meetingDate >= $weekStart && $meetingDate <= $weekEnd;
+                    }));
+                    echo $thisWeek;
+                    ?>
+                </p>
             </div>
             <div class="bg-orange-100 dark:bg-orange-900/30 rounded-lg p-3">
                 <i class="bi bi-calendar-week text-orange-600 dark:text-orange-400 text-2xl"></i>

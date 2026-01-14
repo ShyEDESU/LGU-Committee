@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Committee Calendar</title>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <style>
+        :root {
+            --fc-border-color: #e5e7eb;
+            --fc-button-bg-color: #dc2626;
+            --fc-button-border-color: #dc2626;
+            --fc-button-hover-bg-color: #b91c1c;
+            --fc-button-hover-border-color: #b91c1c;
+            --fc-button-active-bg-color: #991b1b;
+            --fc-button-active-border-color: #991b1b;
+            --fc-today-bg-color: #fef2f2;
+        }
+
+        .fc {
+            font-family: inherit;
+        }
+
+        .fc-event {
+            cursor: pointer;
+        }
+
+        .fc-event-main {
+            padding: 2px 4px;
+        }
+
+        /* Committee-specific colors */
+        .fc-event.committee-1 {
+            background-color: #3b82f6;
+            border-color: #2563eb;
+        }
+
+        .fc-event.committee-2 {
+            background-color: #10b981;
+            border-color: #059669;
+        }
+
+        .fc-event.committee-3 {
+            background-color: #f59e0b;
+            border-color: #d97706;
+        }
+
+        .fc-event.committee-4 {
+            background-color: #8b5cf6;
+            border-color: #7c3aed;
+        }
+
+        .fc-event.committee-5 {
+            background-color: #ec4899;
+            border-color: #db2777;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="calendar"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const calendarEl = document.getElementById('calendar');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth'
+                },
+                buttonText: {
+                    today: 'Today',
+                    month: 'Month',
+                    week: 'Week',
+                    day: 'Day',
+                    list: 'List'
+                },
+                events: function (info, successCallback, failureCallback) {
+                    // Fetch events from your backend
+                    fetch('../../../api/get-calendar-events.php')
+                        .then(response => response.json())
+                        .then(data => {
+                            successCallback(data);
+                        })
+                        .catch(error => {
+                            console.error('Error fetching events:', error);
+                            failureCallback(error);
+                        });
+                },
+                eventClick: function (info) {
+                    // Navigate to meeting detail page
+                    window.location.href = '../committee-meetings/view.php?id=' + info.event.id;
+                },
+                eventDidMount: function (info) {
+                    // Add committee-specific class
+                    if (info.event.extendedProps.committee_id) {
+                        info.el.classList.add('committee-' + info.event.extendedProps.committee_id);
+                    }
+
+                    // Add tooltip
+                    info.el.title = info.event.extendedProps.description || info.event.title;
+                },
+                height: 'auto',
+                navLinks: true,
+                editable: false,
+                dayMaxEvents: true,
+                nowIndicator: true
+            });
+
+            calendar.render();
+        });
+    </script>
+</body>
+
+</html>

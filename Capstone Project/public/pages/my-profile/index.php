@@ -12,7 +12,7 @@ $userId = $_SESSION['user_id'];
 $pageTitle = 'My Profile';
 
 // Fetch user data from database
-$query = "SELECT * FROM users WHERE user_id = ?";
+$query = "SELECT u.*, r.role_name FROM users u LEFT JOIN roles r ON u.role_id = r.role_id WHERE u.user_id = ?";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("i", $userId);
 $stmt->execute();
@@ -20,22 +20,31 @@ $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 $stmt->close();
 
-// If user not found, logout
+// If user not found, show error but DON'T destroy session
 if (!$user) {
-    session_destroy();
-    header('Location: ../../../auth/login.php');
-    exit();
+    error_log("User not found in database: user_id = " . $userId);
+    die("Error: User profile not found. Please contact administrator. User ID: " . $userId);
 }
 
 // Get user details
 $userName = $user['first_name'] . ' ' . $user['last_name'];
 $userEmail = $user['email'];
-$userRole = $user['role'] ?? 'User';
+$userRole = $user['role_name'] ?? $user['user_role'] ?? 'User';
 $userPhone = $user['phone'] ?? 'Not set';
 $userDepartment = $user['department'] ?? 'Not set';
 $userPosition = $user['position'] ?? 'Not set';
+$userBio = $user['bio'] ?? '';
+$profilePicture = $user['profile_picture'] ?? null;
 $userInitials = strtoupper(substr($user['first_name'], 0, 1) . substr($user['last_name'], 0, 1));
 $memberSince = date('M Y', strtotime($user['created_at'] ?? 'now'));
+
+// Update session with latest data
+$_SESSION['user_name'] = $userName;
+$_SESSION['user_email'] = $userEmail;
+$_SESSION['user_role'] = $userRole;
+if ($profilePicture) {
+    $_SESSION['profile_picture'] = $profilePicture;
+}
 
 // Handle profile update
 $message = '';
@@ -103,11 +112,17 @@ include '../../includes/header.php';
     <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
         <!-- Profile Picture -->
         <div class="relative">
-            <div
-                class="w-32 h-32 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center">
-                <span class="text-red-600 text-4xl font-bold"><?php echo $userInitials; ?></span>
+            <div id="profilePictureContainer"
+                class="w-32 h-32 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center overflow-hidden">
+                <?php if ($profilePicture): ?>
+                    <img src="../../<?php echo htmlspecialchars($profilePicture); ?>" alt="Profile Picture"
+                        class="w-full h-full object-cover" onerror="this.src='../../assets/images/default-avatar.png'">
+                <?php else: ?>
+                    <img src="../../assets/images/default-avatar.png" alt="Default Avatar"
+                        class="w-full h-full object-cover">
+                <?php endif; ?>
             </div>
-            <button
+            <button onclick="openUploadModal()"
                 class="absolute bottom-0 right-0 bg-white text-red-600 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-100 transform hover:scale-110 transition-all duration-200 shadow-lg">
                 <i class="bi bi-camera-fill"></i>
             </button>
@@ -192,13 +207,14 @@ include '../../includes/header.php';
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
                         <input type="text" name="first_name"
-                            value="<?php echo htmlspecialchars($user['first_name']); ?>"
+                            value="<?php echo htmlspecialchars($user['first_name'] ?? ''); ?>"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
                             disabled>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                        <input type="text" name="last_name" value="<?php echo htmlspecialchars($user['last_name']); ?>"
+                        <input type="text" name="last_name"
+                            value="<?php echo htmlspecialchars($user['last_name'] ?? ''); ?>"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
                             disabled>
                     </div>
@@ -362,6 +378,67 @@ include '../../includes/header.php';
     </div>
 </div>
 
+<!-- Upload Profile Picture Modal -->
+<div id="uploadPictureModal"
+    class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-fade-in-up">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold text-gray-800">Update Profile Picture</h2>
+                <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="bi bi-x-lg text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <div class="space-y-4">
+                <!-- Current Picture Preview -->
+                <div class="flex justify-center">
+                    <div id="previewContainer"
+                        class="w-40 h-40 rounded-full bg-gray-100 border-4 border-gray-200 flex items-center justify-center overflow-hidden">
+                        <?php if ($profilePicture): ?>
+                            <img id="currentPreview" src="../../<?php echo htmlspecialchars($profilePicture); ?>"
+                                alt="Current" class="w-full h-full object-cover">
+                        <?php else: ?>
+                            <img id="currentPreview" src="../../assets/images/default-avatar.png" alt="Default"
+                                class="w-full h-full object-cover">
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- File Input -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Choose New Picture</label>
+                    <input type="file" id="profilePictureInput" accept="image/jpeg,image/png"
+                        onchange="previewImage(this)"
+                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer">
+                    <p class="mt-2 text-xs text-gray-500">JPG or PNG only. Max size: 5MB. Max dimensions:
+                        2000x2000px</p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-3 mt-6">
+                    <button onclick="uploadProfilePicture()" id="uploadBtn"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition">
+                        <i class="bi bi-upload mr-2"></i>Upload
+                    </button>
+                    <?php if ($profilePicture): ?>
+                        <button onclick="removeProfilePicture()"
+                            class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 px-4 py-2 rounded-lg font-semibold transition">
+                            <i class="bi bi-trash mr-2"></i>Remove
+                        </button>
+                    <?php endif; ?>
+                    <button onclick="closeUploadModal()"
+                        class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 px-4 py-2 rounded-lg font-semibold transition">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Change Password Modal -->
 <div id="changePasswordModal"
     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -443,6 +520,142 @@ include '../../includes/header.php';
 
     function closeChangePasswordModal() {
         document.getElementById('changePasswordModal').classList.add('hidden');
+    }
+
+    // Profile Picture Upload Functions
+    function openUploadModal() {
+        document.getElementById('uploadPictureModal').classList.remove('hidden');
+    }
+
+    function closeUploadModal() {
+        document.getElementById('uploadPictureModal').classList.add('hidden');
+        document.getElementById('profilePictureInput').value = '';
+    }
+
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const preview = document.getElementById('currentPreview');
+                if (preview) {
+                    preview.src = e.target.result;
+                } else {
+                    document.getElementById('previewContainer').innerHTML =
+                        `<img id="currentPreview" src="${e.target.result}" class="w-full h-full object-cover">`;
+                }
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function uploadProfilePicture() {
+        const input = document.getElementById('profilePictureInput');
+        if (!input.files || !input.files[0]) {
+            alert('Please select an image first');
+            return;
+        }
+
+        const file = input.files[0];
+
+        // Client-side validation
+        if (!file.type.match('image/(jpeg|jpg|png)')) {
+            alert('Invalid file type. Only JPG and PNG images are allowed. GIF files are not supported.');
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size too large. Maximum size is 5MB. Please resize your image.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('profile_picture', file);
+
+        const uploadBtn = document.getElementById('uploadBtn');
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="bi bi-hourglass-split mr-2"></i>Uploading...';
+
+        fetch('upload-picture.php', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update profile picture WITHOUT page reload
+                    const newImageUrl = data.picture_url + '?t=' + new Date().getTime();
+
+                    // Update main profile picture
+                    const profileContainer = document.getElementById('profilePictureContainer');
+                    profileContainer.innerHTML = `<img src="${newImageUrl}" alt="Profile Picture" class="w-full h-full object-cover" onerror="this.src='../../assets/images/default-avatar.png'">`;
+
+                    // Update header profile pictures dynamically
+                    const headerImages = document.querySelectorAll('img[alt="Profile"], img[alt="Default Avatar"]');
+                    headerImages.forEach(img => {
+                        img.src = newImageUrl;
+                    });
+
+                    // Close modal and show success message
+                    closeUploadModal();
+                    alert('Profile picture updated successfully!');
+
+                    // Reset button
+                    uploadBtn.disabled = false;
+                    uploadBtn.innerHTML = '<i class="bi bi-upload mr-2"></i>Upload';
+                } else {
+                    // Check if image needs cropping
+                    if (data.needs_crop) {
+                        alert(data.message + '\n\nPlease use an image editor to resize your image before uploading.');
+                    } else {
+                        alert(data.message || 'Failed to upload picture');
+                    }
+                    uploadBtn.disabled = false;
+                    uploadBtn.innerHTML = '<i class="bi bi-upload mr-2"></i>Upload';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while uploading');
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="bi bi-upload mr-2"></i>Upload';
+            });
+    }
+
+    function removeProfilePicture() {
+        if (!confirm('Are you sure you want to remove your profile picture?')) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('action', 'remove');
+
+        fetch('upload-picture.php', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update to default avatar WITHOUT page reload
+                    const profileContainer = document.getElementById('profilePictureContainer');
+                    profileContainer.innerHTML = `<img src="../../assets/images/default-avatar.png" alt="Default Avatar" class="w-full h-full object-cover">`;
+
+                    // Update header profile pictures to default avatar
+                    const headerImages = document.querySelectorAll('img[alt="Profile"], img[alt="Default Avatar"]');
+                    headerImages.forEach(img => {
+                        img.src = '../../assets/images/default-avatar.png';
+                    });
+
+                    closeUploadModal();
+                    alert('Profile picture removed successfully!');
+                } else {
+                    alert(data.message || 'Failed to remove picture');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred');
+            });
     }
 </script>
 
