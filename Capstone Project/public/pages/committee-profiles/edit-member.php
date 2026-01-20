@@ -17,11 +17,11 @@ if (!$committee) {
     exit();
 }
 
-// Find the member to edit
-$members = $_SESSION['committee_members'] ?? [];
+// Find the member to edit from database
+$members = getCommitteeMembers($committeeId);
 $member = null;
 foreach ($members as $m) {
-    if ($m['member_id'] == $memberId && $m['committee_id'] == $committeeId) {
+    if ($m['member_id'] == $memberId) {
         $member = $m;
         break;
     }
@@ -35,22 +35,20 @@ if (!$member) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Update member in session
-    foreach ($_SESSION['committee_members'] as &$m) {
-        if ($m['member_id'] == $memberId && $m['committee_id'] == $committeeId) {
-            $m['name'] = $_POST['name'];
-            $m['role'] = $_POST['role'];
-            $m['position'] = $_POST['position'];
-            $m['district'] = $_POST['district'] ?? '';
-            $m['contact_number'] = $_POST['contact_number'] ?? '';
-            $m['email'] = $_POST['email'] ?? '';
-            break;
-        }
-    }
+    $data = [
+        'position' => $_POST['position'] ?? 'Member',
+        'join_date' => $_POST['join_date'] ?? $member['join_date']
+    ];
 
-    $_SESSION['success_message'] = 'Member updated successfully';
-    header('Location: members.php?id=' . $committeeId);
-    exit();
+    $success = updateCommitteeMember($memberId, $data);
+
+    if ($success) {
+        $_SESSION['success_message'] = 'Member updated successfully';
+        header('Location: members.php?id=' . $committeeId);
+        exit();
+    } else {
+        $_SESSION['error_message'] = 'Failed to update member';
+    }
 }
 
 $userName = $_SESSION['user_name'] ?? 'User';
@@ -72,6 +70,12 @@ include '../../includes/header.php';
         </ol>
     </nav>
 
+    <?php if (isset($_SESSION['error_message'])): ?>
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+            <p class="text-red-700"><?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?></p>
+        </div>
+    <?php endif; ?>
+
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Member</h1>
@@ -88,92 +92,53 @@ include '../../includes/header.php';
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
         <form method="POST" class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Name -->
+                <!-- Member Name (Read-only) -->
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Full Name <span class="text-red-600">*</span>
+                        Member Name
                     </label>
-                    <input type="text" name="name" required value="<?php echo htmlspecialchars($member['name']); ?>"
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"
-                        placeholder="Hon. Juan Dela Cruz">
+                    <input type="text" value="<?php echo htmlspecialchars($member['name']); ?>" disabled
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed">
+                    <p class="text-sm text-gray-500 mt-1">Member name cannot be changed. Remove and re-add to change user.</p>
                 </div>
 
-                <!-- Committee Role -->
+                <!-- Position in Committee -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Committee Role <span class="text-red-600">*</span>
-                    </label>
-                    <select name="role" required
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-                        <option value="">Select Role</option>
-                        <option value="Chairperson" <?php echo $member['role'] === 'Chairperson' ? 'selected' : ''; ?>
-                            >Chairperson</option>
-                        <option value="Vice-Chairperson" <?php echo $member['role'] === 'Vice-Chairperson' ? 'selected' : ''; ?>>Vice-Chairperson</option>
-                        <option value="Member" <?php echo $member['role'] === 'Member' ? 'selected' : ''; ?>>Member
-                        </option>
-                        <option value="Secretary" <?php echo $member['role'] === 'Secretary' ? 'selected' : ''; ?>
-                            >Secretary</option>
-                        <option value="Ex-Officio" <?php echo $member['role'] === 'Ex-Officio' ? 'selected' : ''; ?>
-                            >Ex-Officio</option>
-                    </select>
-                </div>
-
-                <!-- Position/Job Title -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Position/Job Title <span class="text-red-600">*</span>
+                        Position in Committee <span class="text-red-600">*</span>
                     </label>
                     <select name="position" required
                         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-                        <option value="">Select Position</option>
-                        <option value="Councilor" <?php echo $member['position'] === 'Councilor' ? 'selected' : ''; ?>
-                            >Councilor</option>
-                        <option value="Mayor" <?php echo $member['position'] === 'Mayor' ? 'selected' : ''; ?>>Mayor
-                        </option>
-                        <option value="Vice Mayor" <?php echo $member['position'] === 'Vice Mayor' ? 'selected' : ''; ?>
-                            >Vice Mayor</option>
-                        <option value="Board Member" <?php echo $member['position'] === 'Board Member' ? 'selected' : ''; ?>>Board Member</option>
-                        <option value="Barangay Captain" <?php echo $member['position'] === 'Barangay Captain' ? 'selected' : ''; ?>>Barangay Captain</option>
-                        <option value="SK Chairperson" <?php echo $member['position'] === 'SK Chairperson' ? 'selected' : ''; ?>>SK Chairperson</option>
-                        <option value="Department Head" <?php echo $member['position'] === 'Department Head' ? 'selected' : ''; ?>>Department Head</option>
-                        <option value="City Administrator" <?php echo $member['position'] === 'City Administrator' ? 'selected' : ''; ?>>City Administrator</option>
-                        <option value="Legal Officer" <?php echo $member['position'] === 'Legal Officer' ? 'selected' : ''; ?>>Legal Officer</option>
-                        <option value="Budget Officer" <?php echo $member['position'] === 'Budget Officer' ? 'selected' : ''; ?>>Budget Officer</option>
-                        <option value="Other" <?php echo $member['position'] === 'Other' ? 'selected' : ''; ?>>Other
-                        </option>
+                        <option value="Member" <?php echo $member['position'] === 'Member' ? 'selected' : ''; ?>>Member</option>
+                        <option value="Chairperson" <?php echo $member['position'] === 'Chairperson' ? 'selected' : ''; ?>>Chairperson</option>
+                        <option value="Vice-Chairperson" <?php echo $member['position'] === 'Vice-Chairperson' ? 'selected' : ''; ?>>Vice-Chairperson</option>
+                        <option value="Secretary" <?php echo $member['position'] === 'Secretary' ? 'selected' : ''; ?>>Secretary</option>
+                        <option value="Ex-Officio" <?php echo $member['position'] === 'Ex-Officio' ? 'selected' : ''; ?>>Ex-Officio</option>
                     </select>
                 </div>
 
-                <!-- District -->
+                <!-- Join Date -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        District
+                        Join Date
                     </label>
-                    <input type="text" name="district"
-                        value="<?php echo htmlspecialchars($member['district'] ?? ''); ?>"
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"
-                        placeholder="District 1">
+                    <input type="date" name="join_date" value="<?php echo htmlspecialchars($member['join_date'] ?? date('Y-m-d')); ?>"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                 </div>
 
-                <!-- Contact Number -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Contact Number
-                    </label>
-                    <input type="tel" name="contact_number"
-                        value="<?php echo htmlspecialchars($member['contact_number'] ?? ''); ?>"
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"
-                        placeholder="09171234567">
-                </div>
-
-                <!-- Email -->
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Email Address
-                    </label>
-                    <input type="email" name="email" value="<?php echo htmlspecialchars($member['email'] ?? ''); ?>"
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"
-                        placeholder="member@legislature.gov">
+                <!-- User Info (Read-only) -->
+                <div class="md:col-span-2 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <h3 class="font-semibold mb-2">User Information</h3>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-600 dark:text-gray-400">Department:</span>
+                            <span class="ml-2"><?php echo htmlspecialchars($member['department'] ?? 'N/A'); ?></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600 dark:text-gray-400">Job Position:</span>
+                            <span class="ml-2"><?php echo htmlspecialchars($member['user_position'] ?? 'N/A'); ?></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

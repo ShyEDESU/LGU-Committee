@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -47,6 +48,13 @@ if ($meeting) {
     $committee = getCommitteeById($meeting['committee_id']);
     $committeeMembers = getCommitteeMembers($meeting['committee_id']);
 }
+
+$successMessage = '';
+if (isset($_GET['created'])) {
+    $successMessage = 'Vote motion created successfully.';
+} elseif (isset($_GET['recorded'])) {
+    $successMessage = 'Vote record updated successfully.';
+}
 ?>
 
 <div class="mb-6">
@@ -59,8 +67,13 @@ if ($meeting) {
             class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
             <i class="bi bi-arrow-left mr-2"></i> Back
         </a>
-    </div>
 </div>
+
+<?php if ($successMessage): ?>
+    <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 mb-6">
+        <p class="text-green-700 dark:text-green-300"><?php echo $successMessage; ?></p>
+    </div>
+<?php endif; ?>
 
 <!-- Meeting Selection -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
@@ -133,7 +146,8 @@ if ($meeting) {
                             <div class="grid grid-cols-4 gap-4 mb-4">
                                 <div class="text-center">
                                     <div class="text-3xl font-bold text-green-600 dark:text-green-400">
-                                        <?php echo $results['yes']; ?></div>
+                                        <?php echo $results['yes']; ?>
+                                    </div>
                                     <div class="text-sm text-gray-600 dark:text-gray-400">Yes</div>
                                 </div>
                                 <div class="text-center">
@@ -143,12 +157,14 @@ if ($meeting) {
                                 </div>
                                 <div class="text-center">
                                     <div class="text-3xl font-bold text-gray-600 dark:text-gray-400">
-                                        <?php echo $results['abstain']; ?></div>
+                                        <?php echo $results['abstain']; ?>
+                                    </div>
                                     <div class="text-sm text-gray-600 dark:text-gray-400">Abstain</div>
                                 </div>
                                 <div class="text-center">
                                     <div class="text-3xl font-bold text-gray-400 dark:text-gray-500">
-                                        <?php echo $results['absent']; ?></div>
+                                        <?php echo $results['absent']; ?>
+                                    </div>
                                     <div class="text-sm text-gray-600 dark:text-gray-400">Absent</div>
                                 </div>
                             </div>

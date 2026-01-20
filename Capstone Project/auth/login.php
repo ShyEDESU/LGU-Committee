@@ -53,8 +53,33 @@ if ($_SESSION['login_attempts'] >= 5) {
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'v-navy': '#002147',
+                        'v-red': '#D22B2B',
+                        'v-gold': '#FFD700',
+                    }
+                }
+            }
+        }
+    </script>
+
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <script>
+        // Initialize theme before page load
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
 
     <style>
         /* Animation Keyframes */
@@ -195,7 +220,7 @@ if ($_SESSION['login_attempts'] >= 5) {
 </head>
 
 <body
-    class="bg-gradient-to-br from-red-50 via-white to-red-50 min-h-screen flex items-center justify-center p-3 md:p-4">
+    class="bg-gradient-to-br from-red-50 via-white to-red-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 min-h-screen flex items-center justify-center p-3 md:p-4 transition-colors">
     <div class="w-full max-w-md">
         <!-- Logo Section -->
         <div class="text-center mb-6 md:mb-8 animate-fade-in">
@@ -206,20 +231,41 @@ if ($_SESSION['login_attempts'] >= 5) {
                         class="w-full h-full object-contain p-2">
                 </div>
             </div>
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-800 animate-fade-in-up animation-delay-100">CMS</h1>
-            <p class="text-sm md:text-base text-gray-600 mt-1 md:mt-2 animate-fade-in-up animation-delay-200">Committee
-                Management System</p>
+            <h1
+                class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white animate-fade-in-up animation-delay-100">
+                CMS</h1>
+            <p
+                class="text-sm md:text-base text-gray-600 dark:text-slate-400 mt-1 md:mt-2 animate-fade-in-up animation-delay-200">
+                Committee Management System</p>
             <p class="text-xs md:text-sm text-red-600 font-semibold mt-1 animate-fade-in-up animation-delay-300">City
                 Government of Valenzuela</p>
-            <p class="text-xs text-gray-500 animate-fade-in-up animation-delay-400">Metropolitan Manila</p>
+            <p class="text-xs text-gray-500 dark:text-slate-500 animate-fade-in-up animation-delay-400">Metropolitan
+                Manila</p>
         </div>
 
         <!-- Login Card -->
         <div
-            class="bg-white rounded-xl md:rounded-2xl shadow-xl p-5 md:p-8 animate-fade-in-up animation-delay-300 transform hover:shadow-2xl transition-all duration-300">
+            class="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-xl p-5 md:p-8 animate-fade-in-up animation-delay-300 transform hover:shadow-2xl transition-all duration-300">
+            <!-- Back to Website -->
+            <div class="mb-6 flex justify-between items-center">
+                <a href="../public/index.php"
+                    class="inline-flex items-center text-sm font-bold text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                    <i class="bi bi-arrow-left mr-2"></i> Back to Home
+                </a>
+
+                <!-- Theme Toggle -->
+                <button onclick="toggleTheme()"
+                    class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all border border-slate-200 dark:border-slate-600"
+                    title="Toggle Theme">
+                    <i class="bi bi-moon-fill dark:hidden"></i>
+                    <i class="bi bi-sun-fill hidden dark:inline"></i>
+                </button>
+            </div>
+
             <div class="mb-4 md:mb-6">
-                <h2 class="text-xl md:text-2xl font-bold text-gray-800">Welcome Back</h2>
-                <p class="text-sm md:text-base text-gray-600 mt-1">Sign in to access your account</p>
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 dark:text-white">Welcome Back</h2>
+                <p class="text-sm md:text-base text-gray-600 dark:text-slate-400 mt-1">Sign in to access your account
+                </p>
             </div>
 
             <!-- Security Alert - Shows when account is locked -->
@@ -772,6 +818,13 @@ if ($_SESSION['login_attempts'] >= 5) {
 
         // Auto-focus email field
         document.getElementById('email')?.focus();
+
+        // Theme Toggle Function
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
     </script>
 </body>
 

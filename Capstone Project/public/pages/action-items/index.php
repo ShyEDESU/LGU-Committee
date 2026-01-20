@@ -7,6 +7,15 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// Handle delete via POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_item'])) {
+    $itemId = $_POST['item_id'];
+    if (deleteActionItem($itemId)) {
+        header('Location: index.php?deleted=1');
+        exit();
+    }
+}
+
 // Handle status updates via POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     $itemId = $_POST['item_id'];
@@ -181,7 +190,8 @@ $doneItems = getActionItemsByStatus('Done');
                         <?php echo htmlspecialchars($item['title']); ?>
                     </h4>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        <i class="bi bi-person"></i> <?php echo htmlspecialchars($item['assigned_to']); ?>
+                        <i class="bi bi-person"></i>
+                        <?php echo htmlspecialchars($item['assigned_to_name'] ?? 'Unassigned'); ?>
                     </p>
                     <?php if (!empty($item['due_date'])): ?>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
@@ -191,9 +201,11 @@ $doneItems = getActionItemsByStatus('Done');
                     <div class="flex items-center justify-between mt-3">
                         <span
                             class="px-2 py-1 text-xs font-semibold rounded-full 
-                        <?php echo $item['priority'] === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                            ($item['priority'] === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'); ?>">
-                            <?php echo htmlspecialchars($item['priority']); ?>
+                        <?php
+                        $priority = strtolower($item['priority'] ?? 'normal');
+                        echo ($priority === 'high' || $priority === 'urgent') ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                            ($priority === 'medium' || $priority === 'normal' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'); ?>">
+                            <?php echo htmlspecialchars(ucfirst($item['priority'])); ?>
                         </span>
                         <div class="flex space-x-1">
                             <a href="view.php?id=<?php echo $item['id']; ?>"
@@ -206,6 +218,15 @@ $doneItems = getActionItemsByStatus('Done');
                                 title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            <form method="POST" class="inline"
+                                onsubmit="return confirm('Are you sure you want to delete this action item?');">
+                                <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                <button type="submit" name="delete_item" value="1"
+                                    class="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
+                                    title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -226,7 +247,8 @@ $doneItems = getActionItemsByStatus('Done');
                         <?php echo htmlspecialchars($item['title']); ?>
                     </h4>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        <i class="bi bi-person"></i> <?php echo htmlspecialchars($item['assigned_to']); ?>
+                        <i class="bi bi-person"></i>
+                        <?php echo htmlspecialchars($item['assigned_to_name'] ?? 'Unassigned'); ?>
                     </p>
                     <?php if (!empty($item['due_date'])): ?>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
@@ -245,9 +267,11 @@ $doneItems = getActionItemsByStatus('Done');
                     <div class="flex items-center justify-between">
                         <span
                             class="px-2 py-1 text-xs font-semibold rounded-full 
-                        <?php echo $item['priority'] === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                            ($item['priority'] === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'); ?>">
-                            <?php echo htmlspecialchars($item['priority']); ?>
+                        <?php
+                        $priority = strtolower($item['priority'] ?? 'normal');
+                        echo ($priority === 'high' || $priority === 'urgent') ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                            ($priority === 'medium' || $priority === 'normal' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'); ?>">
+                            <?php echo htmlspecialchars(ucfirst($item['priority'])); ?>
                         </span>
                         <div class="flex space-x-1">
                             <a href="view.php?id=<?php echo $item['id']; ?>"
@@ -260,6 +284,15 @@ $doneItems = getActionItemsByStatus('Done');
                                 title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            <form method="POST" class="inline"
+                                onsubmit="return confirm('Are you sure you want to delete this action item?');">
+                                <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                <button type="submit" name="delete_item" value="1"
+                                    class="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
+                                    title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -280,15 +313,16 @@ $doneItems = getActionItemsByStatus('Done');
                         <?php echo htmlspecialchars($item['title']); ?>
                     </h4>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        <i class="bi bi-person"></i> <?php echo htmlspecialchars($item['assigned_to']); ?>
+                        <i class="bi bi-person"></i>
+                        <?php echo htmlspecialchars($item['assigned_to_name'] ?? 'Unassigned'); ?>
                     </p>
                     <p class="text-sm text-green-600 dark:text-green-400 mb-2">
                         <i class="bi bi-check-circle"></i> Completed
                     </p>
                     <div class="flex items-center justify-between">
                         <span class="text-xs text-gray-500 dark:text-gray-400">
-                            <?php if (!empty($item['completed_date'])): ?>
-                                <?php echo date('M j, Y', strtotime($item['completed_date'])); ?>
+                            <?php if (!empty($item['completed_at'])): ?>
+                                <?php echo date('M j, Y', strtotime($item['completed_at'])); ?>
                             <?php endif; ?>
                         </span>
                         <div class="flex space-x-1">
@@ -297,10 +331,19 @@ $doneItems = getActionItemsByStatus('Done');
                                 title="View">
                                 <i class="bi bi-eye"></i>
                             </a>
+                            <form method="POST" class="inline"
+                                onsubmit="return confirm('Are you sure you want to delete this action item?');">
+                                <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                <button type="submit" name="delete_item" value="1"
+                                    class="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
+                                    title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
-            <?php endforeach; ?>>
+            <?php endforeach; ?>
         </div>
     </div>
 </div>

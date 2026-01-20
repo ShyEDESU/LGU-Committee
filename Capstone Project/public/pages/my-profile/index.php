@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once '../../../config/database.php';
+require_once '../../../app/helpers/AuditHelper.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
@@ -38,6 +39,22 @@ $profilePicture = $user['profile_picture'] ?? null;
 $userInitials = strtoupper(substr($user['first_name'], 0, 1) . substr($user['last_name'], 0, 1));
 $memberSince = date('M Y', strtotime($user['created_at'] ?? 'now'));
 
+// Fetch user statistics
+$statsQuery = "SELECT
+(SELECT COUNT(*) FROM audit_logs WHERE user_id = ?) as activity_count,
+(SELECT COUNT(*) FROM legislative_documents WHERE created_by = ?) as doc_count,
+(SELECT timestamp FROM audit_logs WHERE user_id = ? ORDER BY timestamp DESC LIMIT 1) as last_active";
+$statsStmt = $conn->prepare($statsQuery);
+$statsStmt->bind_param("iii", $userId, $userId, $userId);
+$statsStmt->execute();
+$statsResult = $statsStmt->get_result()->fetch_assoc();
+$activityCount = $statsResult['activity_count'] ?? 0;
+$docCount = $statsResult['doc_count'] ?? 0;
+$lastActive = $statsResult['last_active'] ? date('M j, g:i A', strtotime($statsResult['last_active'])) : 'Never';
+
+// Fetch recent activity
+$recentActivities = getAuditLogs(5, 0, ['user_id' => $userId]);
+
 // Update session with latest data
 $_SESSION['user_name'] = $userName;
 $_SESSION['user_email'] = $userEmail;
@@ -53,24 +70,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $firstName = $_POST['first_name'] ?? '';
         $lastName = $_POST['last_name'] ?? '';
         $phone = $_POST['phone'] ?? '';
-        // Department and position are now readonly, so they are not updated here.
-        // $department = $_POST['department'] ?? '';
-        // $position = $_POST['position'] ?? '';
 
         $updateQuery = "UPDATE users SET first_name = ?, last_name = ?, phone = ? WHERE user_id = ?";
         $updateStmt = $conn->prepare($updateQuery);
         $updateStmt->bind_param("sssi", $firstName, $lastName, $phone, $userId);
 
         if ($updateStmt->execute()) {
-            $message = '<div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 animate-fade-in"><i class="bi bi-check-circle mr-2"></i>Profile updated successfully!</div>';
+            $message = '<div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 animate-fade-in"><i
+        class="bi bi-check-circle mr-2"></i>Profile updated successfully!</div>';
             // Refresh user data
             $userName = $firstName . ' ' . $lastName;
             $userPhone = $phone;
-            // $userDepartment = $department; // No longer updated
-            // $userPosition = $position; // No longer updated
             $_SESSION['user_name'] = $userName;
+
+            // Log the action
+            logAuditAction($userId, 'UPDATE_PROFILE', 'user_profile', "Updated personal profile details");
         } else {
-            $message = '<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4"><i class="bi bi-x-circle mr-2"></i>Error updating profile</div>';
+            $message = '<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4"><i
+        class="bi bi-x-circle mr-2"></i>Error updating profile</div>';
         }
         $updateStmt->close();
 
@@ -80,23 +97,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $confirmPassword = $_POST['confirm_password'] ?? '';
 
         if ($newPassword !== $confirmPassword) {
-            $message = '<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4"><i class="bi bi-x-circle mr-2"></i>Passwords do not match</div>';
+            $message = '<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4"><i
+        class="bi bi-x-circle mr-2"></i>Passwords do not match</div>';
         } elseif (strlen($newPassword) < 8) {
-            $message = '<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4"><i class="bi bi-x-circle mr-2"></i>Password must be at least 8 characters</div>';
+            $message = '<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4"><i class="bi bi-x-circle mr-2"></i>Password must be at least 8 characters</div>'
+            ;
         } elseif (password_verify($currentPassword, $user['password_hash'])) {
-            $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
+            $newHash = password_hash(
+                $newPassword,
+                PASSWORD_DEFAULT
+            );
             $pwdQuery = "UPDATE users SET password_hash = ? WHERE user_id = ?";
-            $pwdStmt = $conn->prepare($pwdQuery);
+            $pwdStmt = $conn->
+                prepare($pwdQuery);
             $pwdStmt->bind_param("si", $newHash, $userId);
 
             if ($pwdStmt->execute()) {
-                $message = '<div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 animate-fade-in"><i class="bi bi-check-circle mr-2"></i>Password changed successfully!</div>';
+                $message = '<div
+        class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 animate-fade-in"><i
+            class="bi bi-check-circle mr-2"></i>Password changed successfully!</div>';
+
+                // Log the action
+                logAuditAction($userId, 'CHANGE_PASSWORD', 'user_profile', "Changed account password");
             } else {
-                $message = '<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4"><i class="bi bi-x-circle mr-2"></i>Error changing password</div>';
+                $message = '<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4"><i
+            class="bi bi-x-circle mr-2"></i>Error changing password</div>';
             }
             $pwdStmt->close();
         } else {
-            $message = '<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4"><i class="bi bi-x-circle mr-2"></i>Current password is incorrect</div>';
+            $message = '<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4"><i
+            class="bi bi-x-circle mr-2"></i>Current password is incorrect</div>';
         }
     }
 }
@@ -162,7 +192,7 @@ include '../../includes/header.php';
             <span class="text-gray-600 text-sm">Documents</span>
             <i class="bi bi-file-earmark-text text-2xl text-red-600"></i>
         </div>
-        <p class="text-3xl font-bold text-gray-900">2</p>
+        <p class="text-3xl font-bold text-gray-900"><?php echo $docCount; ?></p>
     </div>
 
     <div class="bg-white rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-200">
@@ -170,7 +200,7 @@ include '../../includes/header.php';
             <span class="text-gray-600 text-sm">Activities</span>
             <i class="bi bi-activity text-2xl text-green-600"></i>
         </div>
-        <p class="text-3xl font-bold text-gray-900">117</p>
+        <p class="text-3xl font-bold text-gray-900"><?php echo $activityCount; ?></p>
     </div>
 
     <div class="bg-white rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-300">
@@ -186,7 +216,7 @@ include '../../includes/header.php';
             <span class="text-gray-600 text-sm">Last Active</span>
             <i class="bi bi-clock-history text-2xl text-blue-600"></i>
         </div>
-        <p class="text-2xl font-bold text-gray-900">Just now</p>
+        <p class="text-xl font-bold text-gray-900"><?php echo $lastActive; ?></p>
     </div>
 </div>
 
@@ -266,36 +296,59 @@ include '../../includes/header.php';
             </div>
 
             <div class="space-y-4">
-                <div class="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition">
-                    <div class="bg-blue-100 rounded-full p-2">
-                        <i class="bi bi-file-earmark-text text-blue-600"></i>
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-gray-900">Uploaded new document</p>
-                        <p class="text-xs text-gray-600">Committee Report Q4 2025</p>
-                        <p class="text-xs text-gray-500 mt-1">2 hours ago</p>
-                    </div>
-                </div>
-                <div class="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition">
-                    <div class="bg-green-100 rounded-full p-2">
-                        <i class="bi bi-check-circle text-green-600"></i>
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-gray-900">Approved document</p>
-                        <p class="text-xs text-gray-600">Budget Proposal 2025</p>
-                        <p class="text-xs text-gray-500 mt-1">5 hours ago</p>
-                    </div>
-                </div>
-                <div class="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition">
-                    <div class="bg-purple-100 rounded-full p-2">
-                        <i class="bi bi-person text-purple-600"></i>
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-gray-900">Updated profile information</p>
-                        <p class="text-xs text-gray-600">Changed contact details</p>
-                        <p class="text-xs text-gray-500 mt-1">1 day ago</p>
-                    </div>
-                </div>
+                <?php if (empty($recentActivities)): ?>
+                    <p class="text-center text-gray-500 py-4">No recent activity found.</p>
+                <?php else: ?>
+                    <?php foreach ($recentActivities as $activity): ?>
+                        <div class="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition">
+                            <div class="rounded-full p-2 <?php
+                            switch ($activity['action']) {
+                                case 'UPDATE_PROFILE':
+                                    echo 'bg-blue-50';
+                                    break;
+                                case 'CHANGE_PASSWORD':
+                                    echo 'bg-yellow-50';
+                                    break;
+                                case 'UPDATE_PICTURE':
+                                    echo 'bg-purple-50';
+                                    break;
+                                case 'REMOVE_PICTURE':
+                                    echo 'bg-red-50';
+                                    break;
+                                default:
+                                    echo 'bg-red-50';
+                            }
+                            ?>">
+                                <i class="bi <?php
+                                switch ($activity['action']) {
+                                    case 'UPDATE_PROFILE':
+                                        echo 'bi-pencil text-blue-600';
+                                        break;
+                                    case 'CHANGE_PASSWORD':
+                                        echo 'bi-shield-lock text-yellow-600';
+                                        break;
+                                    case 'UPDATE_PICTURE':
+                                        echo 'bi-image text-purple-600';
+                                        break;
+                                    case 'REMOVE_PICTURE':
+                                        echo 'bi-trash text-red-600';
+                                        break;
+                                    default:
+                                        echo 'bi-clock text-red-600';
+                                }
+                                ?>"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">
+                                    <?php echo htmlspecialchars($activity['description']); ?>
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    <?php echo date('M j, Y g:i A', strtotime($activity['timestamp'])); ?>
+                                </p>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </div>
     </div>

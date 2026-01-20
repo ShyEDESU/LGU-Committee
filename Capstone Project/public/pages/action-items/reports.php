@@ -96,13 +96,14 @@ include '../../includes/header.php';
         <div class="space-y-4">
             <?php foreach ($stats['by_status'] as $status => $count):
                 $percentage = $stats['total'] > 0 ? round(($count / $stats['total']) * 100, 1) : 0;
-                $color = $status === 'Done' ? 'green' : ($status === 'In Progress' ? 'blue' : 'gray');
+                $statusLower = strtolower($status);
+                $color = ($statusLower === 'done') ? 'green' : 
+                         (($statusLower === 'in progress' || $statusLower === 'pending' || $statusLower === 'to do') ? 'blue' : 'gray');
                 ?>
                 <div>
                     <div class="flex justify-between mb-2">
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300"><?php echo $status; ?></span>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white"><?php echo $count; ?>
-                            (<?php echo $percentage; ?>%)</span>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300"><?php echo htmlspecialchars($status); ?></span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white"><?php echo $count; ?> (<?php echo $percentage; ?>%)</span>
                     </div>
                     <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                         <div class="bg-<?php echo $color; ?>-600 h-3 rounded-full transition-all"
@@ -121,14 +122,14 @@ include '../../includes/header.php';
         <div class="space-y-4">
             <?php foreach ($stats['by_priority'] as $priority => $count):
                 $percentage = $stats['total'] > 0 ? round(($count / $stats['total']) * 100, 1) : 0;
-                $color = $priority === 'High' ? 'red' : ($priority === 'Medium' ? 'yellow' : 'green');
+                $priorityLower = strtolower($priority);
+                $color = ($priorityLower === 'high' || $priorityLower === 'urgent') ? 'red' : 
+                         (($priorityLower === 'medium' || $priorityLower === 'normal') ? 'yellow' : 'green');
                 ?>
                 <div>
                     <div class="flex justify-between mb-2">
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300"><?php echo $priority; ?>
-                            Priority</span>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white"><?php echo $count; ?>
-                            (<?php echo $percentage; ?>%)</span>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300"><?php echo htmlspecialchars($priority); ?> Priority</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white"><?php echo $count; ?> (<?php echo $percentage; ?>%)</span>
                     </div>
                     <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                         <div class="bg-<?php echo $color; ?>-600 h-3 rounded-full transition-all"

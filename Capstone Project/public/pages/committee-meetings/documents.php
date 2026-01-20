@@ -1,6 +1,11 @@
 <?php
+// Suppress all errors to prevent output corruption
+error_reporting(0);
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+
 require_once __DIR__ . '/../../../config/session_config.php';
-require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -12,23 +17,36 @@ $meetingId = $_GET['id'] ?? 0;
 $meeting = getMeetingById($meetingId);
 
 if (!$meeting) {
-    header('Location: index.php');
-    exit();
+    // Don't redirect - let page load with error message
+    $meeting = [
+        'id' => $meetingId,
+        'title' => 'Meeting Not Found',
+        'committee_id' => 0,
+        'committee_name' => 'Unknown',
+        'date' => date('Y-m-d'),
+        'time_start' => '00:00',
+        'status' => 'Unknown'
+    ];
+    // header('Location: index.php');
+    // exit();
 }
 
-// Handle document upload (simulated)
+// Handle document upload
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_document'])) {
     $data = [
         'name' => $_POST['name'],
         'category' => $_POST['category'],
-        'description' => $_POST['description'] ?? '',
-        'file_path' => '/uploads/meetings/' . $meetingId . '/' . $_POST['name'], // Simulated
-        'file_size' => rand(100, 5000), // Simulated KB
-        'file_type' => $_POST['file_type'] ?? 'application/pdf'
+        'description' => $_POST['description'] ?? ''
     ];
 
-    addMeetingDocument($meetingId, $data);
-    $_SESSION['success_message'] = 'Document added successfully';
+    $file = $_FILES['document_file'] ?? null;
+
+    if (addMeetingDocument($meetingId, $data, $file)) {
+        $_SESSION['success_message'] = 'Document added successfully';
+    } else {
+        $_SESSION['error_message'] = 'Failed to add document';
+    }
+
     header('Location: documents.php?id=' . $meetingId);
     exit();
 }
@@ -231,7 +249,7 @@ include '../../includes/header.php';
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
         <div class="mt-3">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Add Document</h3>
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="add_document" value="1">
 
                 <div class="mb-4">
@@ -259,31 +277,20 @@ include '../../includes/header.php';
 
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        File Type
-                    </label>
-                    <select name="file_type"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white">
-                        <option value="application/pdf">PDF</option>
-                        <option value="application/msword">Word Document</option>
-                        <option value="application/vnd.ms-excel">Excel</option>
-                        <option value="application/vnd.ms-powerpoint">PowerPoint</option>
-                    </select>
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Description
                     </label>
                     <textarea name="description" rows="3"
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white"
-                        placeholder="Brief description..."></textarea>
+                        placeholder="Brief description of the document..."></textarea>
                 </div>
 
-                <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-3 mb-4">
-                    <p class="text-xs text-blue-800 dark:text-blue-300">
-                        <i class="bi bi-info-circle mr-1"></i>
-                        Note: Actual file upload will be implemented with database integration
-                    </p>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Upload File *
+                    </label>
+                    <input type="file" name="document_file" required
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white">
+                    <p class="text-xs text-gray-500 mt-1">Accepted: PDF, DOCX, JPG, PNG</p>
                 </div>
 
                 <div class="flex justify-end gap-2">
@@ -292,13 +299,14 @@ include '../../includes/header.php';
                         Cancel
                     </button>
                     <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-                        <i class="bi bi-plus-circle mr-2"></i>Add Document
+                        <i class="bi bi-upload mr-2"></i>Upload Document
                     </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
 
 <script>
     function openAddDocumentModal() {

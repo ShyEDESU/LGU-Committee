@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../config/database.php';
+require_once __DIR__ . '/../../helpers/AuditHelper.php';
 
 header('Content-Type: application/json');
 
@@ -52,6 +53,7 @@ if ($action === 'remove') {
 
     if ($updateStmt->execute()) {
         $_SESSION['profile_picture'] = null;
+        logAuditAction($userId, 'REMOVE_PICTURE', 'user_profile', "Removed profile picture");
         echo json_encode(['success' => true, 'message' => 'Profile picture removed']);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to remove picture']);
@@ -163,6 +165,8 @@ if (move_uploaded_file($file['tmp_name'], $uploadPath)) {
     if ($updateStmt->execute()) {
         // Update session
         $_SESSION['profile_picture'] = $dbPath;
+
+        logAuditAction($userId, 'UPDATE_PICTURE', 'user_profile', "Updated profile picture");
 
         echo json_encode([
             'success' => true,

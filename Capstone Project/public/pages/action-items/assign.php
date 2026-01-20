@@ -25,34 +25,34 @@ include '../../includes/header.php';
 // Get all action items
 $actionItems = getAllActionItems();
 
-// Get all committees for member list
-$committees = getAllCommittees();
-$members = [];
-foreach ($committees as $committee) {
-    if (isset($committee['members'])) {
-        foreach ($committee['members'] as $member) {
-            $members[$member['name']] = $member['name'];
-        }
-    }
+require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
+$users = getAllUsers();
+
+// Map users for easy lookup
+$userMap = [];
+foreach ($users as $user) {
+    $userMap[$user['user_id']] = $user['first_name'] . ' ' . $user['last_name'];
 }
 
 // Group items by assignment status
 $unassignedItems = array_filter($actionItems, function ($item) {
-    return empty($item['assigned_to']) || $item['assigned_to'] === '';
+    return empty($item['assigned_to']) || (int) $item['assigned_to'] === 0;
 });
 
 $assignedItems = array_filter($actionItems, function ($item) {
-    return !empty($item['assigned_to']) && $item['assigned_to'] !== '';
+    return !empty($item['assigned_to']) && (int) $item['assigned_to'] !== 0;
 });
 
 // Group assigned items by person
 $itemsByAssignee = [];
 foreach ($assignedItems as $item) {
-    $assignee = $item['assigned_to'];
-    if (!isset($itemsByAssignee[$assignee])) {
-        $itemsByAssignee[$assignee] = [];
+    $assigneeId = (int) $item['assigned_to'];
+    $assigneeName = $userMap[$assigneeId] ?? 'Unknown User';
+
+    if (!isset($itemsByAssignee[$assigneeName])) {
+        $itemsByAssignee[$assigneeName] = [];
     }
-    $itemsByAssignee[$assignee][] = $item;
+    $itemsByAssignee[$assigneeName][] = $item;
 }
 ?>
 
@@ -288,16 +288,12 @@ foreach ($assignedItems as $item) {
                 <select name="assigned_to" required
                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white">
                     <option value="">Select a person...</option>
-                    <option value="Hon. Maria Santos">Hon. Maria Santos</option>
-                    <option value="Dr. Juan Cruz">Dr. Juan Cruz</option>
-                    <option value="Atty. Pedro Reyes">Atty. Pedro Reyes</option>
-                    <option value="Engr. Rosa Garcia">Engr. Rosa Garcia</option>
-                    <option value="Hon. Carlos Mendoza">Hon. Carlos Mendoza</option>
-                    <option value="Ms. Ana Lopez">Ms. Ana Lopez</option>
-                    <option value="Budget Officer">Budget Officer</option>
-                    <option value="City Treasurer">City Treasurer</option>
-                    <option value="Legal Officer">Legal Officer</option>
-                    <option value="IT Administrator">IT Administrator</option>
+                    <?php foreach ($users as $user): ?>
+                        <option value="<?php echo $user['user_id']; ?>">
+                            <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                            (<?php echo htmlspecialchars($user['role_name']); ?>)
+                        </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             <div class="flex justify-end space-x-3">

@@ -46,15 +46,17 @@ $displayPath = '';
 if ($profilePicture) {
     // Database stores: uploads/profiles/file.jpg
     // Current file: public/includes/header.php
-    // Full filesystem path: public/uploads/profiles/file.jpg
-    // From includes, go up one level to public, then to uploads
     $fullPath = __DIR__ . '/../' . $profilePicture;
     $profilePictureExists = file_exists($fullPath);
 
-    // Display path depends on current location
-    // From modules (pages/module-name/): ../../uploads/profiles/file.jpg
-    // From dashboard: uploads/profiles/file.jpg
-    $displayPath = $imagePathPrefix . $profilePicture;
+    if ($profilePictureExists) {
+        $displayPath = $imagePathPrefix . $profilePicture;
+    }
+}
+
+// Fallback to default avatar if no picture or file doesn't exist
+if (!$displayPath) {
+    $displayPath = $imagePathPrefix . 'assets/images/default-avatar.png';
 }
 
 // Get current page for active menu highlighting
@@ -238,8 +240,8 @@ $recentNotifications = NotificationHelper::getRecentNotifications($userId, 5);
                 <p class="text-sm font-semibold text-red-300/80 uppercase tracking-wider">Analytics</p>
             </div>
 
-            <a href="../committee-reports/index.php"
-                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo $currentDir === 'committee-reports' ? 'bg-red-700' : ''; ?>">
+            <a href="../reports-analytics/index.php"
+                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo $currentDir === 'reports-analytics' ? 'bg-red-700' : ''; ?>">
                 <i class="bi bi-graph-up mr-2.5 text-xl"></i>
                 <span class="text-base">Reports & Analytics</span>
             </a>
@@ -369,8 +371,8 @@ $recentNotifications = NotificationHelper::getRecentNotifications($userId, 5);
                         <p class="px-3 text-sm font-semibold text-red-300 uppercase tracking-wider">Analytics</p>
                     </div>
 
-                    <a href="../committee-reports/index.php"
-                        class="flex items-center px-3 py-2 rounded-lg text-white transition-all duration-200 group <?php echo $currentDir === 'committee-reports' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
+                    <a href="../reports-analytics/index.php"
+                        class="flex items-center px-3 py-2 rounded-lg text-white transition-all duration-200 group <?php echo $currentDir === 'reports-analytics' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
                         <i class="bi bi-graph-up text-lg"></i>
                         <span class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Reports
                             &
@@ -411,8 +413,10 @@ $recentNotifications = NotificationHelper::getRecentNotifications($userId, 5);
 
             <div class="p-4 border-t border-red-700 sidebar-user">
                 <div class="flex items-center space-x-3">
-                    <div class="bg-red-600 rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0">
-                        <i class="bi bi-person-fill text-white"></i>
+                    <div
+                        class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 border-2 border-red-400">
+                        <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
+                            class="w-full h-full object-cover">
                     </div>
                     <div class="flex-1 min-w-0 sidebar-text">
                         <p class="text-sm font-semibold truncate"><?php echo htmlspecialchars($userName); ?></p>
@@ -471,6 +475,16 @@ $recentNotifications = NotificationHelper::getRecentNotifications($userId, 5);
                                     <i
                                         class="bi bi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 transition-all group-focus-within:text-red-600 group-focus-within:scale-110"></i>
                                 </div>
+                            </div>
+
+                            <!-- Real-time Clock & Date -->
+                            <div
+                                class="hidden md:flex flex-col items-end mr-2 pr-4 border-r border-gray-200 dark:border-gray-700">
+                                <div
+                                    class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tighter real-time-date">
+                                    Loading date...</div>
+                                <div class="text-sm font-black text-gray-800 dark:text-white real-time-clock">00:00:00
+                                    AM</div>
                             </div>
 
                             <!-- Dark Mode Toggle -->
@@ -641,15 +655,9 @@ $recentNotifications = NotificationHelper::getRecentNotifications($userId, 5);
                                 <button id="profile-btn"
                                     class="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
                                     <div
-                                        class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gray-200">
-                                        <?php if ($profilePicture && $profilePictureExists): ?>
-                                            <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
-                                                class="w-full h-full object-cover"
-                                                onerror="this.src='<?php echo $imagePathPrefix; ?>assets/images/default-avatar.png'">
-                                        <?php else: ?>
-                                            <img src="<?php echo $imagePathPrefix; ?>assets/images/default-avatar.png"
-                                                alt="Default Avatar" class="w-full h-full object-cover">
-                                        <?php endif; ?>
+                                        class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center border-2 border-red-500 shadow-sm">
+                                        <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
+                                            class="w-full h-full object-cover">
                                     </div>
                                     <div class="hidden sm:block text-left">
                                         <p
@@ -668,15 +676,10 @@ $recentNotifications = NotificationHelper::getRecentNotifications($userId, 5);
                                     class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
                                     <div
                                         class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-3">
-                                        <div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-gray-200">
-                                            <?php if ($profilePicture && $profilePictureExists): ?>
-                                                <img src="<?php echo $imagePathPrefix . htmlspecialchars($profilePicture); ?>"
-                                                    alt="Profile" class="w-full h-full object-cover"
-                                                    onerror="this.src='<?php echo $imagePathPrefix; ?>assets/images/default-avatar.png'">
-                                            <?php else: ?>
-                                                <img src="<?php echo $imagePathPrefix; ?>assets/images/default-avatar.png"
-                                                    alt="Default Avatar" class="w-full h-full object-cover">
-                                            <?php endif; ?>
+                                        <div
+                                            class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-white shadow-sm">
+                                            <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
+                                                class="w-full h-full object-cover">
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <p class="text-sm font-medium text-gray-800 dark:text-white truncate">
@@ -713,6 +716,3 @@ $recentNotifications = NotificationHelper::getRecentNotifications($userId, 5);
             <!-- Main Content Area -->
             <main class="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-900 p-3 sm:p-4 lg:p-6" id="main-content">
                 <!-- Module content goes here -->
-
-                <!-- Unified Session Management -->
-                <script src="../../assets/js/session-manager.js"></script>

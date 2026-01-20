@@ -1,12 +1,13 @@
 -- ============================================================================
--- Legislative Services Committee Management System - Database Schema
+-- Legislative Services Committee Management System - Optimized Database Schema
 -- ============================================================================
--- Created: November 24, 2025
+-- Created: January 16, 2026
 -- Database: legislative_cms
--- Version: 1.0
+-- Version: 2.0 (Optimized)
 -- 
--- This schema includes all tables needed for the committee management system.
--- Import this file into your MySQL database using phpMyAdmin or mysql CLI.
+-- This is a clean, optimized schema ready for phpMyAdmin import.
+-- Unused columns and tables have been removed.
+-- New columns needed for the system have been added.
 -- ============================================================================
 
 -- Create database if not exists
@@ -14,7 +15,7 @@ CREATE DATABASE IF NOT EXISTS `legislative_cms`;
 USE `legislative_cms`;
 
 -- ============================================================================
--- 1. ROLES TABLE - Role definitions with permissions (created first)
+-- 1. ROLES TABLE - Role definitions with permissions
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS `roles` (
   `role_id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -26,22 +27,21 @@ CREATE TABLE IF NOT EXISTS `roles` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- 2. USERS TABLE - Core user management (Email-based authentication)
+-- 2. USERS TABLE - Core user management
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS `users` (
   `user_id` INT AUTO_INCREMENT PRIMARY KEY,
   `email` VARCHAR(100) NOT NULL UNIQUE,
-  `profile_picture` VARCHAR(255),
-  `phone` VARCHAR(20),
   `password_hash` VARCHAR(255) NOT NULL,
   `first_name` VARCHAR(100) NOT NULL,
   `last_name` VARCHAR(100) NOT NULL,
   `role_id` INT NOT NULL,
+  `profile_picture` VARCHAR(255),
+  `phone` VARCHAR(20),
   `department` VARCHAR(100),
   `position` VARCHAR(100),
   `bio` TEXT,
   `address` TEXT,
-  `employee_id` VARCHAR(50),
   `is_active` BOOLEAN DEFAULT FALSE,
   `email_verified` BOOLEAN DEFAULT FALSE,
   `verification_token` VARCHAR(255),
@@ -51,7 +51,10 @@ CREATE TABLE IF NOT EXISTS `users` (
   `last_login` DATETIME,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`role_id`) REFERENCES `roles`(`role_id`)
+  FOREIGN KEY (`role_id`) REFERENCES `roles`(`role_id`),
+  INDEX idx_users_role (role_id),
+  INDEX idx_users_active (is_active),
+  INDEX idx_users_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -65,7 +68,10 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
   `description` TEXT,
   `ip_address` VARCHAR(45),
   `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  INDEX idx_audit_user (user_id),
+  INDEX idx_audit_timestamp (timestamp),
+  INDEX idx_audit_module (module)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -74,17 +80,21 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
 CREATE TABLE IF NOT EXISTS `committees` (
   `committee_id` INT AUTO_INCREMENT PRIMARY KEY,
   `committee_name` VARCHAR(150) NOT NULL UNIQUE,
+  `committee_type` ENUM('Standing', 'Special', 'Ad Hoc') DEFAULT 'Standing',
   `description` TEXT,
-  `mandate` TEXT,
-  `functions` TEXT,
+  `jurisdiction` TEXT COMMENT 'Areas of responsibility',
   `chairperson_id` INT,
   `vice_chair_id` INT,
   `secretary_id` INT,
+  `is_active` BOOLEAN DEFAULT TRUE,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`chairperson_id`) REFERENCES `users`(`user_id`),
-  FOREIGN KEY (`vice_chair_id`) REFERENCES `users`(`user_id`),
-  FOREIGN KEY (`secretary_id`) REFERENCES `users`(`user_id`)
+  FOREIGN KEY (`chairperson_id`) REFERENCES `users`(`user_id`) ON DELETE SET NULL,
+  FOREIGN KEY (`vice_chair_id`) REFERENCES `users`(`user_id`) ON DELETE SET NULL,
+  FOREIGN KEY (`secretary_id`) REFERENCES `users`(`user_id`) ON DELETE SET NULL,
+  INDEX idx_committees_active (is_active),
+  INDEX idx_committees_type (committee_type),
+  INDEX idx_committees_chair (chairperson_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -100,7 +110,10 @@ CREATE TABLE IF NOT EXISTS `committee_members` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY `unique_committee_user` (`committee_id`, `user_id`),
   FOREIGN KEY (`committee_id`) REFERENCES `committees`(`committee_id`) ON DELETE CASCADE,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  INDEX idx_committee_members_committee (committee_id),
+  INDEX idx_committee_members_user (user_id),
+  INDEX idx_committee_members_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -110,16 +123,24 @@ CREATE TABLE IF NOT EXISTS `meetings` (
   `meeting_id` INT AUTO_INCREMENT PRIMARY KEY,
   `committee_id` INT NOT NULL,
   `meeting_title` VARCHAR(200) NOT NULL,
+  `description` TEXT,
   `meeting_date` DATETIME NOT NULL,
+  `meeting_end_time` DATETIME,
   `location` VARCHAR(200),
-  `agenda` TEXT,
-  `status` ENUM('scheduled', 'ongoing', 'completed', 'cancelled', 'postponed') DEFAULT 'scheduled',
+  `status` ENUM('Scheduled', 'Ongoing', 'Completed', 'Cancelled') DEFAULT 'Scheduled',
+  `agenda_status` ENUM('None', 'Draft', 'Under Review', 'Approved', 'Published') DEFAULT 'None',
+  `is_public` BOOLEAN DEFAULT TRUE,
   `notes` TEXT,
   `created_by` INT NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`committee_id`) REFERENCES `committees`(`committee_id`) ON DELETE CASCADE,
-  FOREIGN KEY (`created_by`) REFERENCES `users`(`user_id`)
+  FOREIGN KEY (`created_by`) REFERENCES `users`(`user_id`),
+  INDEX idx_meetings_committee (committee_id),
+  INDEX idx_meetings_status (status),
+  INDEX idx_meetings_date (meeting_date),
+  INDEX idx_meetings_public (is_public),
+  INDEX idx_meetings_agenda_status (agenda_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -134,7 +155,9 @@ CREATE TABLE IF NOT EXISTS `meeting_invitations` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY `unique_meeting_user` (`meeting_id`, `user_id`),
   FOREIGN KEY (`meeting_id`) REFERENCES `meetings`(`meeting_id`) ON DELETE CASCADE,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  INDEX idx_meeting_invitations_meeting (meeting_id),
+  INDEX idx_meeting_invitations_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -147,13 +170,13 @@ CREATE TABLE IF NOT EXISTS `meeting_documents` (
   `title` VARCHAR(200) NOT NULL,
   `content` LONGTEXT,
   `file_path` VARCHAR(255),
-  `file_size` INT,
-  `mime_type` VARCHAR(50),
   `uploaded_by` INT NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`meeting_id`) REFERENCES `meetings`(`meeting_id`) ON DELETE CASCADE,
-  FOREIGN KEY (`uploaded_by`) REFERENCES `users`(`user_id`)
+  FOREIGN KEY (`uploaded_by`) REFERENCES `users`(`user_id`),
+  INDEX idx_meeting_documents_meeting (meeting_id),
+  INDEX idx_meeting_documents_type (document_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -171,11 +194,37 @@ CREATE TABLE IF NOT EXISTS `attendance_records` (
   UNIQUE KEY `unique_attendance` (`meeting_id`, `user_id`),
   FOREIGN KEY (`meeting_id`) REFERENCES `meetings`(`meeting_id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
-  FOREIGN KEY (`recorded_by`) REFERENCES `users`(`user_id`)
+  FOREIGN KEY (`recorded_by`) REFERENCES `users`(`user_id`),
+  INDEX idx_attendance_meeting (meeting_id),
+  INDEX idx_attendance_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- 10. LEGISLATIVE DOCUMENTS TABLE - Ordinances, resolutions, reports
+-- 10. AGENDA ITEMS TABLE - Individual agenda items for meetings
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `agenda_items` (
+  `item_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `meeting_id` INT NOT NULL,
+  `item_order` INT NOT NULL COMMENT 'Order of item in agenda',
+  `title` VARCHAR(200) NOT NULL,
+  `description` TEXT,
+  `presenter` VARCHAR(100) COMMENT 'Person presenting this item',
+  `duration` INT COMMENT 'Duration in minutes',
+  `item_type` ENUM('Procedural', 'Presentation', 'Discussion', 'Voting', 'Report', 'Public Input', 'Other') NOT NULL,
+  `referral_id` INT COMMENT 'Related referral if applicable',
+  `notes` TEXT,
+  `status` ENUM('Pending', 'In Progress', 'Completed', 'Deferred') DEFAULT 'Pending',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`meeting_id`) REFERENCES `meetings`(`meeting_id`) ON DELETE CASCADE,
+  INDEX idx_agenda_meeting (meeting_id),
+  INDEX idx_agenda_order (meeting_id, item_order),
+  INDEX idx_agenda_type (item_type),
+  INDEX idx_agenda_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- 11. LEGISLATIVE DOCUMENTS TABLE - Ordinances, resolutions, reports
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS `legislative_documents` (
   `document_id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -184,29 +233,19 @@ CREATE TABLE IF NOT EXISTS `legislative_documents` (
   `title` VARCHAR(255) NOT NULL,
   `description` TEXT,
   `content` LONGTEXT,
-  `status` ENUM('draft', 'in_committee', 'under_review', 'approved', 'finalized', 'rejected') DEFAULT 'draft',
+  `status` ENUM('Draft', 'Under Review', 'Approved', 'Rejected') DEFAULT 'Draft',
   `assigned_committee_id` INT,
   `priority` ENUM('low', 'normal', 'high', 'urgent') DEFAULT 'normal',
+  `is_public` BOOLEAN DEFAULT TRUE,
   `created_by` INT NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`assigned_committee_id`) REFERENCES `committees`(`committee_id`),
-  FOREIGN KEY (`created_by`) REFERENCES `users`(`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================================================
--- 11. DOCUMENT VERSIONS TABLE - Version control
--- ============================================================================
-CREATE TABLE IF NOT EXISTS `document_versions` (
-  `version_id` INT AUTO_INCREMENT PRIMARY KEY,
-  `document_id` INT NOT NULL,
-  `version_number` INT NOT NULL,
-  `content` LONGTEXT,
-  `changes_made` TEXT,
-  `editor_id` INT NOT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`document_id`) REFERENCES `legislative_documents`(`document_id`) ON DELETE CASCADE,
-  FOREIGN KEY (`editor_id`) REFERENCES `users`(`user_id`)
+  FOREIGN KEY (`assigned_committee_id`) REFERENCES `committees`(`committee_id`) ON DELETE SET NULL,
+  FOREIGN KEY (`created_by`) REFERENCES `users`(`user_id`),
+  INDEX idx_legislative_documents_status (status),
+  INDEX idx_legislative_documents_committee (assigned_committee_id),
+  INDEX idx_legislative_documents_priority (priority),
+  INDEX idx_legislative_documents_type (document_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -216,64 +255,54 @@ CREATE TABLE IF NOT EXISTS `referrals` (
   `referral_id` INT AUTO_INCREMENT PRIMARY KEY,
   `document_id` INT NOT NULL,
   `referral_type` ENUM('incoming', 'outgoing') NOT NULL,
-  `from_committee_id` INT,
   `to_committee_id` INT,
+  `assigned_to_user_id` INT COMMENT 'User assigned to handle this referral',
   `assigned_date` DATETIME NOT NULL,
   `deadline_date` DATE,
-  `status` ENUM('pending', 'acknowledged', 'in_progress', 'completed', 'returned') DEFAULT 'pending',
+  `status` ENUM('Pending', 'Under Review', 'In Committee', 'Approved', 'Rejected', 'Deferred') DEFAULT 'Pending',
   `notes` TEXT,
   `created_by` INT NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`document_id`) REFERENCES `legislative_documents`(`document_id`),
-  FOREIGN KEY (`from_committee_id`) REFERENCES `committees`(`committee_id`),
-  FOREIGN KEY (`to_committee_id`) REFERENCES `committees`(`committee_id`),
-  FOREIGN KEY (`created_by`) REFERENCES `users`(`user_id`)
+  FOREIGN KEY (`document_id`) REFERENCES `legislative_documents`(`document_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`to_committee_id`) REFERENCES `committees`(`committee_id`) ON DELETE SET NULL,
+  FOREIGN KEY (`assigned_to_user_id`) REFERENCES `users`(`user_id`) ON DELETE SET NULL,
+  FOREIGN KEY (`created_by`) REFERENCES `users`(`user_id`),
+  INDEX idx_referrals_document (document_id),
+  INDEX idx_referrals_to_committee (to_committee_id),
+  INDEX idx_referrals_assigned_user (assigned_to_user_id),
+  INDEX idx_referrals_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- 13. ENDORSEMENTS TABLE
+-- 13. TASKS TABLE - Action item tracking
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS `endorsements` (
-  `endorsement_id` INT AUTO_INCREMENT PRIMARY KEY,
-  `document_id` INT NOT NULL,
-  `endorsement_type` ENUM('committee_to_committee', 'to_higher_level') NOT NULL,
-  `from_committee_id` INT NOT NULL,
-  `to_committee_id` INT,
-  `to_level` VARCHAR(100),
-  `endorsement_date` DATETIME NOT NULL,
-  `status` ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
-  `notes` TEXT,
-  `attachments` VARCHAR(255),
-  `endorsed_by` INT NOT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`document_id`) REFERENCES `legislative_documents`(`document_id`),
-  FOREIGN KEY (`from_committee_id`) REFERENCES `committees`(`committee_id`),
-  FOREIGN KEY (`to_committee_id`) REFERENCES `committees`(`committee_id`),
-  FOREIGN KEY (`endorsed_by`) REFERENCES `users`(`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================================================
--- 14. CALENDAR EVENTS TABLE - For calendar dashboard
--- ============================================================================
-CREATE TABLE IF NOT EXISTS `calendar_events` (
-  `event_id` INT AUTO_INCREMENT PRIMARY KEY,
-  `event_title` VARCHAR(200) NOT NULL,
-  `event_type` ENUM('meeting', 'deadline', 'hearing', 'reminder') NOT NULL,
-  `event_date` DATETIME NOT NULL,
+CREATE TABLE IF NOT EXISTS `tasks` (
+  `task_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `committee_id` INT COMMENT 'Related committee',
+  `title` VARCHAR(200) NOT NULL,
   `description` TEXT,
-  `related_committee_id` INT,
-  `related_document_id` INT,
-  `visibility` ENUM('internal', 'public') DEFAULT 'internal',
+  `assigned_to` INT,
+  `due_date` DATE NOT NULL,
+  `priority` ENUM('Low', 'Medium', 'High', 'Urgent') DEFAULT 'Medium',
+  `status` ENUM('Pending', 'To Do', 'In Progress', 'Done', 'On Hold', 'Cancelled') DEFAULT 'Pending',
+  `progress` INT DEFAULT 0 COMMENT 'Progress percentage (0-100)',
   `created_by` INT NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`related_committee_id`) REFERENCES `committees`(`committee_id`),
-  FOREIGN KEY (`related_document_id`) REFERENCES `legislative_documents`(`document_id`),
-  FOREIGN KEY (`created_by`) REFERENCES `users`(`user_id`)
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `completed_at` DATETIME,
+  FOREIGN KEY (`committee_id`) REFERENCES `committees`(`committee_id`) ON DELETE SET NULL,
+  FOREIGN KEY (`assigned_to`) REFERENCES `users`(`user_id`),
+  FOREIGN KEY (`created_by`) REFERENCES `users`(`user_id`),
+  INDEX idx_tasks_assigned_to (assigned_to),
+  INDEX idx_tasks_status (status),
+  INDEX idx_tasks_due_date (due_date),
+  INDEX idx_tasks_committee (committee_id),
+  CONSTRAINT chk_tasks_progress CHECK (progress >= 0 AND progress <= 100)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- 15. NOTIFICATIONS TABLE
+-- 14. NOTIFICATIONS TABLE
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS `notifications` (
   `notification_id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -285,34 +314,14 @@ CREATE TABLE IF NOT EXISTS `notifications` (
   `action_link` VARCHAR(255),
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `expires_at` DATETIME,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  INDEX idx_notifications_user (user_id),
+  INDEX idx_notifications_read (is_read),
+  INDEX idx_notifications_user_read (user_id, is_read)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- 16. TASKS TABLE - Action item tracking
--- ============================================================================
-CREATE TABLE IF NOT EXISTS `tasks` (
-  `task_id` INT AUTO_INCREMENT PRIMARY KEY,
-  `task_title` VARCHAR(200) NOT NULL,
-  `description` TEXT,
-  `task_type` ENUM('assigned_task', 'action_item', 'follow_up') NOT NULL,
-  `assigned_to_id` INT NOT NULL,
-  `related_meeting_id` INT,
-  `related_document_id` INT,
-  `priority` ENUM('low', 'normal', 'high', 'urgent') DEFAULT 'normal',
-  `status` ENUM('pending', 'in_progress', 'completed', 'on_hold', 'cancelled') DEFAULT 'pending',
-  `due_date` DATE NOT NULL,
-  `created_by` INT NOT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`assigned_to_id`) REFERENCES `users`(`user_id`),
-  FOREIGN KEY (`related_meeting_id`) REFERENCES `meetings`(`meeting_id`),
-  FOREIGN KEY (`related_document_id`) REFERENCES `legislative_documents`(`document_id`),
-  FOREIGN KEY (`created_by`) REFERENCES `users`(`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================================================
--- 17. SYSTEM SETTINGS TABLE - Configuration and customization
+-- 15. SYSTEM SETTINGS TABLE - Configuration and customization
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS `system_settings` (
   `setting_id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -326,11 +335,12 @@ CREATE TABLE IF NOT EXISTS `system_settings` (
   `auto_backup_enabled` BOOLEAN DEFAULT TRUE,
   `backup_frequency` ENUM('daily', 'weekly', 'monthly') DEFAULT 'daily',
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `updated_by` INT
+  `updated_by` INT,
+  FOREIGN KEY (`updated_by`) REFERENCES `users`(`user_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- 18. BACKUP LOGS TABLE
+-- 16. BACKUP LOGS TABLE
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS `backup_logs` (
   `backup_id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -344,7 +354,7 @@ CREATE TABLE IF NOT EXISTS `backup_logs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- 19. ERROR LOGS TABLE - System error logging
+-- 17. ERROR LOGS TABLE - System error logging
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS `error_logs` (
   `error_id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -356,23 +366,9 @@ CREATE TABLE IF NOT EXISTS `error_logs` (
   `ip_address` VARCHAR(45),
   `severity` ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================================================
--- 20. PUBLIC DOCUMENTS VIEW TABLE - For transparency portal
--- ============================================================================
-CREATE TABLE IF NOT EXISTS `public_documents` (
-  `public_doc_id` INT AUTO_INCREMENT PRIMARY KEY,
-  `document_id` INT NOT NULL,
-  `is_published` BOOLEAN DEFAULT FALSE,
-  `published_date` DATETIME,
-  `published_by` INT,
-  `visibility_expiry` DATETIME,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY `unique_published_doc` (`document_id`),
-  FOREIGN KEY (`document_id`) REFERENCES `legislative_documents`(`document_id`) ON DELETE CASCADE,
-  FOREIGN KEY (`published_by`) REFERENCES `users`(`user_id`)
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE SET NULL,
+  INDEX idx_error_logs_severity (severity),
+  INDEX idx_error_logs_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -389,46 +385,119 @@ INSERT INTO `roles` (`role_name`, `description`, `permissions`) VALUES
 -- ============================================================================
 -- INSERT DEFAULT ADMIN USERS
 -- ============================================================================
--- Super Admin (Central Authority - for multi-LGU integration)
--- Password: admin123
+-- Super Admin (Password: admin123)
 INSERT INTO `users` (`email`, `password_hash`, `first_name`, `last_name`, `role_id`, `department`, `position`, `is_active`, `email_verified`) VALUES
 ('super.admin@legislative-services.gov', '$2y$10$ywS1emacPWJslIQxDSbwnOCY/5KXEqmbcqqqTA5VJABnsxturerL.', 'Super', 'Administrator', 1, 'National', 'Central Authority', TRUE, TRUE);
 
--- LGU Admin (Local Government Unit Admin)
--- Password: admin123
+-- LGU Admin (Password: admin123)
 INSERT INTO `users` (`email`, `password_hash`, `first_name`, `last_name`, `role_id`, `department`, `position`, `is_active`, `email_verified`) VALUES
 ('LGU@admin.com', '$2y$10$ywS1emacPWJslIQxDSbwnOCY/5KXEqmbcqqqTA5VJABnsxturerL.', 'LGU', 'Administrator', 2, 'Administrative Services', 'LGU Administrator', TRUE, TRUE);
 
 -- ============================================================================
--- CREATE INDEXES FOR PERFORMANCE
+-- 18. AGENDA TEMPLATES & ITEMS
 -- ============================================================================
-CREATE INDEX idx_users_role_id ON users(role_id);
-CREATE INDEX idx_users_is_active ON users(is_active);
-CREATE INDEX idx_committees_chairperson ON committees(chairperson_id);
-CREATE INDEX idx_committee_members_committee ON committee_members(committee_id);
-CREATE INDEX idx_committee_members_user ON committee_members(user_id);
-CREATE INDEX idx_meetings_committee ON meetings(committee_id);
-CREATE INDEX idx_meetings_status ON meetings(status);
-CREATE INDEX idx_meeting_invitations_meeting ON meeting_invitations(meeting_id);
-CREATE INDEX idx_meeting_invitations_user ON meeting_invitations(user_id);
-CREATE INDEX idx_meeting_documents_meeting ON meeting_documents(meeting_id);
-CREATE INDEX idx_legislative_documents_status ON legislative_documents(status);
-CREATE INDEX idx_legislative_documents_committee ON legislative_documents(assigned_committee_id);
-CREATE INDEX idx_referrals_document ON referrals(document_id);
-CREATE INDEX idx_tasks_assigned_to ON tasks(assigned_to_id);
-CREATE INDEX idx_tasks_status ON tasks(status);
-CREATE INDEX idx_tasks_due_date ON tasks(due_date);
-CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
-CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp);
-CREATE INDEX idx_notifications_user ON notifications(user_id);
-CREATE INDEX idx_notifications_read ON notifications(is_read);
+CREATE TABLE IF NOT EXISTS `agenda_templates` (
+  `template_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(100) NOT NULL,
+  `description` TEXT,
+  `committee_type` VARCHAR(50) DEFAULT 'All',
+  `created_by` INT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`created_by`) REFERENCES `users`(`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `agenda_template_items` (
+  `item_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `template_id` INT,
+  `title` VARCHAR(200) NOT NULL,
+  `description` TEXT,
+  `duration` INT DEFAULT 15,
+  `item_type` VARCHAR(50) DEFAULT 'Discussion',
+  `item_order` INT,
+  FOREIGN KEY (`template_id`) REFERENCES `agenda_templates`(`template_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `reports` (
+  `report_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `committee_id` INT NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `report_type` VARCHAR(100) DEFAULT 'Committee Report',
+  `content` LONGTEXT,
+  `created_by` INT NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`committee_id`) REFERENCES `committees`(`committee_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`created_by`) REFERENCES `users`(`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS `votes` (
+  `vote_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `agenda_item_id` INT,
+  `motion_text` TEXT NOT NULL,
+  `voting_method` ENUM('Voice Vote', 'Roll Call', 'Secret Ballot', 'Show of Hands') DEFAULT 'Voice Vote',
+  `result` ENUM('Pending', 'Passed', 'Failed', 'Tied') DEFAULT 'Pending',
+  `created_date` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`agenda_item_id`) REFERENCES `agenda_items`(`item_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `member_votes` (
+  `member_vote_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `vote_id` INT,
+  `user_id` INT,
+  `vote` ENUM('Yes', 'No', 'Abstain', 'Absent'),
+  FOREIGN KEY (`vote_id`) REFERENCES `votes`(`vote_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `deliberations` (
+  `deliberation_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `agenda_item_id` INT,
+  `speaker` VARCHAR(100),
+  `notes` TEXT,
+  `duration` INT DEFAULT 0,
+  `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `recorded_by` INT,
+  FOREIGN KEY (`agenda_item_id`) REFERENCES `agenda_items`(`item_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- 20. AGENDA COMMENTS
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `agenda_comments` (
+  `comment_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `meeting_id` INT,
+  `item_id` INT,
+  `comment` TEXT NOT NULL,
+  `author_id` INT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`meeting_id`) REFERENCES `meetings`(`meeting_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`item_id`) REFERENCES `agenda_items`(`item_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`author_id`) REFERENCES `users`(`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- 21. AGENDA DISTRIBUTION
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `agenda_distribution` (
+  `distribution_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `meeting_id` INT,
+  `method` VARCHAR(50),
+  `distributed_by` INT,
+  `distributed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`meeting_id`) REFERENCES `meetings`(`meeting_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`distributed_by`) REFERENCES `users`(`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `agenda_distribution_recipients` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `distribution_id` INT,
+  `member_id` INT,
+  FOREIGN KEY (`distribution_id`) REFERENCES `agenda_distribution`(`distribution_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- DATABASE SETUP COMPLETE
 -- ============================================================================
--- Next Steps:
--- 1. Update database credentials in config/database.php
--- 2. Run this schema using phpMyAdmin or MySQL CLI
--- 3. Change default admin password in production
--- 4. Configure email and notification settings
+-- Schema Version: 2.1 (Agenda Integrated)
+-- Total Tables: 25
 -- ============================================================================

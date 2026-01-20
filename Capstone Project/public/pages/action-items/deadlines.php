@@ -118,13 +118,24 @@ include '../../includes/header.php';
 
 <!-- Items List -->
 <?php
-$displayItems = match ($filter) {
-    'overdue' => $overdueItems,
-    '7days' => $upcoming7,
-    '14days' => $upcoming14,
-    '30days' => $upcoming30,
-    default => $allItems
-};
+$displayItems = $allItems;
+switch ($filter) {
+    case 'overdue':
+        $displayItems = $overdueItems;
+        break;
+    case '7days':
+        $displayItems = $upcoming7;
+        break;
+    case '14days':
+        $displayItems = $upcoming14;
+        break;
+    case '30days':
+        $displayItems = $upcoming30;
+        break;
+    default:
+        $displayItems = $allItems;
+        break;
+}
 
 // Sort by due date
 usort($displayItems, function ($a, $b) {
@@ -189,7 +200,7 @@ usort($displayItems, function ($a, $b) {
                             </div>
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                            <?php echo htmlspecialchars($item['assigned_to']); ?>
+                            <?php echo htmlspecialchars($item['assigned_to_name'] ?? 'Unassigned'); ?>
                         </td>
                         <td class="px-6 py-4 text-sm">
                             <?php if (!empty($item['due_date'])): ?>

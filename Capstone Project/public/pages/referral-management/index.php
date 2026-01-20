@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
-require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../app/helpers/ReferralHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -9,10 +9,21 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userName = $_SESSION['user_name'] ?? 'User';
+
+// Handle delete
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_referral'])) {
+    $referralId = $_POST['referral_id'];
+    if (deleteReferral($referralId)) {
+        $_SESSION['success_message'] = 'Referral deleted successfully';
+        header('Location: index.php?deleted=1');
+        exit();
+    }
+}
+
 $pageTitle = 'Referral Management';
 include '../../includes/header.php';
 
-// Get all referrals
+// Get all referrals from database
 $allReferrals = getAllReferrals();
 
 // Apply filters
@@ -63,6 +74,14 @@ $completedCount = count(getReferralsByStatus('Approved')) + count(getReferralsBy
 
 // Get all committees for filter dropdown
 $committees = getAllCommittees();
+
+// Pagination logic
+$itemsPerPage = 10;
+$totalReferralsCount = count($filteredReferrals);
+$totalPages = ceil($totalReferralsCount / $itemsPerPage);
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($page - 1) * $itemsPerPage;
+$paginatedReferrals = array_slice($filteredReferrals, $offset, $itemsPerPage);
 ?>
 
 <div class="mb-6">
@@ -202,7 +221,7 @@ $committees = getAllCommittees();
                     </td>
                 </tr>
             <?php else: ?>
-                <?php foreach ($filteredReferrals as $referral): ?>
+                <?php foreach ($paginatedReferrals as $referral): ?>
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td class="px-6 py-4 font-semibold text-gray-900 dark:text-white">
                             <?php echo htmlspecialchars($referral['title']); ?>
@@ -237,13 +256,24 @@ $committees = getAllCommittees();
                         <td class="px-6 py-4">
                             <div class="flex space-x-2">
                                 <a href="view.php?id=<?php echo $referral['id']; ?>"
-                                    class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm">
-                                    View
+                                    class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm"
+                                    title="View">
+                                    <i class="bi bi-eye"></i>
                                 </a>
                                 <a href="edit.php?id=<?php echo $referral['id']; ?>"
-                                    class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm">
-                                    Edit
+                                    class="px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
+                                    title="Edit">
+                                    <i class="bi bi-pencil"></i>
                                 </a>
+                                <form method="POST" class="inline"
+                                    onsubmit="return confirm('Are you sure you want to delete this referral? This action cannot be undone.');">
+                                    <input type="hidden" name="referral_id" value="<?php echo $referral['id']; ?>">
+                                    <button type="submit" name="delete_referral" value="1"
+                                        class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
+                                        title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>
@@ -251,6 +281,34 @@ $committees = getAllCommittees();
             <?php endif; ?>
         </tbody>
     </table>
+
+    <!-- Pagination Controls -->
+    <?php if ($totalPages > 1): ?>
+        <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-700 dark:text-gray-300">
+                    Showing <span class="font-medium"><?php echo $offset + 1; ?></span> to
+                    <span class="font-medium"><?php echo min($offset + $itemsPerPage, $totalReferralsCount); ?></span> of
+                    <span class="font-medium"><?php echo $totalReferralsCount; ?></span> referrals
+                </div>
+                <div class="flex gap-2">
+                    <?php if ($page > 1): ?>
+                        <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>"
+                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                            Previous
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if ($page < $totalPages): ?>
+                        <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>"
+                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                            Next
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 </div>
 
 <?php include '../../includes/footer.php'; ?>

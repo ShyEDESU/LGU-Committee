@@ -58,10 +58,87 @@ if ($profilePicture) {
     // Dashboard is in public/, so path is direct
     $fullPath = __DIR__ . '/' . $profilePicture;
     $profilePictureExists = file_exists($fullPath);
-    $displayPath = $profilePicture; // No prefix needed for dashboard
+    $displayPath = $profilePicture;
 }
-if ($profilePicture) {
-    $_SESSION['profile_picture'] = $profilePicture;
+
+// Fallback to default avatar if no picture or file doesn't exist
+if (!$profilePicture || !$profilePictureExists) {
+    $displayPath = 'assets/images/default-avatar.png';
+}
+
+$_SESSION['profile_picture'] = $profilePicture;
+
+// Advanced Features: Fetch dynamic data
+require_once __DIR__ . '/../app/helpers/MeetingHelper.php';
+
+// Fetch upcoming meetings (next 30 days)
+$upcomingMeetings = getAllMeetings([
+    'status' => 'Scheduled',
+    'limit' => 5
+]);
+
+// Fetch all meetings for the calendar
+$calendarMeetings = getAllMeetings();
+
+// Fetch counts for stats cards
+$stats = [
+    'committees' => $conn->query("SELECT COUNT(*) FROM committees WHERE is_active = 1")->fetch_row()[0],
+    'meetings' => $conn->query("SELECT COUNT(*) FROM meetings WHERE status = 'Scheduled'")->fetch_row()[0],
+    'documents' => $conn->query("SELECT COUNT(*) FROM legislative_documents")->fetch_row()[0],
+    'tasks' => $conn->query("SELECT COUNT(*) FROM tasks WHERE status != 'Done'")->fetch_row()[0],
+    'referrals' => $conn->query("SELECT COUNT(*) FROM referrals WHERE status != 'Approved' AND status != 'Rejected'")->fetch_row()[0]
+];
+
+// Fetch data for the doughnut chart (Document Distribution)
+$docDistribution = [
+    'Ordinances' => $conn->query("SELECT COUNT(*) FROM legislative_documents WHERE document_type = 'ordinance'")->fetch_row()[0],
+    'Resolutions' => $conn->query("SELECT COUNT(*) FROM legislative_documents WHERE document_type = 'resolution'")->fetch_row()[0],
+    'Reports' => $conn->query("SELECT COUNT(*) FROM legislative_documents WHERE document_type = 'committee_report'")->fetch_row()[0],
+    'Agendas' => $conn->query("SELECT COUNT(*) FROM meetings WHERE agenda_status != 'None'")->fetch_row()[0]
+];
+
+// Fetch recent referrals
+$recentReferralsQuery = "SELECT r.*, ld.title, ld.document_type as type FROM referrals r JOIN legislative_documents ld ON r.document_id = ld.document_id ORDER BY r.created_at DESC LIMIT 5";
+$recentReferralsResult = $conn->query($recentReferralsQuery);
+$recentReferrals = [];
+if ($recentReferralsResult) {
+    while ($row = $recentReferralsResult->fetch_assoc()) {
+        $recentReferrals[] = $row;
+    }
+}
+
+// Fetch user tasks
+$userTasksQuery = "SELECT t.*, c.committee_name FROM tasks t LEFT JOIN committees c ON t.committee_id = c.committee_id WHERE t.assigned_to = ? AND t.status != 'Done' ORDER BY t.due_date ASC LIMIT 5";
+$stmt = $conn->prepare($userTasksQuery);
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$userTasksResult = $stmt->get_result();
+$myTasks = [];
+if ($userTasksResult) {
+    while ($row = $userTasksResult->fetch_assoc()) {
+        $myTasks[] = $row;
+    }
+}
+$stmt->close();
+
+// Fetch Recent Activity from audit logs
+// If not Administrator, show only own activity
+$isPrivileged = in_array($userRole, ['Administrator', 'Super Administrator']);
+$recentActivityQuery = "SELECT al.*, u.first_name, u.last_name 
+                        FROM audit_logs al 
+                        LEFT JOIN users u ON al.user_id = u.user_id";
+
+if (!$isPrivileged) {
+    $recentActivityQuery .= " WHERE al.user_id = " . intval($userId);
+}
+
+$recentActivityQuery .= " ORDER BY al.timestamp DESC LIMIT 6";
+$recentActivityResult = $conn->query($recentActivityQuery);
+$recentActivities = [];
+if ($recentActivityResult) {
+    while ($row = $recentActivityResult->fetch_assoc()) {
+        $recentActivities[] = $row;
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -87,6 +164,7 @@ if ($profilePicture) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="assets/css/system-styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 
     <!-- Tailwind Configuration - CRITICAL for dark mode toggle -->
     <script>
@@ -235,8 +313,8 @@ if ($profilePicture) {
                 <p class="text-sm font-semibold text-red-300/80 uppercase tracking-wider">Analytics</p>
             </div>
 
-            <a href="pages/committee-reports/index.php"
-                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
+            <a href="pages/reports-analytics/index.php"
+                class="flex items-center px-3 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1">
                 <i class="bi bi-graph-up mr-2.5 text-xl"></i>
                 <span class="text-base">Reports & Analytics</span>
             </a>
@@ -281,8 +359,9 @@ if ($profilePicture) {
 
         <div class="p-3 mt-auto border-t border-red-700/40">
             <div class="flex items-center space-x-2.5 mb-2.5">
-                <div class="w-9 h-9 rounded-full bg-red-700 flex items-center justify-center">
-                    <i class="bi bi-person-fill text-white text-base"></i>
+                <div class="w-9 h-9 rounded-full overflow-hidden bg-red-700 flex items-center justify-center">
+                    <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
+                        class="w-full h-full object-cover">
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-white truncate"><?php echo htmlspecialchars($userName); ?></p>
@@ -359,7 +438,7 @@ if ($profilePicture) {
                         <p class="px-3 text-sm font-semibold text-red-300 uppercase tracking-wider">Analytics</p>
                     </div>
 
-                    <a href="pages/committee-reports/index.php"
+                    <a href="pages/reports-analytics/index.php"
                         class="flex items-center px-3 py-2 rounded-lg text-white hover:bg-red-700/50 transition-all duration-200 group">
                         <i class="bi bi-graph-up text-lg"></i>
                         <span class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Reports
@@ -401,8 +480,10 @@ if ($profilePicture) {
 
             <div class="p-4 border-t border-red-700 sidebar-user">
                 <div class="flex items-center space-x-3">
-                    <div class="bg-red-600 rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0">
-                        <i class="bi bi-person-fill text-white"></i>
+                    <div
+                        class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 border-2 border-red-400">
+                        <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
+                            class="w-full h-full object-cover">
                     </div>
                     <div class="flex-1 min-w-0 sidebar-text">
                         <p class="text-sm font-semibold truncate"><?php echo htmlspecialchars($userName); ?></p>
@@ -459,6 +540,16 @@ if ($profilePicture) {
                                     <i
                                         class="bi bi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 transition-all group-focus-within:text-red-600 group-focus-within:scale-110"></i>
                                 </div>
+                            </div>
+
+                            <!-- Real-time Clock & Date -->
+                            <div
+                                class="hidden md:flex flex-col items-end mr-2 pr-4 border-r border-gray-200 dark:border-gray-700">
+                                <div
+                                    class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tighter real-time-date text-right">
+                                    Loading date...</div>
+                                <div class="text-sm font-black text-gray-800 dark:text-white real-time-clock">00:00:00
+                                    AM</div>
                             </div>
 
                             <!-- Dark Mode Toggle -->
@@ -629,15 +720,9 @@ if ($profilePicture) {
                                 <button id="profile-btn"
                                     class="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
                                     <div
-                                        class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gray-200">
-                                        <?php if ($profilePicture && $profilePictureExists): ?>
-                                            <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
-                                                class="w-full h-full object-cover"
-                                                onerror="this.src='assets/images/default-avatar.png'">
-                                        <?php else: ?>
-                                            <img src="assets/images/default-avatar.png" alt="Default Avatar"
-                                                class="w-full h-full object-cover">
-                                        <?php endif; ?>
+                                        class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center border-2 border-red-500 shadow-sm">
+                                        <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
+                                            class="w-full h-full object-cover">
                                     </div>
                                     <div class="hidden sm:block text-left">
                                         <p
@@ -655,15 +740,10 @@ if ($profilePicture) {
                                     class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
                                     <div
                                         class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-3">
-                                        <div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-gray-200">
-                                            <?php if ($profilePicture && $profilePictureExists): ?>
-                                                <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
-                                                    class="w-full h-full object-cover"
-                                                    onerror="this.src='assets/images/default-avatar.png'">
-                                            <?php else: ?>
-                                                <img src="assets/images/default-avatar.png" alt="Default Avatar"
-                                                    class="w-full h-full object-cover">
-                                            <?php endif; ?>
+                                        <div
+                                            class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-white shadow-sm">
+                                            <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
+                                                class="w-full h-full object-cover">
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <p class="text-sm font-medium text-gray-800 dark:text-white truncate">
@@ -685,7 +765,7 @@ if ($profilePicture) {
                                         </a>
                                     </div>
                                     <div class="border-t border-gray-200 py-2">
-                                        <a href="javascript:void(0);" onclick="logout(); return false;"
+                                        <a href="javascript:void(0);" id="logout-btn" onclick="logout(); return false;"
                                             class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer">
                                             <i class="bi bi-box-arrow-right mr-2"></i>Logout
                                         </a>
@@ -735,7 +815,8 @@ if ($profilePicture) {
                                     Active Committees</p>
                                 <p
                                     class="text-3xl font-bold text-gray-900 dark:text-white transform transition-all duration-300 group-hover:scale-110">
-                                    12</p>
+                                    <?php echo $stats['committees']; ?>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -752,10 +833,11 @@ if ($profilePicture) {
                             <div class="ml-4">
                                 <p
                                     class="text-base font-medium text-gray-600 dark:text-gray-300 transition-colors duration-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                                    Meetings This Month</p>
+                                    Upcoming Meetings</p>
                                 <p
                                     class="text-3xl font-bold text-gray-900 dark:text-white transform transition-all duration-300 group-hover:scale-110">
-                                    8</p>
+                                    <?php echo $stats['meetings']; ?>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -772,10 +854,11 @@ if ($profilePicture) {
                             <div class="ml-4">
                                 <p
                                     class="text-base font-medium text-gray-600 dark:text-gray-300 transition-colors duration-200 group-hover:text-green-600 dark:group-hover:text-green-400">
-                                    Pending Referrals</p>
+                                    Documents</p>
                                 <p
                                     class="text-3xl font-bold text-gray-900 dark:text-white transform transition-all duration-300 group-hover:scale-110">
-                                    15</p>
+                                    <?php echo $stats['documents']; ?>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -786,16 +869,38 @@ if ($profilePicture) {
                             <div
                                 class="flex-shrink-0 transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
                                 <div class="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-3">
-                                    <i class="bi bi-people text-purple-600 dark:text-purple-400 text-3xl"></i>
+                                    <i class="bi bi-check2-square text-purple-600 dark:text-purple-400 text-3xl"></i>
                                 </div>
                             </div>
                             <div class="ml-4">
                                 <p
                                     class="text-base font-medium text-gray-600 dark:text-gray-300 transition-colors duration-200 group-hover:text-purple-600 dark:group-hover:text-purple-400">
-                                    Total Members</p>
+                                    Pending Tasks</p>
                                 <p
                                     class="text-3xl font-bold text-gray-900 dark:text-white transform transition-all duration-300 group-hover:scale-110">
-                                    245</p>
+                                    <?php echo $stats['tasks']; ?>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform hover:scale-105 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in-up animation-delay-500 group cursor-pointer">
+                        <div class="flex items-center">
+                            <div
+                                class="flex-shrink-0 transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                <div class="bg-yellow-100 dark:bg-yellow-900/30 rounded-lg p-3">
+                                    <i class="bi bi-arrow-left-right text-yellow-600 dark:text-yellow-400 text-3xl"></i>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p
+                                    class="text-base font-medium text-gray-600 dark:text-gray-300 transition-colors duration-200 group-hover:text-yellow-600 dark:group-hover:text-yellow-400">
+                                    Active Referrals</p>
+                                <p
+                                    class="text-3xl font-bold text-gray-900 dark:text-white transform transition-all duration-300 group-hover:scale-110">
+                                    <?php echo $stats['referrals']; ?>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -829,7 +934,7 @@ if ($profilePicture) {
                                 class="btn-outline w-full flex items-center justify-center transform hover:scale-105 transition-all duration-200">
                                 <i class="bi bi-bell mr-2"></i>Notifications
                             </a>
-                            <a href="pages/committee-reports/index.php"
+                            <a href="pages/reports-analytics/index.php"
                                 class="btn-outline w-full flex items-center justify-center transform hover:scale-105 transition-all duration-200">
                                 <i class="bi bi-bar-chart mr-2"></i>View Reports
                             </a>
@@ -841,75 +946,153 @@ if ($profilePicture) {
                     </div>
                 </div>
 
+                <!-- Meeting Calendar Card -->
+                <div
+                    class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6 animate-fade-in-up animation-delay-700">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+                            <i class="bi bi-calendar3 mr-2 text-red-600"></i>Legislative Calendar
+                        </h3>
+                        <div class="flex space-x-2">
+                            <span class="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                <span class="w-3 h-3 bg-red-600 rounded-full mr-1"></span> Meetings
+                            </span>
+                        </div>
+                    </div>
+                    <div id="calendar" class="min-h-[600px]"></div>
+                </div>
 
-
-                <!-- Recent Activity -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Recent Documents Table -->
+                <!-- Recent Activity & Notifications -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <!-- Recent Activity -->
                     <div
                         class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-700">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4">Recent Documents</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-base">
-                                <thead class="border-b border-gray-200">
-                                    <tr>
-                                        <th class="text-left py-2 text-gray-600 font-semibold">Document</th>
-                                        <th class="text-left py-2 text-gray-600 font-semibold">Type</th>
-                                        <th class="text-left py-2 text-gray-600 font-semibold">Status</th>
-                                        <th class="text-left py-2 text-gray-600 font-semibold">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
-                                        <td class="py-3 text-gray-900">Ordinance 2025-001</td>
-                                        <td class="py-3 text-gray-600">Ordinance</td>
-                                        <td class="py-3">
-                                            <span
-                                                class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold">Approved</span>
-                                        </td>
-                                        <td class="py-3 text-gray-600">Dec 1, 2025</td>
-                                    </tr>
-                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
-                                        <td class="py-3 text-gray-900">Resolution 2025-045</td>
-                                        <td class="py-3 text-gray-600">Resolution</td>
-                                        <td class="py-3">
-                                            <span
-                                                class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold">Pending</span>
-                                        </td>
-                                        <td class="py-3 text-gray-600">Nov 28, 2025</td>
-                                    </tr>
-                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
-                                        <td class="py-3 text-gray-900">Committee Report Nov 2025</td>
-                                        <td class="py-3 text-gray-600">Report</td>
-                                        <td class="py-3">
-                                            <span
-                                                class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">Review</span>
-                                        </td>
-                                        <td class="py-3 text-gray-600">Nov 25, 2025</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Recent Activity</h3>
+                            <a href="pages/audit-logs/index.php" class="text-xs text-red-600 hover:underline">View
+                                All</a>
+                        </div>
+                        <div class="space-y-4">
+                            <?php if (empty($recentActivities)): ?>
+                                <p class="text-sm text-gray-500 italic text-center py-4">No recent activity.</p>
+                            <?php else: ?>
+                                <?php foreach ($recentActivities as $activity): ?>
+                                    <div
+                                        class="flex items-start space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/30 rounded transition">
+                                        <div class="flex-shrink-0 mt-1">
+                                            <div
+                                                class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                                <i class="bi <?php
+                                                switch ($activity['action']) {
+                                                    case 'CREATE':
+                                                        echo 'bi-plus-circle text-green-600';
+                                                        break;
+                                                    case 'UPDATE':
+                                                    case 'UPDATE_PROFILE':
+                                                        echo 'bi-pencil text-blue-600';
+                                                        break;
+                                                    case 'DELETE':
+                                                    case 'REMOVE_PICTURE':
+                                                        echo 'bi-trash text-red-600';
+                                                        break;
+                                                    case 'CHANGE_PASSWORD':
+                                                        echo 'bi-shield-lock text-yellow-600';
+                                                        break;
+                                                    case 'UPDATE_PICTURE':
+                                                        echo 'bi-image text-purple-600';
+                                                        break;
+                                                    case 'LOGIN':
+                                                    case 'OAUTH_LOGIN':
+                                                        echo 'bi-box-arrow-in-right text-indigo-600';
+                                                        break;
+                                                    case 'LOGOUT':
+                                                        echo 'bi-box-arrow-right text-orange-600';
+                                                        break;
+                                                    default:
+                                                        echo 'bi-info-circle text-gray-600';
+                                                }
+                                                ?> text-xs"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                                                <?php echo htmlspecialchars($activity['first_name'] . ' ' . $activity['last_name']); ?>
+                                            </p>
+                                            <p class="text-[10px] text-gray-600 dark:text-gray-400 line-clamp-2">
+                                                <?php echo htmlspecialchars($activity['description']); ?>
+                                            </p>
+                                            <p class="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
+                                                <?php echo date('M j, g:i A', strtotime($activity['timestamp'])); ?>
+                                            </p>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
 
+                    <!-- My Tasks -->
                     <div
                         class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-800">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4">Upcoming Meetings</h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">My Pending Tasks</h3>
+                            <a href="pages/action-items/index.php" class="text-xs text-red-600 hover:underline">View
+                                All</a>
+                        </div>
                         <div class="space-y-3">
-                            <div class="p-3 bg-gray-50 rounded border-l-4 border-red-600 hover:shadow-md transition">
-                                <p class="font-semibold text-sm text-gray-900">Finance Committee</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Dec 5, 2025 at 2:00 PM
+                            <?php if (empty($myTasks)): ?>
+                                <p class="text-sm text-gray-500 italic text-center py-4">No pending tasks assigned to you.
                                 </p>
-                            </div>
-                            <div class="p-3 bg-gray-50 rounded border-l-4 border-green-500 hover:shadow-md transition">
-                                <p class="font-semibold text-sm text-gray-900">Planning Committee</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Dec 6, 2025 at 10:00 AM
-                                </p>
-                            </div>
-                            <div class="p-3 bg-gray-50 rounded border-l-4 border-blue-500 hover:shadow-md transition">
-                                <p class="font-semibold text-sm text-gray-900">General Assembly</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Dec 8, 2025 at 3:30 PM</p>
-                            </div>
+                            <?php else: ?>
+                                <?php foreach ($myTasks as $task): ?>
+                                    <div
+                                        class="p-3 bg-gray-50 dark:bg-gray-700/30 rounded border-l-4 border-purple-500 hover:shadow-md transition">
+                                        <div class="flex justify-between items-start">
+                                            <p class="font-semibold text-sm text-gray-900 dark:text-white truncate flex-1">
+                                                <?php echo htmlspecialchars($task['title']); ?>
+                                            </p>
+                                            <span class="text-[10px] px-1.5 py-0.5 rounded <?php
+                                            $p = strtolower($task['priority'] ?? 'normal');
+                                            echo ($p === 'high' || $p === 'urgent') ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
+                                            ?> ml-2">
+                                                <?php echo ucfirst($task['priority'] ?? 'Normal'); ?>
+                                            </span>
+                                        </div>
+                                        <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                                            Due: <?php echo date('M j, Y', strtotime($task['due_date'])); ?> •
+                                            <?php echo htmlspecialchars($task['committee_name'] ?? 'General'); ?>
+                                        </p>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Meetings (Compact) -->
+                    <div
+                        class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-900">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Upcoming Meetings</h3>
+                            <a href="pages/committee-meetings/index.php"
+                                class="text-xs text-red-600 hover:underline">View All</a>
+                        </div>
+                        <div class="space-y-3">
+                            <?php if (empty($upcomingMeetings)): ?>
+                                <p class="text-sm text-gray-500 italic text-center py-4">No upcoming meetings.</p>
+                            <?php else: ?>
+                                <?php foreach ($upcomingMeetings as $m): ?>
+                                    <div
+                                        class="p-3 bg-gray-50 dark:bg-gray-700/30 rounded border-l-4 border-red-600 hover:shadow-md transition">
+                                        <p class="font-semibold text-sm text-gray-900 dark:text-white truncate">
+                                            <?php echo htmlspecialchars($m['committee_name']); ?>
+                                        </p>
+                                        <p class="text-[10px] text-gray-500 dark:text-gray-400">
+                                            <?php echo date('M j, Y', strtotime($m['date'])); ?> at
+                                            <?php echo date('g:i A', strtotime($m['date'] . ' ' . $m['time_start'])); ?>
+                                        </p>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -917,8 +1100,6 @@ if ($profilePicture) {
         </main>
     </div>
     </div>
-
-    <script src="assets/js/script-updated.js"></script>
 
     <script>
         // Initialize Charts
@@ -930,7 +1111,12 @@ if ($profilePicture) {
                     data: {
                         labels: ['Ordinances', 'Resolutions', 'Reports', 'Agendas'],
                         datasets: [{
-                            data: [30, 25, 20, 25],
+                            data: [
+                                <?php echo $docDistribution['Ordinances']; ?>,
+                                <?php echo $docDistribution['Resolutions']; ?>,
+                                <?php echo $docDistribution['Reports']; ?>,
+                                <?php echo $docDistribution['Agendas']; ?>
+                            ],
                             backgroundColor: ['#dc2626', '#3b82f6', '#10b981', '#f59e0b'],
                             borderColor: '#fff',
                             borderWidth: 2
@@ -996,25 +1182,64 @@ if ($profilePicture) {
                     }
                 });
             }
+
+            // FullCalendar Initialization
+            const calendarEl = document.getElementById('calendar');
+            if (calendarEl) {
+                const calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    },
+                    eventTimeFormat: {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        meridiem: 'short',
+                        hour12: true
+                    },
+                    slotLabelFormat: {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        meridiem: 'short',
+                        hour12: true
+                    },
+                    themeSystem: 'standard',
+                    events: [
+                        <?php foreach ($calendarMeetings as $m): ?>
+                                                                            {
+                                id: '<?php echo $m['id']; ?>',
+                                title: '<?php echo addslashes($m['committee_name']); ?>: <?php echo addslashes($m['title']); ?>',
+                                start: '<?php echo $m['date']; ?>T<?php echo $m['time_start']; ?>',
+                                end: '<?php echo $m['date']; ?>T<?php echo $m['time_end']; ?>',
+                                backgroundColor: '#dc2626',
+                                borderColor: '#b91c1c',
+                                textColor: '#ffffff',
+                                extendedProps: {
+                                    committee: '<?php echo addslashes($m['committee_name']); ?>',
+                                    venue: '<?php echo addslashes($m['venue']); ?>'
+                                }
+                            },
+                        <?php endforeach; ?>
+                    ],
+                    eventClick: function (info) {
+                        window.location.href = 'pages/committee-meetings/view.php?id=' + info.event.id;
+                    },
+                    eventDidMount: function (info) {
+                        // Simple tooltip logic or custom styling can go here
+                    },
+                    height: 'auto',
+                    handleWindowResize: true
+                });
+                calendar.render();
+            }
         });
 
-        // Logout function
-        function logout() {
-            if (confirm('Are you sure you want to log out?')) {
-                fetch('../app/controllers/AuthController.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: 'action=logout'
-                })
-                    .then(() => {
-                        window.location.href = '../auth/login.php?logout=success';
-                    })
-                    .catch(() => {
-                        window.location.href = '../auth/login.php?logout=success';
-                    });
-            }
-        }
     </script>
+
+    <!-- Template Scripts -->
+    <script src="assets/js/script-updated.js"></script>
 
     <!-- Unified Session Management -->
     <script src="assets/js/session-manager.js"></script>

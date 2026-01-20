@@ -209,7 +209,7 @@ if ($search || $typeFilter || $statusFilter) {
                     </div>
                     <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
                         <i class="bi bi-people w-5"></i>
-                        <span class="ml-2"><?php echo $committee['members_count']; ?> Members</span>
+                        <span class="ml-2"><?php echo $committee['member_count']; ?> Members</span>
                     </div>
                     <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
                         <i class="bi bi-calendar-check w-5"></i>
@@ -312,14 +312,36 @@ if ($search || $typeFilter || $statusFilter) {
                     </select>
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Chairperson</label>
-                    <input type="text" id="editChair" required
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white text-base">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                    <textarea id="editDescription" rows="2"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"></textarea>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Jurisdiction</label>
-                    <textarea id="editJurisdiction" rows="3" required
+                    <textarea id="editJurisdiction" rows="2"
                         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Chairperson</label>
+                    <select id="editChairperson"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                        <option value="">Select User</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Vice
+                        Chairperson</label>
+                    <select id="editViceChair"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                        <option value="">Select User</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Secretary</label>
+                    <select id="editSecretary"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                        <option value="">Select User</option>
+                    </select>
                 </div>
             </div>
             <div class="flex justify-end space-x-3 mt-6">
@@ -408,19 +430,46 @@ if ($search || $typeFilter || $statusFilter) {
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Chairperson <span class="text-red-600">*</span>
+                        Description
                     </label>
-                    <input type="text" id="createChair" required
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white text-base"
-                        placeholder="e.g., Hon. Maria Santos">
+                    <textarea id="createDescription" rows="2"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"
+                        placeholder="Brief description of the committee..."></textarea>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Jurisdiction <span class="text-red-600">*</span>
+                        Jurisdiction
                     </label>
-                    <textarea id="createJurisdiction" rows="3" required
+                    <textarea id="createJurisdiction" rows="2"
                         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"
                         placeholder="Describe the committee's areas of responsibility..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Chairperson
+                    </label>
+                    <select id="createChairperson"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                        <option value="">Select User</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Vice Chairperson
+                    </label>
+                    <select id="createViceChair"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                        <option value="">Select User</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Secretary
+                    </label>
+                    <select id="createSecretary"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                        <option value="">Select User</option>
+                    </select>
                 </div>
             </div>
             <div class="flex justify-end space-x-3 mt-6">
@@ -439,6 +488,39 @@ if ($search || $typeFilter || $statusFilter) {
 <script>
     const committeesData = <?php echo json_encode($committees); ?>;
     let currentCommitteeId = null;
+    let allUsers = [];
+
+    // Load users for dropdowns
+    async function loadUsers() {
+        try {
+            const response = await fetch('ajax/get_users.php');
+            const data = await response.json();
+            if (data.success) {
+                allUsers = data.users;
+                populateUserDropdowns();
+            }
+        } catch (error) {
+            console.error('Error loading users:', error);
+        }
+    }
+
+    function populateUserDropdowns() {
+        const dropdowns = ['createChairperson', 'createViceChair', 'createSecretary',
+            'editChairperson', 'editViceChair', 'editSecretary'];
+
+        dropdowns.forEach(dropdownId => {
+            const select = document.getElementById(dropdownId);
+            if (select) {
+                select.innerHTML = '<option value="">Select User</option>';
+                allUsers.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.user_id;
+                    option.textContent = `${user.full_name} - ${user.position || 'No Position'}`;
+                    select.appendChild(option);
+                });
+            }
+        });
+    }
 
     function viewCommittee(id) {
         const committee = committeesData.find(c => c.id === id);
@@ -461,19 +543,19 @@ if ($search || $typeFilter || $statusFilter) {
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Members</label>
-                    <p class="text-gray-900 dark:text-white font-semibold">${committee.members}</p>
+                    <p class="text-gray-900 dark:text-white font-semibold">${committee.members_count || 0}</p>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Jurisdiction</label>
-                    <p class="text-gray-900 dark:text-white">${committee.jurisdiction}</p>
+                    <p class="text-gray-900 dark:text-white">${committee.jurisdiction || 'Not specified'}</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Meetings Held</label>
-                    <p class="text-gray-900 dark:text-white font-semibold">${committee.meetings_held}</p>
+                    <p class="text-gray-900 dark:text-white font-semibold">${committee.meetings_held || 0}</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Pending Referrals</label>
-                    <p class="text-gray-900 dark:text-white font-semibold">${committee.pending_referrals}</p>
+                    <p class="text-gray-900 dark:text-white font-semibold">${committee.pending_referrals || 0}</p>
                 </div>
             </div>
         `;
@@ -488,8 +570,20 @@ if ($search || $typeFilter || $statusFilter) {
         document.getElementById('editName').value = committee.name;
         document.getElementById('editType').value = committee.type;
         document.getElementById('editStatus').value = committee.status;
-        document.getElementById('editChair').value = committee.chair;
-        document.getElementById('editJurisdiction').value = committee.jurisdiction;
+        document.getElementById('editDescription').value = committee.description || '';
+        document.getElementById('editJurisdiction').value = committee.jurisdiction || '';
+
+        // Set user dropdowns
+        if (committee.chairperson_id) {
+            document.getElementById('editChairperson').value = committee.chairperson_id;
+        }
+        if (committee.vice_chair_id) {
+            document.getElementById('editViceChair').value = committee.vice_chair_id;
+        }
+        if (committee.secretary_id) {
+            document.getElementById('editSecretary').value = committee.secretary_id;
+        }
+
         openModal('editModal');
     }
 
@@ -503,25 +597,99 @@ if ($search || $typeFilter || $statusFilter) {
         openModal('deleteModal');
     }
 
-    function saveCommittee(event) {
+    async function saveCommittee(event) {
         event.preventDefault();
-        // In real implementation, this would send data to server
-        alert('Committee updated successfully! (This will be connected to database)');
-        closeModal('editModal');
+
+        const formData = new FormData();
+        formData.append('committee_id', currentCommitteeId);
+        formData.append('name', document.getElementById('editName').value);
+        formData.append('type', document.getElementById('editType').value);
+        formData.append('description', document.getElementById('editDescription').value);
+        formData.append('jurisdiction', document.getElementById('editJurisdiction').value);
+        formData.append('chairperson_id', document.getElementById('editChairperson').value);
+        formData.append('vice_chair_id', document.getElementById('editViceChair').value);
+        formData.append('secretary_id', document.getElementById('editSecretary').value);
+        formData.append('is_active', document.getElementById('editStatus').value === 'Active' ? 1 : 0);
+
+        try {
+            const response = await fetch('ajax/update_committee.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('Committee updated successfully!');
+                closeModal('editModal');
+                location.reload(); // Reload to show updated data
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while updating the committee');
+        }
     }
 
-    function createCommittee(event) {
+    async function createCommittee(event) {
         event.preventDefault();
-        // In real implementation, this would send data to server
-        alert('Committee created successfully! (This will be connected to database)');
-        closeModal('createModal');
-        document.getElementById('createForm').reset();
+
+        const formData = new FormData();
+        formData.append('name', document.getElementById('createName').value);
+        formData.append('type', document.getElementById('createType').value);
+        formData.append('description', document.getElementById('createDescription').value);
+        formData.append('jurisdiction', document.getElementById('createJurisdiction').value);
+        formData.append('chairperson_id', document.getElementById('createChairperson').value);
+        formData.append('vice_chair_id', document.getElementById('createViceChair').value);
+        formData.append('secretary_id', document.getElementById('createSecretary').value);
+        formData.append('is_active', document.getElementById('createStatus').value === 'Active' ? 1 : 0);
+
+        try {
+            const response = await fetch('ajax/create_committee.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('Committee created successfully!');
+                closeModal('createModal');
+                document.getElementById('createForm').reset();
+                location.reload(); // Reload to show new committee
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while creating the committee');
+        }
     }
 
-    function confirmDelete() {
-        // In real implementation, this would delete from database
-        alert('Committee deleted successfully! (This will be connected to database)');
-        closeModal('deleteModal');
+    async function confirmDelete() {
+        const formData = new FormData();
+        formData.append('committee_id', currentCommitteeId);
+
+        try {
+            const response = await fetch('ajax/delete_committee.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('Committee deleted successfully!');
+                closeModal('deleteModal');
+                location.reload(); // Reload to update list
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the committee');
+        }
     }
 
     function openModal(modalId) {
@@ -552,7 +720,7 @@ if ($search || $typeFilter || $statusFilter) {
         let csv = 'Committee Name,Type,Chair,Members,Status,Meetings Held,Pending Referrals,Jurisdiction\n';
 
         committees.forEach(committee => {
-            csv += `"${committee.name}","${committee.type}","${committee.chair}",${committee.members},"${committee.status}",${committee.meetings_held},${committee.pending_referrals},"${committee.jurisdiction}"\n`;
+            csv += `"${committee.name}","${committee.type}","${committee.chair}",${committee.members_count || 0},"${committee.status}",${committee.meetings_held || 0},${committee.pending_referrals || 0},"${committee.jurisdiction || ''}"\n`;
         });
 
         // Create download link
@@ -566,6 +734,12 @@ if ($search || $typeFilter || $statusFilter) {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
     }
+
+    // Load users when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        loadUsers();
+    });
 </script>
+
 
 <?php include '../../includes/footer.php'; ?>

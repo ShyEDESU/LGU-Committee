@@ -2,6 +2,9 @@
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
+require_once __DIR__ . '/../../../app/helpers/ReferralHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -23,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'estimated_hours' => !empty($_POST['estimated_hours']) ? (int) $_POST['estimated_hours'] : null,
         'committee_id' => !empty($_POST['committee_id']) ? (int) $_POST['committee_id'] : null,
         'meeting_id' => !empty($_POST['meeting_id']) ? (int) $_POST['meeting_id'] : null,
+        'agenda_item_id' => !empty($_POST['agenda_item_id']) ? (int) $_POST['agenda_item_id'] : null,
         'referral_id' => !empty($_POST['referral_id']) ? (int) $_POST['referral_id'] : null,
         'notes' => $_POST['notes'] ?? '',
     ]);
@@ -35,6 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $committees = getAllCommittees();
 $meetings = getAllMeetings();
 $referrals = getAllReferrals();
+$agendaItems = getAllAgendaItems();
+$users = getAllUsers();
 
 $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Create Action Item';
@@ -91,11 +97,12 @@ include '../../includes/header.php';
             <select name="assigned_to" required
                 class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                 <option value="">Select Member</option>
-                <option value="Hon. Maria Santos">Hon. Maria Santos</option>
-                <option value="Hon. Juan Dela Cruz">Hon. Juan Dela Cruz</option>
-                <option value="Hon. Ana Reyes">Hon. Ana Reyes</option>
-                <option value="Hon. Pedro Garcia">Hon. Pedro Garcia</option>
-                <option value="Hon. Rosa Martinez">Hon. Rosa Martinez</option>
+                <?php foreach ($users as $user): ?>
+                    <option value="<?php echo $user['user_id']; ?>">
+                        <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                        (<?php echo htmlspecialchars($user['role_name']); ?>)
+                    </option>
+                <?php endforeach; ?>
             </select>
         </div>
 
@@ -166,9 +173,25 @@ include '../../includes/header.php';
                 class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                 <option value="">Select Meeting (Optional)</option>
                 <?php foreach ($meetings as $meeting): ?>
-                    <option value="<?php echo $meeting['id']; ?>">
+                    <option value="<?php echo $meeting['id']; ?>"
+                        data-committee-id="<?php echo $meeting['committee_id']; ?>">
                         <?php echo htmlspecialchars($meeting['title']); ?> -
                         <?php echo date('M j, Y', strtotime($meeting['date'])); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="bi bi-list-task"></i> Related Agenda Item
+            </label>
+            <select name="agenda_item_id"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                <option value="">Select Agenda Item (Optional)</option>
+                <?php foreach ($agendaItems as $item): ?>
+                    <option value="<?php echo $item['id']; ?>" data-meeting-id="<?php echo $item['meeting_id']; ?>">
+                        <?php echo htmlspecialchars($item['title']); ?>
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -182,7 +205,8 @@ include '../../includes/header.php';
                 class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                 <option value="">Select Referral (Optional)</option>
                 <?php foreach ($referrals as $referral): ?>
-                    <option value="<?php echo $referral['id']; ?>">
+                    <option value="<?php echo $referral['id']; ?>"
+                        data-committee-id="<?php echo $referral['committee_id']; ?>">
                         <?php echo htmlspecialchars($referral['title']); ?>
                     </option>
                 <?php endforeach; ?>
@@ -225,5 +249,58 @@ include '../../includes/header.php';
         </button>
     </div>
 </form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const committeeSelect = document.querySelector('select[name="committee_id"]');
+        const meetingSelect = document.querySelector('select[name="meeting_id"]');
+        const referralSelect = document.querySelector('select[name="referral_id"]');
+        const agendaSelect = document.querySelector('select[name="agenda_item_id"]');
+
+        function updateDropdowns() {
+            const committeeId = committeeSelect.value;
+            const meetingId = meetingSelect.value;
+
+            // Meetings
+            meetingSelect.disabled = !committeeId;
+            meetingSelect.parentElement.classList.toggle('opacity-50', !committeeId);
+            Array.from(meetingSelect.options).forEach(opt => {
+                if (!opt.value) return;
+                opt.style.display = opt.getAttribute('data-committee-id') === committeeId ? '' : 'none';
+            });
+
+            // Referrals
+            referralSelect.disabled = !committeeId;
+            referralSelect.parentElement.classList.toggle('opacity-50', !committeeId);
+            Array.from(referralSelect.options).forEach(opt => {
+                if (!opt.value) return;
+                opt.style.display = opt.getAttribute('data-committee-id') === committeeId ? '' : 'none';
+            });
+
+            // Agenda Items
+            agendaSelect.disabled = !meetingId;
+            agendaSelect.parentElement.classList.toggle('opacity-50', !meetingId);
+            Array.from(agendaSelect.options).forEach(opt => {
+                if (!opt.value) return;
+                opt.style.display = opt.getAttribute('data-meeting-id') === meetingId ? '' : 'none';
+            });
+        }
+
+        committeeSelect.addEventListener('change', function () {
+            meetingSelect.value = "";
+            referralSelect.value = "";
+            agendaSelect.value = "";
+            updateDropdowns();
+        });
+
+        meetingSelect.addEventListener('change', function () {
+            agendaSelect.value = "";
+            updateDropdowns();
+        });
+
+        // Run once on load
+        updateDropdowns();
+    });
+</script>
 
 <?php include '../../includes/footer.php'; ?>

@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -71,6 +72,12 @@ include '../../includes/header.php';
                     <?php if ($agendaStatus !== 'Draft'): ?>
                         <option value="Draft">↩️ Revert to Draft</option>
                     <?php endif; ?>
+                    <?php if ($agendaStatus !== 'Archived'): ?>
+                        <option value="Archived">📁 Archive</option>
+                    <?php endif; ?>
+                    <?php if ($agendaStatus === 'Archived'): ?>
+                        <option value="Draft">↩️ Unarchive (to Draft)</option>
+                    <?php endif; ?>
                 </select>
             </div>
 
@@ -88,6 +95,33 @@ include '../../includes/header.php';
         </div>
     </div>
 </div>
+
+<?php
+// Check for active votes for this meeting
+$activeVotes = getActiveVotesByMeeting($meetingId);
+$userId = $_SESSION['user_id'] ?? 0;
+$currCommitteeId = $meeting['committee_id'] ?? 0;
+// We need CommitteeHelper for isCommitteeMember
+require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+$isCommitteeMember = isCommitteeMember($currCommitteeId, $userId);
+
+if (!empty($activeVotes) && $isCommitteeMember): ?>
+    <div class="bg-blue-600 rounded-lg shadow-lg p-4 mb-6 text-white flex items-center justify-between">
+        <div class="flex items-center">
+            <div class="bg-blue-500 rounded-full p-2 mr-4">
+                <i class="bi bi-hand-thumbs-up-fill text-xl"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-lg">Active Voting in Progress</h3>
+                <p class="text-blue-100 text-sm">There are active motions for this meeting that require your vote.</p>
+            </div>
+        </div>
+        <a href="member-vote.php?meeting_id=<?php echo $meetingId; ?>"
+            class="px-6 py-2 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition shadow-sm">
+            Vote Now
+        </a>
+    </div>
+<?php endif; ?>
 
 <!-- Navigation Tabs -->
 <div class="mb-6">
@@ -121,9 +155,9 @@ include '../../includes/header.php';
         <div>
             <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Date & Time</h3>
             <p class="text-lg font-semibold text-gray-900 dark:text-white">
-                <?php echo date('M j, Y', strtotime($meeting['date'])); ?><br>
+                <?php echo !empty($meeting['date']) ? date('M j, Y', strtotime($meeting['date'])) : 'Not Set'; ?><br>
                 <span class="text-sm text-gray-600 dark:text-gray-400">
-                    <?php echo date('g:i A', strtotime($meeting['time_start'])); ?>
+                    <?php echo !empty($meeting['time_start']) ? date('g:i A', strtotime($meeting['time_start'])) : ''; ?>
                 </span>
             </p>
         </div>
@@ -140,7 +174,8 @@ include '../../includes/header.php';
                 echo $agendaStatus === 'Draft' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
                     ($agendaStatus === 'Under Review' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
                         ($agendaStatus === 'Approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                            'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'));
+                            ($agendaStatus === 'Published' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
+                                'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300')));
                 ?>">
                 <?php echo $agendaStatus; ?>
             </span>
@@ -417,11 +452,11 @@ include '../../includes/header.php';
             // Update badge color based on status
             statusBadge.className = 'inline-block px-3 py-1 text-sm font-semibold rounded-full ';
             if (newStatus === 'Draft') {
-                statusBadge.className += 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+                statusBadge.className += ' bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
             } else if (newStatus === 'Under Review') {
-                statusBadge.className += 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+                statusBadge.className += ' bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
             } else if (newStatus === 'Approved') {
-                statusBadge.className += 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+                statusBadge.className += ' bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
             } else if (newStatus === 'Published') {
                 statusBadge.className += 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
             }
@@ -444,6 +479,14 @@ include '../../includes/header.php';
             options += '<option value="Draft">↩️ Revert to Draft</option>';
         } else if (currentStatus === 'Published') {
             options += '<option value="Draft">↩️ Revert to Draft</option>';
+        }
+
+        // Always allow archiving unless already archived
+        if (currentStatus !== 'Archived') {
+            options += '<option value="Archived">📁 Archive</option>';
+        } else {
+            // If archived, maybe allow unarchiving?
+            options += '<option value="Draft">↩️ Unarchive (to Draft)</option>';
         }
 
         select.innerHTML = options;

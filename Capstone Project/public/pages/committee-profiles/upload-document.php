@@ -18,29 +18,27 @@ if (!$committee) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Generate new document ID
-    $documents = $_SESSION['committee_documents'] ?? [];
-    $newId = empty($documents) ? 1 : max(array_column($documents, 'id')) + 1;
+    // Validate file upload
+    if (!isset($_FILES['document']) || $_FILES['document']['error'] !== UPLOAD_ERR_OK) {
+        $_SESSION['error_message'] = 'Please select a file to upload';
+    } else {
+        $data = [
+            'title' => $_POST['title'],
+            'type' => $_POST['type'],
+            'description' => $_POST['description'] ?? ''
+        ];
 
-    // Create new document
-    $newDocument = [
-        'id' => $newId,
-        'committee_id' => $committeeId,
-        'title' => $_POST['title'],
-        'type' => $_POST['type'],
-        'description' => $_POST['description'] ?? '',
-        'uploaded_date' => date('Y-m-d'),
-        'uploaded_by' => $_SESSION['user_name'] ?? 'User',
-        'file_name' => $_FILES['document']['name'] ?? 'document.pdf', // For now, just store filename
-        'file_size' => $_FILES['document']['size'] ?? 0
-    ];
+        // Save document with file to database
+        $documentId = saveCommitteeDocument($committeeId, $data, $_FILES['document']);
 
-    // Add to session
-    $_SESSION['committee_documents'][] = $newDocument;
-
-    $_SESSION['success_message'] = 'Document uploaded successfully';
-    header('Location: documents.php?id=' . $committeeId);
-    exit();
+        if ($documentId) {
+            $_SESSION['success_message'] = 'Document uploaded successfully';
+            header('Location: documents.php?id=' . $committeeId);
+            exit();
+        } else {
+            $_SESSION['error_message'] = 'Failed to upload document. Please check file type and size.';
+        }
+    }
 }
 
 $userName = $_SESSION['user_name'] ?? 'User';
@@ -61,6 +59,13 @@ include '../../includes/header.php';
             <li class="breadcrumb-item active">Upload Document</li>
         </ol>
     </nav>
+
+    <?php if (isset($_SESSION['error_message'])): ?>
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+            <p class="text-red-700"><?php echo $_SESSION['error_message'];
+            unset($_SESSION['error_message']); ?></p>
+        </div>
+    <?php endif; ?>
 
     <div class="flex justify-between items-center mb-6">
         <div>
@@ -140,8 +145,7 @@ include '../../includes/header.php';
                     </div>
                     <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
                         <i class="bi bi-info-circle mr-1"></i>
-                        Note: For this demo, file info will be saved but actual file upload will be implemented with
-                        database integration.
+                        Supported formats: PDF, DOC, DOCX (Max size: 10MB)
                     </p>
                 </div>
             </div>

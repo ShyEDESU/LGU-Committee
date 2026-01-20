@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
-require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../app/helpers/ReferralHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -12,8 +12,11 @@ if (!isset($_SESSION['user_id'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     $referralId = $_POST['referral_id'];
     $newStatus = $_POST['new_status'];
-    updateReferral($referralId, ['status' => $newStatus]);
-    $_SESSION['success_message'] = 'Status updated successfully';
+    $referral = getReferralById($referralId);
+    if ($referral) {
+        updateReferral($referralId, ['status' => $newStatus, 'committee_id' => $referral['committee_id']] + $referral);
+        $_SESSION['success_message'] = 'Status updated successfully';
+    }
     header('Location: tracking.php');
     exit();
 }
@@ -104,7 +107,11 @@ $rejectedReferrals = getReferralsByStatus('Rejected');
                     <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 hover:shadow-md transition cursor-pointer"
                         onclick="showStatusModal(<?php echo $ref['id']; ?>, '<?php echo htmlspecialchars($ref['title'], ENT_QUOTES); ?>', 'Pending')">
                         <h4 class="font-semibold text-sm mb-1"><?php echo htmlspecialchars($ref['title']); ?></h4>
-                        <p class="text-xs text-gray-600 mb-2"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
+                        <p class="text-xs text-gray-600 mb-1"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
+                        <p class="text-[10px] text-gray-500 font-medium mb-2">
+                            <i
+                                class="bi bi-person mr-1"></i><?php echo htmlspecialchars($ref['assigned_to'] ?? 'Not Assigned'); ?>
+                        </p>
                         <div class="flex items-center justify-between">
                             <span
                                 class="text-xs px-2 py-1 rounded-full <?php echo $ref['priority'] === 'High' ? 'bg-red-100 text-red-800' :
@@ -140,7 +147,10 @@ $rejectedReferrals = getReferralsByStatus('Rejected');
                     <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 hover:shadow-md transition cursor-pointer"
                         onclick="showStatusModal(<?php echo $ref['id']; ?>, '<?php echo htmlspecialchars($ref['title'], ENT_QUOTES); ?>', 'Under Review')">
                         <h4 class="font-semibold text-sm mb-1"><?php echo htmlspecialchars($ref['title']); ?></h4>
-                        <p class="text-xs text-gray-600 mb-2"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
+                        <p class="text-xs text-gray-600 mb-1"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
+                        <p class="text-[10px] text-blue-600 font-medium mb-2">
+                            <i class="bi bi-person mr-1"></i><?php echo htmlspecialchars($ref['assigned_to'] ?? 'Not Assigned'); ?>
+                        </p>
                         <div class="flex items-center justify-between">
                             <span
                                 class="text-xs px-2 py-1 rounded-full <?php echo $ref['priority'] === 'High' ? 'bg-red-100 text-red-800' :
@@ -176,7 +186,10 @@ $rejectedReferrals = getReferralsByStatus('Rejected');
                     <div class="bg-purple-50 p-3 rounded-lg border border-purple-200 hover:shadow-md transition cursor-pointer"
                         onclick="showStatusModal(<?php echo $ref['id']; ?>, '<?php echo htmlspecialchars($ref['title'], ENT_QUOTES); ?>', 'In Committee')">
                         <h4 class="font-semibold text-sm mb-1"><?php echo htmlspecialchars($ref['title']); ?></h4>
-                        <p class="text-xs text-gray-600 mb-2"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
+                        <p class="text-xs text-gray-600 mb-1"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
+                        <p class="text-[10px] text-purple-600 font-medium mb-2">
+                            <i class="bi bi-person mr-1"></i><?php echo htmlspecialchars($ref['assigned_to'] ?? 'Not Assigned'); ?>
+                        </p>
                         <div class="flex items-center justify-between">
                             <span
                                 class="text-xs px-2 py-1 rounded-full <?php echo $ref['priority'] === 'High' ? 'bg-red-100 text-red-800' :
@@ -212,7 +225,10 @@ $rejectedReferrals = getReferralsByStatus('Rejected');
                     <div class="bg-green-50 p-3 rounded-lg border border-green-200 hover:shadow-md transition cursor-pointer"
                         onclick="window.location.href='view.php?id=<?php echo $ref['id']; ?>'">
                         <h4 class="font-semibold text-sm mb-1"><?php echo htmlspecialchars($ref['title']); ?></h4>
-                        <p class="text-xs text-gray-600 mb-2"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
+                        <p class="text-xs text-gray-600 mb-1"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
+                        <p class="text-[10px] text-green-600 font-medium mb-2">
+                            <i class="bi bi-person mr-1"></i><?php echo htmlspecialchars($ref['assigned_to'] ?? 'Not Assigned'); ?>
+                        </p>
                         <div class="flex items-center justify-between">
                             <span
                                 class="text-xs px-2 py-1 rounded-full <?php echo $ref['priority'] === 'High' ? 'bg-red-100 text-red-800' :
@@ -248,7 +264,10 @@ $rejectedReferrals = getReferralsByStatus('Rejected');
                     <div class="bg-red-50 p-3 rounded-lg border border-red-200 hover:shadow-md transition cursor-pointer"
                         onclick="window.location.href='view.php?id=<?php echo $ref['id']; ?>'">
                         <h4 class="font-semibold text-sm mb-1"><?php echo htmlspecialchars($ref['title']); ?></h4>
-                        <p class="text-xs text-gray-600 mb-2"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
+                        <p class="text-xs text-gray-600 mb-1"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
+                        <p class="text-[10px] text-red-600 font-medium mb-2">
+                            <i class="bi bi-person mr-1"></i><?php echo htmlspecialchars($ref['assigned_to'] ?? 'Not Assigned'); ?>
+                        </p>
                         <div class="flex items-center justify-between">
                             <span
                                 class="text-xs px-2 py-1 rounded-full <?php echo $ref['priority'] === 'High' ? 'bg-red-100 text-red-800' :

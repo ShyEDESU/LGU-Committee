@@ -65,7 +65,7 @@ include '../../includes/header.php';
     </div>
 </div>
 
-<!-- Statistics Dashboard -->>
+<!-- Statistics Dashboard -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <p class="text-sm text-gray-600 dark:text-gray-400">Total Items</p>
@@ -120,13 +120,13 @@ include '../../includes/header.php';
                             <?php echo htmlspecialchars($activityItem['title']); ?>
                         </p>
                         <span class="text-xs text-gray-500 dark:text-gray-400">
-                            <?php echo !empty($activityItem['created_date']) ? date('M j, Y', strtotime($activityItem['created_date'])) : 'Recently'; ?>
+                            <?php echo !empty($activityItem['created_at']) ? date('M j, Y', strtotime($activityItem['created_at'])) : 'Recently'; ?>
                         </span>
                     </div>
                     <div class="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
                         <span>
                             <i class="bi bi-person"></i>
-                            <?php echo htmlspecialchars($activityItem['assigned_to']); ?>
+                            <?php echo htmlspecialchars($activityItem['assigned_to_name'] ?? 'Unassigned'); ?>
                         </span>
                         <span
                             class="px-2 py-1 text-xs rounded-full bg-<?php echo $statusColor; ?>-100 dark:bg-<?php echo $statusColor; ?>-900/30 text-<?php echo $statusColor; ?>-800 dark:text-<?php echo $statusColor; ?>-300">
@@ -139,11 +139,11 @@ include '../../includes/header.php';
                             </span>
                         <?php endif; ?>
                     </div>
-                    <?php if (!empty($activityItem['completed_date'])): ?>
+                    <?php if (!empty($activityItem['completed_at'])): ?>
                         <p class="text-xs text-green-600 dark:text-green-400 mt-1">
                             <i class="bi bi-check-circle"></i>
                             Completed on
-                            <?php echo date('M j, Y g:i A', strtotime($activityItem['completed_date'])); ?>
+                            <?php echo date('M j, Y g:i A', strtotime($activityItem['completed_at'])); ?>
                         </p>
                     <?php endif; ?>
                 </div>

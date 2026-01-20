@@ -3,42 +3,27 @@
  * User Helper
  * Manages user data and operations
  */
+require_once __DIR__ . '/../../config/database.php';
 
 /**
  * Get all users
  */
 function getAllUsers()
 {
-    // In production, query from database
-    // For now, return dummy data
-    return [
-        [
-            'user_id' => 1,
-            'email' => 'admin@lgu.gov.ph',
-            'first_name' => 'John',
-            'last_name' => 'Administrator',
-            'phone' => '09123456789',
-            'department' => 'IT Department',
-            'position' => 'Administrator',
-            'role_id' => 1,
-            'role_name' => 'Administrator',
-            'is_active' => true,
-            'created_at' => '2025-01-15'
-        ],
-        [
-            'user_id' => 2,
-            'email' => 'mary@lgu.gov.ph',
-            'first_name' => 'Mary',
-            'last_name' => 'Johnson',
-            'phone' => '09234567890',
-            'department' => 'Legislative Division',
-            'position' => 'Legislative Officer',
-            'role_id' => 2,
-            'role_name' => 'Officer',
-            'is_active' => true,
-            'created_at' => '2025-02-10'
-        ]
-    ];
+    global $conn;
+    $sql = "SELECT u.*, r.role_name 
+            FROM users u 
+            LEFT JOIN roles r ON u.role_id = r.role_id 
+            ORDER BY u.first_name ASC";
+    $result = $conn->query($sql);
+
+    $users = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $users[] = $row;
+        }
+    }
+    return $users;
 }
 
 /**
@@ -46,13 +31,15 @@ function getAllUsers()
  */
 function getUserById($id)
 {
-    $users = getAllUsers();
-    foreach ($users as $user) {
-        if ($user['user_id'] == $id) {
-            return $user;
-        }
-    }
-    return null;
+    global $conn;
+    $stmt = $conn->prepare("SELECT u.*, r.role_name 
+                            FROM users u 
+                            LEFT JOIN roles r ON u.role_id = r.role_id 
+                            WHERE u.user_id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result->fetch_assoc();
 }
 
 /**
@@ -60,10 +47,20 @@ function getUserById($id)
  */
 function getUsersByRole($roleId)
 {
-    $users = getAllUsers();
-    return array_filter($users, function ($user) use ($roleId) {
-        return $user['role_id'] == $roleId;
-    });
+    global $conn;
+    $stmt = $conn->prepare("SELECT u.*, r.role_name 
+                            FROM users u 
+                            LEFT JOIN roles r ON u.role_id = r.role_id 
+                            WHERE u.role_id = ?");
+    $stmt->bind_param("i", $roleId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $users = [];
+    while ($row = $result->fetch_assoc()) {
+        $users[] = $row;
+    }
+    return $users;
 }
 
 /**
@@ -71,10 +68,20 @@ function getUsersByRole($roleId)
  */
 function getActiveUsers()
 {
-    $users = getAllUsers();
-    return array_filter($users, function ($user) {
-        return $user['is_active'] === true;
-    });
+    global $conn;
+    $sql = "SELECT u.*, r.role_name 
+            FROM users u 
+            LEFT JOIN roles r ON u.role_id = r.role_id 
+            WHERE u.is_active = 1";
+    $result = $conn->query($sql);
+
+    $users = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $users[] = $row;
+        }
+    }
+    return $users;
 }
 
 /**

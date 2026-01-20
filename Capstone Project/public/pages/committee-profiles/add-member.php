@@ -16,38 +16,29 @@ if (!$committee) {
     exit();
 }
 
+// Get available users for dropdown (exclude existing members)
+$allUsers = getAvailableUsersForCommittee($committeeId);
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Generate new member ID
-    $members = $_SESSION['committee_members'] ?? [];
-    $newId = empty($members) ? 1 : max(array_column($members, 'member_id')) + 1;
+    $userId = intval($_POST['user_id'] ?? 0);
+    $position = $_POST['position'] ?? 'Member';
+    $joinedDate = $_POST['joined_date'] ?? date('Y-m-d');
 
-    // Create new member
-    $newMember = [
-        'member_id' => $newId,
-        'committee_id' => $committeeId,
-        'name' => $_POST['name'],
-        'role' => $_POST['role'],  // Committee role (Chairperson, Member, etc.)
-        'position' => $_POST['position'] ?? 'Councilor',  // Job title
-        'district' => $_POST['district'] ?? '',
-        'contact_number' => $_POST['contact_number'] ?? '',
-        'email' => $_POST['email'] ?? ''
-    ];
+    if ($userId <= 0) {
+        $_SESSION['error_message'] = 'Please select a user';
+    } else {
+        // Add member to committee
+        $success = addCommitteeMember($committeeId, $userId, $position, $joinedDate);
 
-    // Add to session
-    $_SESSION['committee_members'][] = $newMember;
-
-    // Update committee member count
-    foreach ($_SESSION['committees'] as &$c) {
-        if ($c['id'] == $committeeId) {
-            $c['members'] = count(getCommitteeMembers($committeeId));
-            break;
+        if ($success) {
+            $_SESSION['success_message'] = 'Member added successfully';
+            header('Location: members.php?id=' . $committeeId);
+            exit();
+        } else {
+            $_SESSION['error_message'] = 'Failed to add member. User may already be a member.';
         }
     }
-
-    $_SESSION['success_message'] = 'Member added successfully';
-    header('Location: members.php?id=' . $committeeId);
-    exit();
 }
 
 $userName = $_SESSION['user_name'] ?? 'User';
@@ -69,6 +60,13 @@ include '../../includes/header.php';
         </ol>
     </nav>
 
+    <?php if (isset($_SESSION['error_message'])): ?>
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+            <p class="text-red-700"><?php echo $_SESSION['error_message'];
+            unset($_SESSION['error_message']); ?></p>
+        </div>
+    <?php endif; ?>
+
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Add New Member</h1>
@@ -85,82 +83,47 @@ include '../../includes/header.php';
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
         <form method="POST" class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Name -->
+                <!-- Select User -->
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Full Name <span class="text-red-600">*</span>
+                        Select User <span class="text-red-600">*</span>
                     </label>
-                    <input type="text" name="name" required
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"
-                        placeholder="Hon. Juan Dela Cruz">
+                    <select name="user_id" required
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                        <option value="">Select a user to add as member</option>
+                        <?php foreach ($allUsers as $user): ?>
+                            <option value="<?php echo $user['user_id']; ?>">
+                                <?php echo htmlspecialchars($user['full_name']); ?> -
+                                <?php echo htmlspecialchars($user['position'] ?? $user['department'] ?? 'No Position'); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="text-sm text-gray-500 mt-1">Select an existing user from the system to add to this
+                        committee</p>
                 </div>
 
-                <!-- Committee Role -->
+                <!-- Position in Committee -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Committee Role <span class="text-red-600">*</span>
+                        Position in Committee <span class="text-red-600">*</span>
                     </label>
-                    <select name="role" required
+                    <select name="position" required
                         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-                        <option value="">Select Role</option>
+                        <option value="Member" selected>Member</option>
                         <option value="Chairperson">Chairperson</option>
                         <option value="Vice-Chairperson">Vice-Chairperson</option>
-                        <option value="Member" selected>Member</option>
                         <option value="Secretary">Secretary</option>
                         <option value="Ex-Officio">Ex-Officio</option>
                     </select>
                 </div>
 
-                <!-- Position/Job Title -->
+                <!-- Joined Date -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Position/Job Title <span class="text-red-600">*</span>
+                        Joined Date
                     </label>
-                    <select name="position" required
+                    <input type="date" name="joined_date" value="<?php echo date('Y-m-d'); ?>"
                         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-                        <option value="">Select Position</option>
-                        <option value="Councilor" selected>Councilor</option>
-                        <option value="Mayor">Mayor</option>
-                        <option value="Vice Mayor">Vice Mayor</option>
-                        <option value="Board Member">Board Member</option>
-                        <option value="Barangay Captain">Barangay Captain</option>
-                        <option value="SK Chairperson">SK Chairperson</option>
-                        <option value="Department Head">Department Head</option>
-                        <option value="City Administrator">City Administrator</option>
-                        <option value="Legal Officer">Legal Officer</option>
-                        <option value="Budget Officer">Budget Officer</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-
-                <!-- District -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        District
-                    </label>
-                    <input type="text" name="district"
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"
-                        placeholder="District 1">
-                </div>
-
-                <!-- Contact Number -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Contact Number
-                    </label>
-                    <input type="tel" name="contact_number"
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"
-                        placeholder="09171234567">
-                </div>
-
-                <!-- Email -->
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Email Address
-                    </label>
-                    <input type="email" name="email"
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"
-                        placeholder="member@legislature.gov">
                 </div>
             </div>
 

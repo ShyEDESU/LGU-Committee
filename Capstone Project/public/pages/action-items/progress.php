@@ -14,19 +14,19 @@ $allItems = getAllActionItems();
 // Group by assignee
 $byAssignee = [];
 foreach ($allItems as $item) {
-    $assignee = $item['assigned_to'] ?? 'Unassigned';
-    if (!isset($byAssignee[$assignee])) {
-        $byAssignee[$assignee] = ['total' => 0, 'done' => 0, 'progress' => 0];
+    $assigneeName = $item['assigned_to_name'] ?? 'Unassigned';
+    if (!isset($byAssignee[$assigneeName])) {
+        $byAssignee[$assigneeName] = ['total' => 0, 'done' => 0, 'progress' => 0];
     }
-    $byAssignee[$assignee]['total']++;
+    $byAssignee[$assigneeName]['total']++;
     if (($item['status'] ?? '') === 'Done') {
-        $byAssignee[$assignee]['done']++;
+        $byAssignee[$assigneeName]['done']++;
     }
-    $byAssignee[$assignee]['progress'] += ($item['progress'] ?? 0);
+    $byAssignee[$assigneeName]['progress'] += ($item['progress'] ?? 0);
 }
 
 // Calculate averages
-foreach ($byAssignee as $assignee => &$data) {
+foreach ($byAssignee as $assigneeName => &$data) {
     $data['avg_progress'] = $data['total'] > 0 ? round($data['progress'] / $data['total'], 1) : 0;
     $data['completion_rate'] = $data['total'] > 0 ? round(($data['done'] / $data['total']) * 100, 1) : 0;
 }

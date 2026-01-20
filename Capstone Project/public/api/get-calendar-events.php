@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../config/session_config.php';
+require_once __DIR__ . '/../../app/helpers/MeetingHelper.php';
 require_once __DIR__ . '/../../app/helpers/DataHelper.php';
 
 // Get all meetings

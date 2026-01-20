@@ -1,7 +1,8 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
-require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../app/helpers/ReferralHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -10,41 +11,31 @@ if (!isset($_SESSION['user_id'])) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $committees = getAllCommittees();
-    $selectedCommittee = null;
-
-    // Find the selected committee
-    foreach ($committees as $committee) {
-        if ($committee['id'] == $_POST['committee_id']) {
-            $selectedCommittee = $committee;
-            break;
-        }
-    }
-
     $referralData = [
         'committee_id' => $_POST['committee_id'],
-        'committee_name' => $selectedCommittee ? $selectedCommittee['name'] : 'Unknown Committee',
         'title' => $_POST['title'],
         'type' => $_POST['type'],
         'description' => $_POST['description'],
         'priority' => $_POST['priority'],
         'deadline' => $_POST['deadline'],
-        'assigned_to' => $_POST['assigned_to'] ?? '',
-        'assigned_member_id' => $_POST['assigned_member_id'] ?? null,
-        'submitted_by' => $_POST['submitted_by'] ?? $_SESSION['user_name'],
-        'date_received' => $_POST['date_received'] ?? date('Y-m-d'),
+        'assigned_member_id' => !empty($_POST['assigned_member_id']) ? $_POST['assigned_member_id'] : null,
         'notes' => $_POST['notes'] ?? '',
-        'is_public' => isset($_POST['is_public']) ? true : false
+        'is_public' => isset($_POST['is_public']) ? 1 : 0
     ];
 
     $newId = createReferral($referralData);
-    $_SESSION['success_message'] = 'Referral created successfully';
-    header('Location: view.php?id=' . $newId);
-    exit();
+    if ($newId) {
+        $_SESSION['success_message'] = 'Referral created successfully';
+        header('Location: view.php?id=' . $newId);
+        exit();
+    } else {
+        $error = "Failed to create referral. Please try again.";
+    }
 }
 
 // Get all committees for dropdown
 $committees = getAllCommittees();
+$users = getAllUsers();
 
 $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Create Referral';
@@ -152,8 +143,16 @@ include '../../includes/header.php';
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <i class="bi bi-person-badge"></i> Assigned To (Optional)
             </label>
-            <input type="text" name="assigned_to" placeholder="e.g., Hon. Maria Santos"
+            <select name="assigned_member_id"
                 class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                <option value="">Not Assigned</option>
+                <?php foreach ($users as $user): ?>
+                    <option value="<?php echo $user['user_id']; ?>">
+                        <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                        (<?php echo htmlspecialchars($user['role_name']); ?>)
+                    </option>
+                <?php endforeach; ?>
+            </select>
         </div>
 
         <!-- Description -->

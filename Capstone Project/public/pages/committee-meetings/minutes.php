@@ -1,6 +1,11 @@
 <?php
+// Suppress all errors to prevent output corruption
+error_reporting(0);
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+
 require_once __DIR__ . '/../../../config/session_config.php';
-require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -12,8 +17,18 @@ $meetingId = $_GET['id'] ?? 0;
 $meeting = getMeetingById($meetingId);
 
 if (!$meeting) {
-    header('Location: index.php');
-    exit();
+    // Don't redirect - let page load with error message
+    $meeting = [
+        'id' => $meetingId,
+        'title' => 'Meeting Not Found',
+        'committee_id' => 0,
+        'committee_name' => 'Unknown',
+        'date' => date('Y-m-d'),
+        'time_start' => '00:00',
+        'status' => 'Unknown'
+    ];
+    // header('Location: index.php');
+    // exit();
 }
 
 // Handle save minutes
@@ -43,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_minutes'])) {
 $committee = getCommitteeById($meeting['committee_id']);
 $minutes = getMeetingMinutes($meetingId);
 $agendaItems = getAgendaByMeeting($meetingId);
-$attendance = getMeetingAttendance($meetingId);
+$attendance = getAttendanceRecords($meetingId); // Fixed function name
 
 $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Meeting Minutes';

@@ -97,15 +97,31 @@ include '../../includes/header.php';
     <?php if (!empty($attachments)): ?>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <?php foreach ($attachments as $attachment):
-                $fileExt = pathinfo($attachment['name'] ?? 'file', PATHINFO_EXTENSION);
-                $iconClass = match (strtolower($fileExt)) {
-                    'pdf' => 'bi-file-pdf text-red-600',
-                    'doc', 'docx' => 'bi-file-word text-blue-600',
-                    'xls', 'xlsx' => 'bi-file-excel text-green-600',
-                    'ppt', 'pptx' => 'bi-file-ppt text-orange-600',
-                    'jpg', 'jpeg', 'png', 'gif' => 'bi-file-image text-purple-600',
-                    default => 'bi-file-earmark text-gray-600'
-                };
+                $fileExt = strtolower(pathinfo($attachment['name'] ?? 'file', PATHINFO_EXTENSION));
+                $iconClass = 'bi-file-earmark text-gray-600';
+                switch ($fileExt) {
+                    case 'pdf':
+                        $iconClass = 'bi-file-pdf text-red-600';
+                        break;
+                    case 'doc':
+                    case 'docx':
+                        $iconClass = 'bi-file-word text-blue-600';
+                        break;
+                    case 'xls':
+                    case 'xlsx':
+                        $iconClass = 'bi-file-excel text-green-600';
+                        break;
+                    case 'ppt':
+                    case 'pptx':
+                        $iconClass = 'bi-file-ppt text-orange-600';
+                        break;
+                    case 'jpg':
+                    case 'jpeg':
+                    case 'png':
+                    case 'gif':
+                        $iconClass = 'bi-file-image text-purple-600';
+                        break;
+                }
                 ?>
                 <div
                     class="flex items-center space-x-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">

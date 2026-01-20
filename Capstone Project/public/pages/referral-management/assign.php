@@ -1,23 +1,46 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
-require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../app/helpers/ReferralHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
     exit();
 }
 
-// Handle bulk assignment
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_assign'])) {
-    $referralIds = $_POST['referral_ids'] ?? [];
-    $assignedTo = $_POST['assigned_to'] ?? '';
+// Handle assignment submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['bulk_assign']) && !empty($_POST['referral_ids'])) {
+        $userId = $_POST['assigned_to_user_id'];
+        $referralIds = $_POST['referral_ids'];
 
-    foreach ($referralIds as $refId) {
-        updateReferral($refId, ['assigned_to' => $assignedTo]);
+        foreach ($referralIds as $id) {
+            $referral = getReferralById($id);
+            if ($referral) {
+                updateReferral($id, [
+                    'assigned_member_id' => $userId,
+                    'status' => 'Under Review',
+                    'committee_id' => $referral['committee_id']
+                ] + $referral);
+            }
+        }
+        $_SESSION['success_message'] = count($referralIds) . ' referrals assigned successfully';
+    } elseif (isset($_POST['referral_id'])) {
+        $referralId = $_POST['referral_id'];
+        $userId = $_POST['user_id'];
+
+        $referral = getReferralById($referralId);
+        if ($referral) {
+            updateReferral($referralId, [
+                'assigned_member_id' => $userId,
+                'status' => 'Under Review',
+                'committee_id' => $referral['committee_id']
+            ] + $referral);
+            $_SESSION['success_message'] = 'Referral assigned successfully';
+        }
     }
 
-    $_SESSION['success_message'] = count($referralIds) . ' referral(s) assigned successfully';
     header('Location: assign.php');
     exit();
 }
@@ -29,12 +52,13 @@ include '../../includes/header.php';
 // Get all referrals and committees
 $allReferrals = getAllReferrals();
 $unassignedReferrals = array_filter($allReferrals, function ($ref) {
-    return empty($ref['assigned_to']);
+    return empty($ref['assigned_member_id']);
 });
 $assignedReferrals = array_filter($allReferrals, function ($ref) {
     return !empty($ref['assigned_to']);
 });
 $committees = getAllCommittees();
+$users = getAllUsers();
 ?>
 
 <!-- Page Header -->
@@ -106,8 +130,16 @@ $committees = getAllCommittees();
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Assign To</label>
-                <input type="text" name="assigned_to" required placeholder="e.g., Hon. Maria Santos"
+                <select name="assigned_to_user_id" required
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600">
+                    <option value="">Select Member</option>
+                    <?php foreach ($users as $user): ?>
+                        <option value="<?php echo $user['user_id']; ?>">
+                            <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                            (<?php echo htmlspecialchars($user['role_name'] ?? 'Member'); ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <div class="flex items-end">
                 <button type="submit"

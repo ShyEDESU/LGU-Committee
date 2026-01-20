@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
-require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -23,34 +23,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $committee = getCommitteeById($committeeId);
     
     $data = [
-        'committee_id' => $committeeId,
-        'committee_name' => $committee['name'] ?? '',
         'title' => trim($_POST['title'] ?? ''),
         'description' => trim($_POST['description'] ?? ''),
         'date' => $_POST['date'] ?? '',
         'time_start' => $_POST['time_start'] ?? '',
         'time_end' => $_POST['time_end'] ?? '',
         'venue' => $_POST['venue'] ?? '',
+        'status' => $_POST['status'] ?? 'Scheduled',
         'is_public' => isset($_POST['is_public']) ? true : false
     ];
     
     // Validation
     $errors = [];
     if (empty($data['title'])) $errors[] = 'Meeting title is required';
-    if (empty($data['committee_id'])) $errors[] = 'Committee is required';
     if (empty($data['date'])) $errors[] = 'Date is required';
     if (empty($data['time_start'])) $errors[] = 'Start time is required';
     if (empty($data['venue'])) $errors[] = 'Venue is required';
     
     if (empty($errors)) {
-        updateMeeting($id, $data);
-        $_SESSION['success_message'] = 'Meeting updated successfully!';
-        header('Location: view.php?id=' . $id);
-        exit();
+        if (updateMeeting($id, $data)) {
+            $_SESSION['success_message'] = 'Meeting updated successfully!';
+            header('Location: view.php?id=' . $id);
+            exit();
+        } else {
+            $errors[] = 'Failed to update meeting';
+        }
     }
 }
 
-// Get committees for dropdown
+// Get committees for display
 $committees = getAllCommittees();
 
 $userName = $_SESSION['user_name'] ?? 'User';
@@ -149,6 +150,22 @@ include '../../includes/header.php';
                 </label>
                 <input type="time" name="time_end" value="<?php echo htmlspecialchars($meeting['time_end'] ?? ''); ?>"
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Meeting Status <span class="text-red-500">*</span>
+                </label>
+                <select name="status" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
+                    <?php
+                    $statuses = ['Scheduled', 'Ongoing', 'Completed', 'Cancelled'];
+                    foreach ($statuses as $status):
+                    ?>
+                        <option value="<?php echo $status; ?>" <?php echo $meeting['status'] === $status ? 'selected' : ''; ?>>
+                            <?php echo $status; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
             <div class="md:col-span-2">

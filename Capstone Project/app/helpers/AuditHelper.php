@@ -1,157 +1,148 @@
 <?php
 /**
  * Audit Helper
- * Manages audit logging for system actions
+ * Manages system-wide activity logging and retrieval
  */
 
-// Initialize audit logs in session
-if (!isset($_SESSION['audit_logs'])) {
-    $_SESSION['audit_logs'] = [
-        [
-            'id' => 1,
-            'user_id' => 1,
-            'user_name' => 'Admin User',
-            'action' => 'login',
-            'module' => 'Authentication',
-            'description' => 'User logged in successfully',
-            'ip_address' => '192.168.1.100',
-            'created_at' => '2024-12-07 08:30:00'
-        ],
-        [
-            'id' => 2,
-            'user_id' => 1,
-            'user_name' => 'Admin User',
-            'action' => 'create',
-            'module' => 'Referrals',
-            'description' => 'Created referral: Ordinance No. 2024-001',
-            'ip_address' => '192.168.1.100',
-            'created_at' => '2024-12-07 09:15:00'
-        ],
-        [
-            'id' => 3,
-            'user_id' => 1,
-            'user_name' => 'Admin User',
-            'action' => 'update',
-            'module' => 'Committees',
-            'description' => 'Updated committee: Finance Committee',
-            'ip_address' => '192.168.1.100',
-            'created_at' => '2024-12-07 10:45:00'
-        ]
-    ];
+/**
+ * Log a new activity in the audit logs
+ * 
+ * @param int $userId The ID of the user performing the action
+ * @param string $action The type of action (e.g., CREATE, UPDATE, DELETE, LOGIN)
+ * @param string $module The module where the action occurred
+ * @param string $description A human-readable description of the action
+ * @return bool Success or failure
+ */
+function logAuditAction($userId, $action, $module, $description)
+{
+    global $conn;
+    $ipAddress = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+
+    $stmt = $conn->prepare("INSERT INTO audit_logs (user_id, action, module, description, ip_address) VALUES (?, ?, ?, ?, ?)");
+
+    // Convert 0 to NULL for guest/failed login attempts
+    $dbUserId = (empty($userId) || $userId == 0) ? null : $userId;
+
+    $stmt->bind_param("issss", $dbUserId, $action, $module, $description, $ipAddress);
+    return $stmt->execute();
 }
 
 /**
- * Log an action
+ * Get recent activity with optional filters
  */
-function logAction($userId, $action, $module, $description, $ipAddress = null)
+function getAuditLogs($limit = 50, $offset = 0, $filters = [])
 {
-    if (!isset($_SESSION['audit_logs'])) {
-        $_SESSION['audit_logs'] = [];
+    global $conn;
+
+    $sql = "SELECT al.*, u.first_name, u.last_name 
+            FROM audit_logs al 
+            LEFT JOIN users u ON al.user_id = u.user_id";
+
+    $whereClauses = [];
+    $params = [];
+    $types = "";
+
+    if (!empty($filters['user_id'])) {
+        $whereClauses[] = "al.user_id = ?";
+        $params[] = $filters['user_id'];
+        $types .= "i";
     }
 
-    $logs = $_SESSION['audit_logs'];
-    $newId = empty($logs) ? 1 : max(array_column($logs, 'id')) + 1;
-
-    if ($ipAddress === null) {
-        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
+    if (!empty($filters['action'])) {
+        $whereClauses[] = "al.action = ?";
+        $params[] = $filters['action'];
+        $types .= "s";
     }
 
-    $_SESSION['audit_logs'][] = [
-        'id' => $newId,
-        'user_id' => $userId,
-        'user_name' => $_SESSION['user_name'] ?? 'Unknown User',
-        'action' => $action,
-        'module' => $module,
-        'description' => $description,
-        'ip_address' => $ipAddress,
-        'created_at' => date('Y-m-d H:i:s')
-    ];
+    if (!empty($filters['date'])) {
+        $whereClauses[] = "DATE(al.timestamp) = ?";
+        $params[] = $filters['date'];
+        $types .= "s";
+    }
 
-    return $newId;
-}
+    if (!empty($filters['user_search'])) {
+        $searchTerm = "%" . $filters['user_search'] . "%";
+        $whereClauses[] = "(u.first_name LIKE ? OR u.last_name LIKE ? OR u.email LIKE ?)";
+        $params[] = $searchTerm;
+        $params[] = $searchTerm;
+        $params[] = $searchTerm;
+        $types .= "sss";
+    }
 
-/**
- * Get all audit logs
- */
-function getAllAuditLogs()
-{
-    $logs = $_SESSION['audit_logs'] ?? [];
-    // Sort by created_at descending
-    usort($logs, function ($a, $b) {
-        return strtotime($b['created_at']) - strtotime($a['created_at']);
-    });
+    if (!empty($whereClauses)) {
+        $sql .= " WHERE " . implode(" AND ", $whereClauses);
+    }
+
+    $sql .= " ORDER BY al.timestamp DESC LIMIT ? OFFSET ?";
+    $params[] = $limit;
+    $params[] = $offset;
+    $types .= "ii";
+
+    $stmt = $conn->prepare($sql);
+    if (!empty($params)) {
+        $stmt->bind_param($types, ...$params);
+    }
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $logs = [];
+    while ($row = $result->fetch_assoc()) {
+        $logs[] = $row;
+    }
     return $logs;
 }
 
 /**
- * Get audit logs with filters
+ * Get total count of audit logs (for pagination)
  */
-function getAuditLogs($filters = [])
+function getAuditLogsCount($filters = [])
 {
-    $logs = getAllAuditLogs();
+    global $conn;
 
-    if (isset($filters['user_id'])) {
-        $logs = array_filter($logs, function ($log) use ($filters) {
-            return $log['user_id'] == $filters['user_id'];
-        });
+    $sql = "SELECT COUNT(*) as total FROM audit_logs al LEFT JOIN users u ON al.user_id = u.user_id";
+
+    $whereClauses = [];
+    $params = [];
+    $types = "";
+
+    if (!empty($filters['user_id'])) {
+        $whereClauses[] = "al.user_id = ?";
+        $params[] = $filters['user_id'];
+        $types .= "i";
     }
 
-    if (isset($filters['action'])) {
-        $logs = array_filter($logs, function ($log) use ($filters) {
-            return $log['action'] === $filters['action'];
-        });
+    if (!empty($filters['action'])) {
+        $whereClauses[] = "al.action = ?";
+        $params[] = $filters['action'];
+        $types .= "s";
     }
 
-    if (isset($filters['module'])) {
-        $logs = array_filter($logs, function ($log) use ($filters) {
-            return $log['module'] === $filters['module'];
-        });
+    if (!empty($filters['date'])) {
+        $whereClauses[] = "DATE(al.timestamp) = ?";
+        $params[] = $filters['date'];
+        $types .= "s";
     }
 
-    if (isset($filters['date_from'])) {
-        $logs = array_filter($logs, function ($log) use ($filters) {
-            return strtotime($log['created_at']) >= strtotime($filters['date_from']);
-        });
+    if (!empty($filters['user_search'])) {
+        $searchTerm = "%" . $filters['user_search'] . "%";
+        $whereClauses[] = "(u.first_name LIKE ? OR u.last_name LIKE ? OR u.email LIKE ?)";
+        $params[] = $searchTerm;
+        $params[] = $searchTerm;
+        $params[] = $searchTerm;
+        $types .= "sss";
     }
 
-    if (isset($filters['date_to'])) {
-        $logs = array_filter($logs, function ($log) use ($filters) {
-            return strtotime($log['created_at']) <= strtotime($filters['date_to'] . ' 23:59:59');
-        });
+    if (!empty($whereClauses)) {
+        $sql .= " WHERE " . implode(" AND ", $whereClauses);
     }
 
-    return array_values($logs);
-}
+    $stmt = $conn->prepare($sql);
+    if (!empty($params)) {
+        $stmt->bind_param($types, ...$params);
+    }
 
-/**
- * Get logs by user
- */
-function getLogsByUser($userId)
-{
-    return getAuditLogs(['user_id' => $userId]);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    return $row['total'];
 }
-
-/**
- * Get logs by module
- */
-function getLogsByModule($module)
-{
-    return getAuditLogs(['module' => $module]);
-}
-
-/**
- * Get logs by date range
- */
-function getLogsByDateRange($startDate, $endDate)
-{
-    return getAuditLogs(['date_from' => $startDate, 'date_to' => $endDate]);
-}
-
-/**
- * Get logs by action
- */
-function getLogsByAction($action)
-{
-    return getAuditLogs(['action' => $action]);
-}
-?>

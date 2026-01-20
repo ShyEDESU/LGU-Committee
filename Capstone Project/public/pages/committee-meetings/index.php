@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
-require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -8,22 +8,39 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userName = $_SESSION['user_name'] ?? 'User';
+
+// Handle delete
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_meeting'])) {
+    $meetingId = $_POST['meeting_id'];
+    if (deleteMeeting($meetingId)) {
+        $_SESSION['success_message'] = 'Meeting deleted successfully';
+        header('Location: index.php?deleted=1');
+        exit();
+    }
+}
+
 $pageTitle = 'Committee Meetings';
 include '../../includes/header.php';
 
-// Get meetings from session
-$meetings = getAllMeetings();
-
+// Get meetings from database
 $search = $_GET['search'] ?? '';
 $statusFilter = $_GET['status'] ?? '';
 
-if ($search || $statusFilter) {
-    $meetings = array_filter($meetings, function ($meeting) use ($search, $statusFilter) {
-        $matchesSearch = empty($search) || stripos($meeting['title'], $search) !== false || stripos($meeting['committee_name'], $search) !== false;
-        $matchesStatus = empty($statusFilter) || $meeting['status'] === $statusFilter;
-        return $matchesSearch && $matchesStatus;
-    });
-}
+$filters = [];
+if ($search)
+    $filters['search'] = $search;
+if ($statusFilter)
+    $filters['status'] = $statusFilter;
+
+$meetings = getAllMeetings($filters);
+
+// Pagination logic
+$itemsPerPage = 10;
+$totalMeetings = count($meetings);
+$totalPages = ceil($totalMeetings / $itemsPerPage);
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($page - 1) * $itemsPerPage;
+$paginatedMeetings = array_slice($meetings, $offset, $itemsPerPage);
 ?>
 
 <!-- Page Header -->
@@ -68,7 +85,8 @@ if ($search || $statusFilter) {
             class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
             <option value="">All Status</option>
             <option value="Scheduled" <?php echo $statusFilter === 'Scheduled' ? 'selected' : ''; ?>>Scheduled</option>
-            <option value="Held" <?php echo $statusFilter === 'Held' ? 'selected' : ''; ?>>Held</option>
+            <option value="Ongoing" <?php echo $statusFilter === 'Ongoing' ? 'selected' : ''; ?>>Ongoing</option>
+            <option value="Completed" <?php echo $statusFilter === 'Completed' ? 'selected' : ''; ?>>Completed</option>
             <option value="Cancelled" <?php echo $statusFilter === 'Cancelled' ? 'selected' : ''; ?>>Cancelled</option>
         </select>
         <div class="md:col-span-3 flex justify-end gap-2">
@@ -115,9 +133,9 @@ if ($search || $statusFilter) {
         class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 animate-fade-in-up animation-delay-300 hover:shadow-xl transition-all duration-300">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-sm text-gray-600 dark:text-gray-400">Held</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Completed</p>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                    <?php echo count(array_filter($meetings, fn($m) => $m['status'] === 'Held')); ?>
+                    <?php echo count(array_filter($meetings, fn($m) => $m['status'] === 'Completed')); ?>
                 </p>
             </div>
             <div class="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-3">
@@ -181,7 +199,7 @@ if ($search || $statusFilter) {
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                <?php foreach ($meetings as $meeting): ?>
+                <?php foreach ($paginatedMeetings as $meeting): ?>
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <td class="px-6 py-4">
                             <p class="font-semibold text-gray-900 dark:text-white">
@@ -233,22 +251,68 @@ if ($search || $statusFilter) {
                         <td class="px-6 py-4">
                             <span class="px-3 py-1 text-xs font-semibold rounded-full 
                             <?php echo $meeting['status'] === 'Scheduled' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                                ($meeting['status'] === 'Completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'); ?>">
-                                <?php echo $meeting['status']; ?>
+                                ($meeting['status'] === 'Ongoing' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                                    ($meeting['status'] === 'Completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                                        'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300')); ?>">
+                                <?php echo $meeting['status'] ?: 'Unknown'; ?>
                             </span>
                         </td>
                         <td class="px-6 py-4">
-                            <a href="view.php?id=<?php echo $meeting['id']; ?>"
-                                class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold">
-                                <i class="bi bi-eye mr-1"></i> View
-                            </a>
+                            <div class="flex items-center space-x-3">
+                                <a href="view.php?id=<?php echo $meeting['id']; ?>"
+                                    class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold"
+                                    title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="edit.php?id=<?php echo $meeting['id']; ?>"
+                                    class="text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-semibold"
+                                    title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="POST" class="inline"
+                                    onsubmit="return confirm('Are you sure you want to delete this meeting? This action cannot be undone.');">
+                                    <input type="hidden" name="meeting_id" value="<?php echo $meeting['id']; ?>">
+                                    <button type="submit" name="delete_meeting" value="1"
+                                        class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold"
+                                        title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
     </div>
+
+    <!-- Pagination Controls -->
+    <?php if ($totalPages > 1): ?>
+        <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-700 dark:text-gray-300">
+                    Showing <span class="font-medium"><?php echo $offset + 1; ?></span> to
+                    <span class="font-medium"><?php echo min($offset + $itemsPerPage, $totalMeetings); ?></span> of
+                    <span class="font-medium"><?php echo $totalMeetings; ?></span> results
+                </div>
+                <div class="flex gap-2">
+                    <?php if ($page > 1): ?>
+                        <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>"
+                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                            Previous
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if ($page < $totalPages): ?>
+                        <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>"
+                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                            Next
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 </div>
 
 <?php include '../../includes/footer.php'; ?>

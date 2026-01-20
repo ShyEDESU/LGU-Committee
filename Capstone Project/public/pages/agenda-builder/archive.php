@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -167,10 +168,10 @@ include '../../includes/header.php';
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900 dark:text-white">
-                                <?php echo date('M j, Y', strtotime($agenda['date'])); ?>
+                                <?php echo !empty($agenda['date']) ? date('M j, Y', strtotime($agenda['date'])) : 'Not Set'; ?>
                             </div>
                             <div class="text-sm text-gray-500 dark:text-gray-400">
-                                <?php echo date('g:i A', strtotime($agenda['time_start'])); ?>
+                                <?php echo !empty($agenda['time_start']) ? date('g:i A', strtotime($agenda['time_start'])) : ''; ?>
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">

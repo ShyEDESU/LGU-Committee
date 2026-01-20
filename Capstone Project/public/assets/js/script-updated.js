@@ -1,406 +1,216 @@
-// LRMS System JavaScript - Updated with All Latest Changes
+// LRMS System JavaScript - Standardized Global Script
+// This script is shared across Landing, Dashboard, and all Modules.
+// It handles: Real-time Clock, standard Logout, Dark Mode, Sidebar toggles, and UI animations.
+
+// Define global logout function early to ensure it's reachable
+window.logout = function () {
+    if (confirm('Are you sure you want to log out?')) {
+        // Determine base path based on current URL structure
+        // /pages/module-name/page.php -> ../../../ (3 levels up to root)
+        // /dashboard.php or /index.php -> ../ (1 level up to root for app/ folder)
+        const isDeep = window.location.href.includes('/pages/');
+        const basePath = isDeep ? '../../../' : '../';
+        const redirectPath = isDeep ? '../../index.php' : 'index.php';
+
+        fetch(basePath + 'app/controllers/AuthController.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'action=logout'
+        })
+            .then(() => {
+                window.location.href = redirectPath + '?logout=success';
+            })
+            .catch(() => {
+                // If fetch fails (network issue), still attempt to redirect to land safely
+                window.location.href = redirectPath + '?logout=success';
+            });
+    }
+};
 
 document.addEventListener('DOMContentLoaded', function () {
-    // =====================
-    // MOBILE SIDEBAR TOGGLE WITH ANIMATIONS
-    // =====================
+    console.log('LRMS System initializing...');
 
+    // ==========================================
+    // 1. MOBILE SIDEBAR TOGGLE (Robust)
+    // ==========================================
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const mobileSidebar = document.getElementById('mobile-sidebar');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
     const closeMobileSidebar = document.getElementById('close-mobile-sidebar');
 
-    function openMobileSidebar() {
-        // Show overlay with fade and blur
-        sidebarOverlay.classList.remove('opacity-0', 'pointer-events-none');
-        sidebarOverlay.classList.add('opacity-100', 'pointer-events-auto');
+    if (mobileMenuBtn && mobileSidebar && sidebarOverlay) {
+        function openMobileSidebar() {
+            sidebarOverlay.classList.remove('opacity-0', 'pointer-events-none');
+            sidebarOverlay.classList.add('opacity-100', 'pointer-events-auto');
+            mobileSidebar.classList.remove('-translate-x-full');
+            mobileSidebar.classList.add('translate-x-0');
 
-        // Slide in sidebar
-        mobileSidebar.classList.remove('-translate-x-full');
-        mobileSidebar.classList.add('translate-x-0');
+            // Staggered animation for menu items
+            const menuItems = mobileSidebar.querySelectorAll('nav a, nav > div');
+            menuItems.forEach((item, index) => {
+                item.style.opacity = '0';
+                item.style.transform = 'translateX(-20px)';
+                setTimeout(() => {
+                    item.style.transition = 'all 0.3s ease-out';
+                    item.style.opacity = '1';
+                    item.style.transform = 'translateX(0)';
+                }, 50 + (index * 30));
+            });
 
-        // Animate menu items with stagger effect
-        const menuItems = mobileSidebar.querySelectorAll('nav a, nav > div');
-        menuItems.forEach((item, index) => {
-            item.style.opacity = '0';
-            item.style.transform = 'translateX(-20px)';
-            setTimeout(() => {
-                item.style.transition = 'all 0.3s ease-out';
-                item.style.opacity = '1';
-                item.style.transform = 'translateX(0)';
-            }, 50 + (index * 30));
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMobileSidebarFn() {
+            sidebarOverlay.classList.add('opacity-0', 'pointer-events-none');
+            sidebarOverlay.classList.remove('opacity-100', 'pointer-events-auto');
+            mobileSidebar.classList.add('-translate-x-full');
+            mobileSidebar.classList.remove('translate-x-0');
+            document.body.style.overflow = '';
+        }
+
+        mobileMenuBtn.addEventListener('click', openMobileSidebar);
+        closeMobileSidebar?.addEventListener('click', closeMobileSidebarFn);
+        sidebarOverlay.addEventListener('click', closeMobileSidebarFn);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !mobileSidebar.classList.contains('-translate-x-full')) {
+                closeMobileSidebarFn();
+            }
         });
-
-        // Animate header
-        const header = mobileSidebar.querySelector('.sidebar-header');
-        if (header) {
-            header.style.opacity = '0';
-            header.style.transform = 'translateY(-10px)';
-            setTimeout(() => {
-                header.style.transition = 'all 0.3s ease-out';
-                header.style.opacity = '1';
-                header.style.transform = 'translateY(0)';
-            }, 100);
-        }
-
-        // Prevent body scroll
-        document.body.style.overflow = 'hidden';
     }
 
-    function closeMobileSidebarFn() {
-        // Hide overlay with fade
-        sidebarOverlay.classList.add('opacity-0', 'pointer-events-none');
-        sidebarOverlay.classList.remove('opacity-100', 'pointer-events-auto');
-
-        // Slide out sidebar
-        mobileSidebar.classList.add('-translate-x-full');
-        mobileSidebar.classList.remove('translate-x-0');
-
-        // Restore body scroll
-        document.body.style.overflow = '';
-    }
-
-    mobileMenuBtn?.addEventListener('click', openMobileSidebar);
-    closeMobileSidebar?.addEventListener('click', closeMobileSidebarFn);
-    sidebarOverlay?.addEventListener('click', closeMobileSidebarFn);
-
-    // Close sidebar on escape key
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && mobileSidebar && !mobileSidebar.classList.contains('-translate-x-full')) {
-            closeMobileSidebarFn();
-        }
-    });
-
-    // =====================
-    // DESKTOP SIDEBAR TOGGLE
-    // =====================
-
+    // ==========================================
+    // 2. DESKTOP SIDEBAR TOGGLE (Robust)
+    // ==========================================
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('main-content');
     const sidebarIcon = document.querySelector('.sidebar-icon');
     const arrowIcon = document.querySelector('.arrow-icon');
 
-    // Load sidebar state from localStorage
-    const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-    if (sidebarCollapsed && sidebar) {
-        sidebar.classList.add('collapsed');
-        sidebarToggle?.classList.add('sidebar-hidden');
-        mainContent?.classList.add('expanded');
-        // Show arrow, hide sidebar icon
-        sidebarIcon?.classList.add('hidden');
-        arrowIcon?.classList.remove('hidden');
+    if (sidebarToggle && sidebar) {
+        // Load state
+        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        if (isCollapsed) {
+            sidebar.classList.add('collapsed');
+            sidebarToggle.classList.add('sidebar-hidden');
+            mainContent?.classList.add('expanded');
+            sidebarIcon?.classList.add('hidden');
+            arrowIcon?.classList.remove('hidden');
+        }
+
+        sidebarToggle.addEventListener('click', function () {
+            sidebar.classList.toggle('collapsed');
+            mainContent?.classList.toggle('expanded');
+            this.classList.toggle('sidebar-hidden');
+            sidebarIcon?.classList.toggle('hidden');
+            arrowIcon?.classList.toggle('hidden');
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        });
     }
 
-    sidebarToggle?.addEventListener('click', function () {
-        sidebar?.classList.toggle('collapsed');
-        mainContent?.classList.toggle('expanded');
-        this.classList.toggle('sidebar-hidden');
-
-        // Toggle icons
-        sidebarIcon?.classList.toggle('hidden');
-        arrowIcon?.classList.toggle('hidden');
-
-        // Save state to localStorage
-        const isCollapsed = sidebar?.classList.contains('collapsed');
-        localStorage.setItem('sidebarCollapsed', isCollapsed);
-    });
-
-    // =====================
-    // DARK MODE TOGGLE
-    // =====================
-
+    // ==========================================
+    // 3. DARK MODE TOGGLE (Robust)
+    // ==========================================
     const themeToggle = document.getElementById('theme-toggle');
+    const mobileThemeToggle = document.getElementById('mobile-theme-toggle');
     const html = document.documentElement;
 
-    // Load theme from localStorage
-    const currentTheme = localStorage.getItem('theme') || 'light';
-    if (currentTheme === 'dark') {
-        html.classList.add('dark');
-        updateThemeIcon(true);
+    function refreshThemeIcons() {
+        const isDark = html.classList.contains('dark');
+        const darkIcons = document.querySelectorAll('.dark-mode-icon');
+        const lightIcons = document.querySelectorAll('.light-mode-icon');
+
+        darkIcons.forEach(icon => isDark ? icon.classList.add('hidden') : icon.classList.remove('hidden'));
+        lightIcons.forEach(icon => isDark ? icon.classList.remove('hidden') : icon.classList.add('hidden'));
     }
 
-    themeToggle?.addEventListener('click', function () {
+    function toggleTheme() {
         html.classList.toggle('dark');
         const isDark = html.classList.contains('dark');
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        updateThemeIcon(isDark);
-    });
-
-    function updateThemeIcon(isDark) {
-        const darkIcon = document.querySelector('.dark-mode-icon');
-        const lightIcon = document.querySelector('.light-mode-icon');
-        const themeBtn = document.getElementById('theme-toggle');
-
-        if (isDark) {
-            darkIcon?.classList.add('hidden');
-            lightIcon?.classList.remove('hidden');
-            themeBtn?.setAttribute('title', 'Switch to light mode');
-        } else {
-            darkIcon?.classList.remove('hidden');
-            lightIcon?.classList.add('hidden');
-            themeBtn?.setAttribute('title', 'Switch to dark mode');
-        }
+        refreshThemeIcons();
     }
 
-    // =====================
-    // DROPDOWN TOGGLES
-    // =====================
+    themeToggle?.addEventListener('click', toggleTheme);
+    mobileThemeToggle?.addEventListener('click', toggleTheme);
+    refreshThemeIcons(); // Initial sync
 
+    // ==========================================
+    // 4. DROPDOWN HANDLERS (Robust)
+    // ==========================================
     const notificationsBtn = document.getElementById('notifications-btn');
     const notificationsDropdown = document.getElementById('notifications-dropdown');
     const profileBtn = document.getElementById('profile-btn');
     const profileDropdown = document.getElementById('profile-dropdown');
 
-    notificationsBtn?.addEventListener('click', function (e) {
-        e.stopPropagation();
-        notificationsDropdown?.classList.toggle('hidden');
-        profileDropdown?.classList.add('hidden');
-    });
+    if (notificationsBtn && notificationsDropdown) {
+        notificationsBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            notificationsDropdown.classList.toggle('hidden');
+            profileDropdown?.classList.add('hidden');
+        });
+    }
 
-    profileBtn?.addEventListener('click', function (e) {
-        e.stopPropagation();
-        profileDropdown?.classList.toggle('hidden');
-        notificationsDropdown?.classList.add('hidden');
-    });
+    if (profileBtn && profileDropdown) {
+        profileBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            profileDropdown.classList.toggle('hidden');
+            notificationsDropdown?.classList.add('hidden');
+        });
+    }
 
-    // Close dropdowns when clicking outside
     document.addEventListener('click', function () {
         notificationsDropdown?.classList.add('hidden');
         profileDropdown?.classList.add('hidden');
     });
 
-    // =====================
-    // DRAG TO SCROLL
-    // =====================
+    // ==========================================
+    // 5. REAL-TIME CLOCK & DATE (Robust)
+    // ==========================================
+    function updateClock() {
+        const now = new Date();
 
-    class DragScroll {
-        constructor(element) {
-            this.element = element;
-            this.isDown = false;
-            this.startX = 0;
-            this.scrollLeft = 0;
+        const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+        const timeStr = now.toLocaleTimeString('en-US', timeOptions);
 
-            this.init();
-        }
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const dateStr = now.toLocaleDateString('en-US', dateOptions);
 
-        init() {
-            this.element.addEventListener('mousedown', this.onMouseDown.bind(this));
-            this.element.addEventListener('mouseleave', this.onMouseLeave.bind(this));
-            this.element.addEventListener('mouseup', this.onMouseUp.bind(this));
-            this.element.addEventListener('mousemove', this.onMouseMove.bind(this));
-
-            // Touch support
-            this.element.addEventListener('touchstart', this.onTouchStart.bind(this));
-            this.element.addEventListener('touchend', this.onTouchEnd.bind(this));
-            this.element.addEventListener('touchmove', this.onTouchMove.bind(this));
-        }
-
-        onMouseDown(e) {
-            this.isDown = true;
-            this.element.classList.add('active');
-            this.startX = e.pageX - this.element.offsetLeft;
-            this.scrollLeft = this.element.scrollLeft;
-        }
-
-        onMouseLeave() {
-            this.isDown = false;
-            this.element.classList.remove('active');
-        }
-
-        onMouseUp() {
-            this.isDown = false;
-            this.element.classList.remove('active');
-        }
-
-        onMouseMove(e) {
-            if (!this.isDown) return;
-            e.preventDefault();
-            const x = e.pageX - this.element.offsetLeft;
-            const walk = (x - this.startX) * 2;
-            this.element.scrollLeft = this.scrollLeft - walk;
-        }
-
-        onTouchStart(e) {
-            this.isDown = true;
-            this.startX = e.touches[0].pageX - this.element.offsetLeft;
-            this.scrollLeft = this.element.scrollLeft;
-        }
-
-        onTouchEnd() {
-            this.isDown = false;
-        }
-
-        onTouchMove(e) {
-            if (!this.isDown) return;
-            const x = e.touches[0].pageX - this.element.offsetLeft;
-            const walk = (x - this.startX) * 2;
-            this.element.scrollLeft = this.scrollLeft - walk;
-        }
+        document.querySelectorAll('.real-time-clock').forEach(el => { el.textContent = timeStr; });
+        document.querySelectorAll('.real-time-date').forEach(el => { el.textContent = dateStr; });
     }
 
-    // Initialize drag scroll on all elements with .drag-scroll class
-    document.querySelectorAll('.drag-scroll').forEach(element => {
-        new DragScroll(element);
-    });
+    setInterval(updateClock, 1000);
+    updateClock(); // Run immediately
 
-    // =====================
-    // TOAST NOTIFICATIONS
-    // =====================
-
-    window.showToast = function (message, type = 'info') {
-        const toast = document.createElement('div');
-        const colors = {
-            success: 'bg-green-500',
-            error: 'bg-red-500',
-            warning: 'bg-yellow-500',
-            info: 'bg-blue-500'
-        };
-        const icons = {
-            success: 'bi-check-circle-fill',
-            error: 'bi-x-circle-fill',
-            warning: 'bi-exclamation-triangle-fill',
-            info: 'bi-info-circle-fill'
-        };
-
-        toast.className = `${colors[type]} text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 transform transition-all duration-300 translate-x-0 opacity-100 min-w-[300px]`;
-        toast.innerHTML = `
-            <i class="bi ${icons[type]} text-xl"></i>
-            <span class="font-semibold">${message}</span>
-        `;
-
-        const container = document.getElementById('toast-container');
-        container?.appendChild(toast);
-
-        // Auto remove after 4 seconds
-        setTimeout(() => {
-            toast.classList.add('translate-x-full', 'opacity-0');
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
-    };
-
-    // =====================
-    // MODAL FUNCTIONS
-    // =====================
-
-    window.openModal = function (modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-    };
-
-    window.closeModal = function (modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.remove('show');
-            document.body.style.overflow = '';
-        }
-    };
-
-    // Close modal when clicking outside
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal) {
-                modal.classList.remove('show');
-                document.body.style.overflow = '';
-            }
-        });
-    });
-
-    // =====================
-    // NAVIGATION ACTIVE STATE
-    // =====================
-
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-        item.addEventListener('click', function () {
-            navItems.forEach(nav => nav.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
-
-    // =====================
-    // QUICK SEARCH FOCUS
-    // =====================
-
-    window.focusSearch = function () {
-        const searchInput = document.getElementById('quick-search');
-        searchInput?.focus();
-    };
-
-    // Keyboard shortcut Ctrl+K to focus search
-    document.addEventListener('keydown', function (e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-            e.preventDefault();
-            focusSearch();
-        }
-    });
-
-    // =====================
-    // NOTIFICATION FUNCTIONS
-    // =====================
-
-    window.clearAllNotifications = function () {
-        const notifications = document.querySelectorAll('[data-notification-id]');
-        notifications.forEach(notification => {
-            notification.style.transition = 'all 0.3s ease-out';
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateX(20px)';
-            setTimeout(() => notification.remove(), 300);
-        });
-        showToast('All notifications cleared', 'success');
-    };
-
-    // =====================
-    // DOCUMENT UPLOAD HANDLER
-    // =====================
-
-    window.handleDocumentUpload = function () {
-        showToast('Document uploaded successfully!', 'success');
-        closeModal('upload-modal');
-    };
-
-    // =====================
-    // PAGE LOADER
-    // =====================
-
-    window.showPageLoader = function () {
-        document.getElementById('page-loader')?.classList.remove('hidden');
-    };
-
-    window.hidePageLoader = function () {
-        document.getElementById('page-loader')?.classList.add('hidden');
-    };
-
-    // Hide loader when page is fully loaded
-    window.addEventListener('load', function () {
-        hidePageLoader();
-    });
-
-    // =====================
-    // INITIALIZE ANIMATIONS
-    // =====================
-
-    // Add fade-in animation to cards on scroll
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
+    // ==========================================
+    // 6. UI UTILITIES (Robust)
+    // ==========================================
+    // Animation on scroll
+    const scrollObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                entry.target.classList.add('animate-fade-in-up');
-                observer.unobserve(entry.target);
+                entry.target.classList.add('active');
             }
         });
-    }, observerOptions);
+    }, { threshold: 0.1 });
 
-    document.querySelectorAll('.animate-on-scroll').forEach(el => {
-        observer.observe(el);
-    });
+    document.querySelectorAll('.animate-on-scroll, .scroll-reveal').forEach(el => scrollObserver.observe(el));
 
-    console.log('LRMS System initialized successfully!');
+    // Toast Notification System
+    window.showToast = function (message, type = 'info') {
+        const container = document.getElementById('toast-container') || document.body;
+        const toast = document.createElement('div');
+        toast.className = `fixed bottom-4 right-4 z-[100] transform transition-all duration-300 opacity-0 translate-y-2 p-4 rounded-lg shadow-lg text-white font-bold flex items-center gap-3 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+        toast.innerHTML = `<i class="bi ${type === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle'}"></i> ${message}`;
+        container.appendChild(toast);
+        setTimeout(() => toast.classList.remove('opacity-0', 'translate-y-2'), 10);
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-y-2');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+
+    console.log('LRMS System Ready.');
 });

@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -210,7 +211,13 @@ include '../../includes/header.php';
                     <?php foreach (array_slice($distributionLog, 0, 5) as $log): ?>
                         <div class="text-sm">
                             <p class="font-semibold text-gray-900 dark:text-white">
-                                <?php echo count($log['recipients']); ?> recipients
+                                <?php
+                                $recipients = $log['recipients'] ?? [];
+                                if (is_string($recipients)) {
+                                    $recipients = json_decode($recipients, true) ?? [];
+                                }
+                                echo count($recipients);
+                                ?> recipients
                             </p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
                                 <?php echo date('M j, Y g:i A', strtotime($log['distributed_at'])); ?>

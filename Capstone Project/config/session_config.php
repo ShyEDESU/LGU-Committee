@@ -51,9 +51,19 @@ if (isset($_SESSION['user_id'])) {
         session_start();
         $_SESSION['timeout_message'] = 'Session expired due to inactivity.';
 
-        // Redirect to login
+        // Redirect to login - try to find it relatively or go back to landing
         if (php_sapi_name() !== 'cli') {
-            header('Location: /auth/login.php');
+            // Find base path
+            $currentPath = $_SERVER['PHP_SELF'];
+            $isInPublic = strpos($currentPath, '/public/') !== false || strpos($currentPath, '/auth/') !== false;
+            $redirectPath = $isInPublic ? '../auth/login.php' : 'auth/login.php';
+
+            // If we are deep in pages:
+            if (strpos($currentPath, '/pages/') !== false) {
+                $redirectPath = '../../../auth/login.php';
+            }
+
+            header("Location: $redirectPath");
             exit();
         }
     }

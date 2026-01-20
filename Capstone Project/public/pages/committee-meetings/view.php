@@ -1,6 +1,11 @@
 <?php
+// Completely suppress all errors to prevent JSON corruption
+error_reporting(0);
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+
 require_once __DIR__ . '/../../../config/session_config.php';
-require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -25,17 +30,56 @@ if (isset($_POST['delete'])) {
     exit();
 }
 
-// Get related data
+// Handle Status Change
+if (isset($_POST['update_status'])) {
+    $newStatus = $_POST['update_status'];
+    if (changeMeetingStatus($id, $newStatus)) {
+        $_SESSION['success_message'] = "Meeting status updated to $newStatus!";
+        header("Location: view.php?id=$id");
+        exit();
+    }
+}
+
+// Get related data with error handling
 $committee = getCommitteeById($meeting['committee_id']);
-$agendaItems = getAgendaByMeeting($id);
-$attendance = getMeetingAttendance($id);
-$documents = getMeetingDocuments($id);
-$minutes = getMeetingMinutes($id);
+if (!$committee) {
+    $committee = ['name' => 'Unknown', 'chair' => 'Unknown', 'member_count' => 0];
+}
+
+// Get agenda items
+$agendaItems = [];
+if (function_exists('getAgendaItems')) {
+    $agendaItems = getAgendaItems($id) ?? [];
+}
+
+// Get attendance records
+$attendance = [];
+if (function_exists('getAttendanceRecords')) {
+    $attendance = getAttendanceRecords($id) ?? [];
+}
+
+// Get documents
+$documents = [];
+if (function_exists('getMeetingDocuments')) {
+    $documents = getMeetingDocuments($id) ?? [];
+}
+
+// Get minutes
+$minutes = null;
+if (function_exists('getMeetingMinutes')) {
+    $minutes = getMeetingMinutes($id);
+}
 
 // Calculate statistics
 $hasAgenda = !empty($agendaItems);
 $agendaStatus = $meeting['agenda_status'] ?? 'None';
-$attendanceStats = getAttendanceStats($id);
+
+// Get attendance stats
+$attendanceStats = [];
+if (function_exists('getAttendanceStats')) {
+    $attendanceStats = getAttendanceStats($id) ?? [];
+}
+
 // Ensure attendanceStats has default values
 if (empty($attendanceStats)) {
     $attendanceStats = [
@@ -71,6 +115,29 @@ include '../../includes/header.php';
         </div>
     <?php endif; ?>
 
+    <?php
+    // Check for active votes for this meeting
+    $activeVotes = getActiveVotesByMeeting($id);
+    $userId = $_SESSION['user_id'] ?? 0;
+    $isCommitteeMember = isCommitteeMember($meeting['committee_id'] ?? 0, $userId);
+    if (!empty($activeVotes) && $isCommitteeMember): ?>
+        <div class="bg-blue-600 rounded-lg shadow-lg p-4 mb-6 text-white flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="bg-blue-500 rounded-full p-2 mr-4">
+                    <i class="bi bi-hand-thumbs-up-fill text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg">Active Voting in Progress</h3>
+                    <p class="text-blue-100 text-sm">There are active motions that require your vote.</p>
+                </div>
+            </div>
+            <a href="../agenda-builder/member-vote.php?meeting_id=<?php echo $id; ?>"
+                class="px-6 py-2 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition shadow-sm">
+                Vote Now
+            </a>
+        </div>
+    <?php endif; ?>
+
     <!-- Page Header -->
     <div class="flex justify-between items-center mb-6">
         <div>
@@ -85,6 +152,74 @@ include '../../includes/header.php';
             <a href="index.php" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
                 <i class="bi bi-arrow-left mr-2"></i>Back to List
             </a>
+            <?php
+            // Generate Google Calendar link with proper error handling
+            try {
+                // Meeting data uses these keys: title, description, venue, date, time_start, time_end
+                $calendarTitle = urlencode($meeting['title'] ?? 'Committee Meeting');
+                $calendarDetails = urlencode(strip_tags($meeting['description'] ?? ''));
+                $calendarLocation = urlencode($meeting['venue'] ?? '');
+
+                // Get date and time - handle both formats
+                $meetingDate = $meeting['date'] ?? date('Y-m-d');
+                $startTime = $meeting['time_start'] ?? '09:00:00';
+                $endTime = $meeting['time_end'] ?? '';
+
+                // Remove seconds if present (HH:MM:SS -> HH:MM)
+                $startTime = substr($startTime, 0, 5);
+                if ($endTime) {
+                    $endTime = substr($endTime, 0, 5);
+                }
+
+                // Format for Google Calendar (YYYYMMDDTHHMMSS)
+                $startDT = strtotime($meetingDate . ' ' . $startTime);
+                $startFormatted = date('Ymd\THis', $startDT);
+
+                if (!empty($endTime)) {
+                    $endDT = strtotime($meetingDate . ' ' . $endTime);
+                    $endFormatted = date('Ymd\THis', $endDT);
+                } else {
+                    // Default to 2 hours if no end time
+                    $endFormatted = date('Ymd\THis', $startDT + (2 * 3600));
+                }
+
+                // Build URL
+                $googleCalendarUrl = "https://www.google.com/calendar/render?action=TEMPLATE" .
+                    "&text=" . $calendarTitle .
+                    "&dates=" . $startFormatted . "/" . $endFormatted .
+                    "&details=" . $calendarDetails .
+                    "&location=" . $calendarLocation;
+
+            } catch (Exception $e) {
+                $googleCalendarUrl = "#";
+            }
+            ?>
+            <a href="<?php echo htmlspecialchars($googleCalendarUrl); ?>" target="_blank"
+                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="bi bi-calendar-plus mr-2"></i>Add to Calendar
+            </a>
+            <?php if ($meeting['status'] === 'Completed'): ?>
+                <a href="generate-minutes.php?id=<?php echo $id; ?>" target="_blank"
+                    class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="bi bi-file-earmark-pdf mr-2"></i>Generate Draft Minutes
+                </a>
+            <?php endif; ?>
+            <?php if (in_array($meeting['status'], ['Scheduled', 'Ongoing'])): ?>
+                <form method="POST" class="inline">
+                    <button type="submit" name="update_status" value="Completed"
+                        class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg transition mr-1">
+                        <i class="bi bi-check-all mr-2"></i>Complete Meeting
+                    </button>
+                </form>
+            <?php elseif ($meeting['status'] === 'Completed'): ?>
+                <form method="POST" class="inline">
+                    <button type="submit" name="update_status" value="Ongoing"
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition mr-1">
+                        <i class="bi bi-arrow-counterclockwise mr-2"></i>Reopen Meeting
+                    </button>
+                </form>
+            <?php endif; ?>
+
             <a href="edit.php?id=<?php echo $id; ?>"
                 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
                 <i class="bi bi-pencil mr-2"></i>Edit
@@ -339,8 +474,9 @@ include '../../includes/header.php';
                     </p>
                     <div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                         <p><i class="bi bi-person text-red-600 mr-2"></i>Chair:
-                            <?php echo htmlspecialchars($committee['chair']); ?></p>
-                        <p><i class="bi bi-people text-red-600 mr-2"></i><?php echo $committee['members_count']; ?>
+                            <?php echo htmlspecialchars($committee['chair']); ?>
+                        </p>
+                        <p><i class="bi bi-people text-red-600 mr-2"></i><?php echo $committee['member_count'] ?? 0; ?>
                             Members</p>
                     </div>
                     <a href="../committee-profiles/view.php?id=<?php echo $meeting['committee_id']; ?>"
@@ -369,15 +505,15 @@ include '../../includes/header.php';
                         </button>
                         <div id="calendarDropdown"
                             class="hidden absolute bottom-full mb-2 w-full bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-10">
-                            <a href="#" onclick="addToGoogleCalendar(<?php echo $id; ?>); return false;"
+                            <a href="#" onclick="addToGoogleCalendar(); return false;"
                                 class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-t-lg transition">
                                 <i class="bi bi-google text-red-500 mr-2"></i>Google Calendar
                             </a>
-                            <a href="#" onclick="addToOutlook(<?php echo $id; ?>); return false;"
+                            <a href="#" onclick="addToOutlook(); return false;"
                                 class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
                                 <i class="bi bi-microsoft text-blue-500 mr-2"></i>Outlook
                             </a>
-                            <a href="#" onclick="addToCalendar(<?php echo $id; ?>); return false;"
+                            <a href="#" onclick="addToCalendar(); return false;"
                                 class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-b-lg transition">
                                 <i class="bi bi-apple text-gray-700 dark:text-gray-300 mr-2"></i>Apple Calendar (.ics)
                             </a>
@@ -411,6 +547,62 @@ include '../../includes/header.php';
     </div>
 </div>
 
+<?php
+// Generate calendar URLs in PHP to avoid JSON issues
+$calendarTitle = urlencode($meeting['title']);
+$calendarDetails = urlencode(strip_tags($meeting['description'] ?? ''));
+$calendarLocation = urlencode($meeting['venue']);
+
+// Format dates
+$startTime = $meeting['time_start'];
+$endTime = $meeting['time_end'] ?? '';
+
+// Ensure time format
+if (strlen($startTime) == 5)
+    $startTime .= ':00';
+if (!empty($endTime) && strlen($endTime) == 5)
+    $endTime .= ':00';
+
+$startDT = strtotime($meeting['date'] . ' ' . $startTime);
+$endDT = !empty($endTime) ? strtotime($meeting['date'] . ' ' . $endTime) : ($startDT + 7200);
+
+$startFormatted = date('Ymd\THis', $startDT);
+$endFormatted = date('Ymd\THis', $endDT);
+
+// Google Calendar URL
+$googleCalendarUrl = "https://www.google.com/calendar/render?action=TEMPLATE" .
+    "&text=" . $calendarTitle .
+    "&dates=" . $startFormatted . "/" . $endFormatted .
+    "&details=" . $calendarDetails .
+    "&location=" . $calendarLocation;
+
+// Outlook URL
+$outlookUrl = "https://outlook.live.com/calendar/0/deeplink/compose?" .
+    "subject=" . $calendarTitle .
+    "&startdt=" . $startFormatted .
+    "&enddt=" . $endFormatted .
+    "&body=" . $calendarDetails .
+    "&location=" . $calendarLocation;
+
+// ICS file content
+$icsContent = "BEGIN:VCALENDAR\r\n" .
+    "VERSION:2.0\r\n" .
+    "PRODID:-//Committee Meeting//EN\r\n" .
+    "BEGIN:VEVENT\r\n" .
+    "UID:meeting-" . $id . "@legislative-cms\r\n" .
+    "DTSTAMP:" . date('Ymd\THis') . "\r\n" .
+    "DTSTART:" . $startFormatted . "\r\n" .
+    "DTEND:" . $endFormatted . "\r\n" .
+    "SUMMARY:" . str_replace(["\r", "\n", ",", ";"], ["", "\\n", "\\,", "\\;"], $meeting['title']) . "\r\n" .
+    "DESCRIPTION:" . str_replace(["\r", "\n", ",", ";"], ["", "\\n", "\\,", "\\;"], $meeting['description'] ?? '') . "\r\n" .
+    "LOCATION:" . str_replace(["\r", "\n", ",", ";"], ["", "\\n", "\\,", "\\;"], $meeting['venue']) . "\r\n" .
+    "STATUS:CONFIRMED\r\n" .
+    "END:VEVENT\r\n" .
+    "END:VCALENDAR";
+
+$icsDataUrl = 'data:text/calendar;charset=utf-8,' . rawurlencode($icsContent);
+?>
+
 <script>
     function toggleCalendarDropdown() {
         const dropdown = document.getElementById('calendarDropdown');
@@ -426,16 +618,24 @@ include '../../includes/header.php';
         }
     });
 
-    function addToGoogleCalendar(meetingId) {
-        alert('Google Calendar integration will be implemented');
+    function addToGoogleCalendar() {
+        window.open(<?php echo json_encode($googleCalendarUrl); ?>, '_blank');
+        toggleCalendarDropdown();
     }
 
-    function addToOutlook(meetingId) {
-        alert('Outlook integration will be implemented');
+    function addToOutlook() {
+        window.open(<?php echo json_encode($outlookUrl); ?>, '_blank');
+        toggleCalendarDropdown();
     }
 
-    function addToCalendar(meetingId) {
-        alert('.ics file download will be implemented');
+    function addToCalendar() {
+        const link = document.createElement('a');
+        link.href = <?php echo json_encode($icsDataUrl); ?>;
+        link.download = 'meeting-<?php echo $id; ?>.ics';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toggleCalendarDropdown();
     }
 </script>
 

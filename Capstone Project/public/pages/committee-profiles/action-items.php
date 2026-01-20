@@ -9,13 +9,17 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $id = $_GET['id'] ?? 0;
-$committee = getCommitteeWithStats($id);
+$committee = getCommitteeById($id);
 
 if (!$committee) {
     $_SESSION['error_message'] = 'Committee not found';
     header('Location: index.php');
     exit();
 }
+
+// Get statistics
+$stats = getCommitteeStatistics($id);
+$committee = array_merge($committee, $stats);
 
 // Get action items for this committee
 $actionItems = getActionItemsByCommittee($id);

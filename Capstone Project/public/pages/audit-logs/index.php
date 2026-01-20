@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once '../../../config/database.php';
+require_once '../../../app/helpers/AuditHelper.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
@@ -8,9 +9,31 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
     exit();
 }
 
-$userName = $_SESSION['user_name'] ?? 'User';
+// Check if user has permission to view audit logs (Admin only)
 $userRole = $_SESSION['user_role'] ?? 'User';
+if ($userRole !== 'Administrator' && $userRole !== 'Super Administrator') {
+    header('Location: ../../../dashboard.php');
+    exit();
+}
+
+$userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Audit Logs';
+
+// Filters
+$filters = [
+    'action' => $_GET['action'] ?? '',
+    'user_search' => $_GET['user'] ?? '',
+    'date' => $_GET['date'] ?? ''
+];
+
+// Pagination
+$limit = 10;
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($page - 1) * $limit;
+
+$auditLogs = getAuditLogs($limit, $offset, $filters);
+$totalLogs = getAuditLogsCount($filters);
+$totalPages = ceil($totalLogs / $limit);
 
 // Include shared header
 include '../../includes/header.php';
@@ -24,36 +47,45 @@ include '../../includes/header.php';
 
 <!-- Filters -->
 <div class="bg-white rounded-xl shadow-md p-6 mb-6 animate-fade-in-up animation-delay-100">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Action Type</label>
-            <select id="filterAction" onchange="filterAuditLogs()" class="input-field w-full">
+            <select name="action" onchange="this.form.submit()"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent">
                 <option value="">All Actions</option>
-                <option value="create">Create</option>
-                <option value="update">Update</option>
-                <option value="delete">Delete</option>
-                <option value="login">Login</option>
-                <option value="logout">Logout</option>
+                <option value="create" <?php echo $filters['action'] === 'create' ? 'selected' : ''; ?>>Create</option>
+                <option value="update" <?php echo $filters['action'] === 'update' ? 'selected' : ''; ?>>Update</option>
+                <option value="delete" <?php echo $filters['action'] === 'delete' ? 'selected' : ''; ?>>Delete</option>
+                <option value="login" <?php echo $filters['action'] === 'login' ? 'selected' : ''; ?>>Login</option>
+                <option value="logout" <?php echo $filters['action'] === 'logout' ? 'selected' : ''; ?>>Logout</option>
             </select>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">User</label>
-            <input type="text" id="filterUser" onkeyup="filterAuditLogs()" placeholder="Search by user..."
-                class="input-field w-full">
+            <input type="text" name="user" value="<?php echo htmlspecialchars($filters['user_search']); ?>"
+                placeholder="Search by user..."
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent">
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
-            <input type="date" id="filterDate" onchange="filterAuditLogs()" class="input-field w-full">
+            <input type="date" name="date" value="<?php echo htmlspecialchars($filters['date']); ?>"
+                onchange="this.form.submit()"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent">
         </div>
 
-        <div class="flex items-end">
-            <button onclick="clearFilters()" class="btn-outline w-full">
-                <i class="bi bi-x-circle mr-2"></i>Clear Filters
+        <div class="flex items-end gap-2">
+            <button type="submit"
+                class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition">
+                <i class="bi bi-search mr-2"></i>Filter
             </button>
+            <a href="index.php"
+                class="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold transition">
+                <i class="bi bi-x-circle mr-2"></i>Clear
+            </a>
         </div>
-    </div>
+    </form>
 </div>
 
 <!-- Audit Logs Table -->
@@ -73,8 +105,65 @@ include '../../includes/header.php';
                         Address</th>
                 </tr>
             </thead>
-            <tbody id="auditLogsList" class="divide-y divide-gray-200">
-                <!-- Populated by JavaScript -->
+            <tbody class="divide-y divide-gray-200">
+                <?php if (empty($auditLogs)): ?>
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                            <i class="bi bi-inbox text-4xl mb-2 block"></i>
+                            No audit logs found matching your criteria
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($auditLogs as $log): ?>
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                <?php echo date('M j, Y g:i A', strtotime($log['timestamp'])); ?>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                                <?php echo htmlspecialchars($log['first_name'] . ' ' . $log['last_name']); ?>
+                            </td>
+                            <td class="px-6 py-4">
+                                <?php
+                                $action = strtolower($log['action']);
+                                $badgeClass = 'bg-gray-100 text-gray-800';
+                                switch ($action) {
+                                    case 'create':
+                                        $badgeClass = 'bg-green-100 text-green-800';
+                                        break;
+                                    case 'update':
+                                    case 'edit':
+                                    case 'update_profile':
+                                    case 'update_picture':
+                                        $badgeClass = 'bg-blue-100 text-blue-800';
+                                        break;
+                                    case 'delete':
+                                    case 'remove_picture':
+                                        $badgeClass = 'bg-red-100 text-red-800';
+                                        break;
+                                    case 'login':
+                                        $badgeClass = 'bg-purple-100 text-purple-800';
+                                        break;
+                                    case 'logout':
+                                        $badgeClass = 'bg-gray-100 text-gray-800';
+                                        break;
+                                    case 'change_password':
+                                        $badgeClass = 'bg-yellow-100 text-yellow-800';
+                                        break;
+                                }
+                                ?>
+                                <span class="px-2 py-1 text-xs rounded-full <?php echo $badgeClass; ?>">
+                                    <?php echo ucfirst($log['action']); ?>
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                <?php echo htmlspecialchars($log['description']); ?>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                <?php echo htmlspecialchars($log['ip_address']); ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -82,15 +171,28 @@ include '../../includes/header.php';
     <!-- Pagination -->
     <div class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
         <div class="text-sm text-gray-700">
-            Showing <span id="showingCount">0</span> of <span id="totalCount">0</span> logs
+            Showing <span class="font-medium"><?php echo $offset + 1; ?></span> to
+            <span class="font-medium"><?php echo min($offset + $limit, $totalLogs); ?></span> of
+            <span class="font-medium"><?php echo $totalLogs; ?></span> logs
         </div>
         <div class="flex gap-2">
-            <button class="btn-outline px-3 py-1 text-sm">Previous</button>
-            <button class="btn-outline px-3 py-1 text-sm">Next</button>
+            <?php if ($page > 1): ?>
+                <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>"
+                    class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
+                    Previous
+                </a>
+            <?php endif; ?>
+
+            <?php if ($page < $totalPages): ?>
+                <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>"
+                    class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
+                    Next
+                </a>
+            <?php endif; ?>
         </div>
     </div>
 </div>
 
-<script src="../../assets/js/audit-logs.js"></script>
+<!-- Removed JS populated audit logs to use server-side PHP pagination and real data -->
 
 <?php include '../../includes/footer.php'; ?>

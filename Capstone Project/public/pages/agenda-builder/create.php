@@ -2,20 +2,12 @@
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
     exit();
 }
-
-$userName = $_SESSION['user_name'] ?? 'User';
-$pageTitle = 'Create Agenda';
-include '../../includes/header.php';
-
-// Get all committees and meetings
-$committees = getAllCommittees();
-$allMeetings = getAllMeetings();
-$templates = getAllAgendaTemplates();
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -24,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // If template is selected, apply it
     if ($templateId) {
-        applyTemplate($templateId, $meetingId);
+        applyTemplateToAgenda($meetingId, $templateId);
     }
 
     // Add custom items if provided
@@ -43,17 +35,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Update meeting agenda status
-    $meetings = &$_SESSION['meetings'];
-    foreach ($meetings as &$meeting) {
-        if ($meeting['id'] == $meetingId) {
-            $meeting['agenda_status'] = 'Draft';
-            break;
-        }
-    }
+    changeMeetingAgendaStatus($meetingId, 'Draft');
 
     header('Location: view.php?id=' . $meetingId . '&created=1');
     exit();
 }
+
+$userName = $_SESSION['user_name'] ?? 'User';
+$pageTitle = 'Create Agenda';
+include '../../includes/header.php';
+
+// Get all committees and meetings
+$committees = getAllCommittees();
+$allMeetings = getAllMeetings();
+$templates = getAllAgendaTemplates();
 
 // Get selected committee for filtering meetings
 $selectedCommittee = $_GET['committee'] ?? '';
@@ -159,8 +154,8 @@ $selectedCommittee = $_GET['committee'] ?? '';
                     onchange="previewTemplate()">
                     <option value="">No Template (Add items manually)</option>
                     <?php foreach ($templates as $template): ?>
-                        <option value="<?php echo $template['id']; ?>"
-                            data-items='<?php echo json_encode($template['items']); ?>'>
+                        <option value="<?php echo $template['template_id']; ?>"
+                            data-items='<?php echo htmlspecialchars(json_encode($template['items']), ENT_QUOTES, 'UTF-8'); ?>'>
                             <?php echo htmlspecialchars($template['name']); ?> (
                             <?php echo count($template['items']); ?> items)
                         </option>

@@ -1,9 +1,43 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
+    exit();
+}
+
+// Handle template creation
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_template'])) {
+    $items = json_decode($_POST['items_json'], true) ?? [];
+    $templateData = [
+        'name' => $_POST['name'],
+        'description' => $_POST['description'],
+        'committee_type' => $_POST['committee_type'] ?? 'General',
+        'items' => $items
+    ];
+    
+    $newId = createAgendaTemplate($templateData);
+    if ($newId) {
+        $_SESSION['success_message'] = 'Agenda template created successfully';
+    } else {
+        $_SESSION['error_message'] = 'Failed to create template';
+    }
+    header('Location: templates.php');
+    exit();
+}
+
+// Handle template deletion
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_template'])) {
+    $templateId = $_POST['template_id'];
+    if (deleteAgendaTemplate($templateId)) {
+        $_SESSION['success_message'] = 'Template deleted successfully';
+    } else {
+        $_SESSION['error_message'] = 'Failed to delete template';
+    }
+    header('Location: templates.php');
     exit();
 }
 
@@ -11,31 +45,8 @@ $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Agenda Templates';
 include '../../includes/header.php';
 
-// Get all templates
+// Get all templates from database
 $templates = getAllAgendaTemplates();
-
-// Handle form submissions
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['create_template'])) {
-        // Parse items from JSON
-        $items = json_decode($_POST['items_json'], true) ?? [];
-
-        createAgendaTemplate([
-            'name' => $_POST['name'],
-            'description' => $_POST['description'],
-            'committee_type' => $_POST['committee_type'],
-            'items' => $items
-        ]);
-
-        header('Location: templates.php?created=1');
-        exit();
-    } elseif (isset($_POST['delete_template'])) {
-        $templateId = $_POST['template_id'];
-        deleteAgendaTemplate($templateId);
-        header('Location: templates.php?deleted=1');
-        exit();
-    }
-}
 ?>
 
 <div class="mb-6">
@@ -57,21 +68,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
-<!-- Success Messages -->
-<?php if (isset($_GET['created'])): ?>
+<?php if (isset($_SESSION['success_message'])): ?>
     <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 mb-6">
         <div class="flex items-center">
             <i class="bi bi-check-circle text-green-700 dark:text-green-300 text-xl mr-3"></i>
-            <p class="text-green-700 dark:text-green-300 font-medium">Template created successfully!</p>
+            <p class="text-green-700 dark:text-green-300 font-medium"><?php echo $_SESSION['success_message']; unset($_SESSION['success_message']); ?></p>
         </div>
     </div>
 <?php endif; ?>
 
-<?php if (isset($_GET['deleted'])): ?>
+<?php if (isset($_SESSION['error_message'])): ?>
     <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 mb-6">
         <div class="flex items-center">
-            <i class="bi bi-check-circle text-red-700 dark:text-red-300 text-xl mr-3"></i>
-            <p class="text-red-700 dark:text-red-300 font-medium">Template deleted successfully!</p>
+            <i class="bi bi-exclamation-circle text-red-700 dark:text-red-300 text-xl mr-3"></i>
+            <p class="text-red-700 dark:text-red-300 font-medium"><?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?></p>
         </div>
     </div>
 <?php endif; ?>
@@ -95,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </p>
                         <span
                             class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                            <?php echo $template['committee_type']; ?>
+                            <?php echo $template['committee_type'] ?? 'General'; ?>
                         </span>
                     </div>
                 </div>
@@ -111,12 +121,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class="bi bi-clock w-5"></i>
                         <span class="ml-2">
                             <?php echo $totalDuration; ?> Minutes Total
-                        </span>
-                    </div>
-                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                        <i class="bi bi-person w-5"></i>
-                        <span class="ml-2">By
-                            <?php echo htmlspecialchars($template['created_by']); ?>
                         </span>
                     </div>
                 </div>
@@ -144,16 +148,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-center rounded-lg transition text-sm font-semibold">
                         <i class="bi bi-eye mr-1"></i> View
                     </button>
-                    <?php if ($template['created_by'] !== 'System'): ?>
-                        <form method="POST" class="inline" onsubmit="return confirm('Delete this template?');">
-                            <input type="hidden" name="delete_template" value="1">
-                            <input type="hidden" name="template_id" value="<?php echo $template['id']; ?>">
-                            <button type="submit"
-                                class="px-4 py-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg transition">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </form>
-                    <?php endif; ?>
+                    <form method="POST" class="inline" onsubmit="return confirm('Delete this template?');">
+                        <input type="hidden" name="delete_template" value="1">
+                        <input type="hidden" name="template_id" value="<?php echo $template['template_id']; ?>">
+                        <button type="submit"
+                            class="px-4 py-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg transition">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -362,9 +364,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         content += `
             </div>
-        </div>
-        <div class="text-sm text-gray-500 dark:text-gray-500">
-            Created by ${template.created_by} on ${template.created_date}
         </div>
     `;
 

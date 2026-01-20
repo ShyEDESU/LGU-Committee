@@ -1,6 +1,9 @@
 <?php
+error_reporting(0);
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../config/database.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
 // Set JSON header
 header('Content-Type: application/json');

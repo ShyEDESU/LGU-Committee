@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -9,18 +10,13 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Get meeting ID from URL and validate BEFORE including header
-$meetingId = $_GET['meeting_id'] ?? 0;
+$meetingId = (int)($_GET['meeting_id'] ?? 0);
 $meeting = getMeetingById($meetingId);
 
 if (!$meeting) {
     header('Location: index.php');
     exit();
 }
-
-$userName = $_SESSION['user_name'] ?? 'User';
-$pageTitle = 'Manage Agenda Items';
-include '../../includes/header.php';
-
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -39,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['update_item'])) {
         // Update existing item
         $itemId = $_POST['item_id'];
-        updateAgenda($itemId, [
+        updateAgendaItem($itemId, [
             'title' => $_POST['title'],
             'description' => $_POST['description'] ?? '',
             'duration' => $_POST['duration'] ?? 15,
@@ -50,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['delete_item'])) {
         // Delete item
         $itemId = $_POST['item_id'];
-        deleteAgenda($itemId);
+        deleteAgendaItem($itemId);
         header('Location: items.php?meeting_id=' . $meetingId . '&deleted=1');
         exit();
     } elseif (isset($_POST['reorder_items'])) {
@@ -58,27 +54,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $order = json_decode($_POST['order'], true);
         if ($order) {
             foreach ($order as $index => $itemId) {
-                updateAgenda($itemId, ['item_number' => $index + 1]);
+                updateAgendaItem($itemId, ['item_number' => $index + 1]);
             }
             echo json_encode(['success' => true]);
+            exit();
+        }
+    } elseif (isset($_POST['apply_template'])) {
+        // Apply template to agenda
+        $templateId = $_POST['template_id'];
+        if (applyTemplateToAgenda($meetingId, $templateId)) {
+            header('Location: items.php?meeting_id=' . $meetingId . '&template_applied=1');
             exit();
         }
     }
 }
 
+$userName = $_SESSION['user_name'] ?? 'User';
+$pageTitle = 'Manage Agenda Items';
+include '../../includes/header.php';
+
 // Get agenda items
 $agendaItems = getAgendaByMeeting($meetingId);
-
-// Sort by item number
-usort($agendaItems, function ($a, $b) {
-    return ($a['item_number'] ?? 0) - ($b['item_number'] ?? 0);
-});
+$templates = getAllAgendaTemplates();
 
 // Calculate total duration
 $totalDuration = array_sum(array_column($agendaItems, 'duration'));
 
 // Get editing item if specified
-$editingItemId = $_GET['edit'] ?? 0;
+$editingItemId = (int)($_GET['edit'] ?? 0);
 $editingItem = null;
 if ($editingItemId) {
     foreach ($agendaItems as $item) {
@@ -133,6 +136,15 @@ if ($editingItemId) {
     </div>
 <?php endif; ?>
 
+<?php if (isset($_GET['template_applied'])): ?>
+    <div class="bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-500 p-4 mb-6">
+        <div class="flex items-center">
+            <i class="bi bi-magic text-purple-700 dark:text-purple-300 text-xl mr-3"></i>
+            <p class="text-purple-700 dark:text-purple-300 font-medium">Template applied successfully! Standard items have been added.</p>
+        </div>
+    </div>
+<?php endif; ?>
+
 <!-- Summary Bar -->
 <div
     class="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border border-purple-200 dark:border-purple-800 p-4 mb-6">
@@ -154,7 +166,7 @@ if ($editingItemId) {
                 <i class="bi bi-calendar-event text-blue-600 dark:text-blue-400 text-xl mr-2"></i>
                 <span class="text-sm text-gray-600 dark:text-gray-400">Meeting:</span>
                 <span
-                    class="ml-2 text-lg font-bold text-gray-900 dark:text-white"><?php echo date('M j, Y', strtotime($meeting['date'])); ?></span>
+                    class="ml-2 text-lg font-bold text-gray-900 dark:text-white"><?php echo !empty($meeting['date']) ? date('M j, Y', strtotime($meeting['date'])) : 'No Date Set'; ?></span>
             </div>
         </div>
     </div>
@@ -178,18 +190,37 @@ if ($editingItemId) {
 
             <?php if (empty($agendaItems)): ?>
                 <div class="p-12 text-center">
-                    <i class="bi bi-inbox text-6xl text-gray-400 dark:text-gray-500 mb-4"></i>
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">No Items Yet</h3>
-                    <p class="text-gray-600 dark:text-gray-400">Add your first agenda item using the form</p>
+                    <div class="max-w-md mx-auto">
+                        <div class="bg-red-50 dark:bg-red-900/20 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                            <i class="bi bi-journal-text text-4xl text-red-600 dark:text-red-400"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Items in Agenda</h2>
+                        <p class="text-gray-600 dark:text-gray-400 mb-8">Start building your agenda by adding items manually or selecting a pre-defined template.</p>
+                        
+                        <div class="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl border border-dashed border-gray-300 dark:border-gray-600">
+                            <label class="block text-sm font-medium text-left text-gray-700 dark:text-gray-300 mb-3">Quick Start: Import Template</label>
+                            <div class="flex space-x-2">
+                                <select id="template-select" class="flex-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white">
+                                    <option value="">Select a template...</option>
+                                    <?php foreach ($templates as $t): ?>
+                                        <option value="<?php echo (int)$t['template_id']; ?>"><?php echo htmlspecialchars($t['name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <button onclick="applyTemplate()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition">
+                                    Apply
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-3 text-left">This will automatically add standard procedural items for this session type.</p>
+                        </div>
+                    </div>
                 </div>
             <?php else: ?>
-                <?php if (!empty($agendaItems)): ?>
-                    <div id="itemsList" class="space-y-3 p-4">
+                <div id="itemsList" class="space-y-3 p-4">
                         <?php foreach ($agendaItems as $index => $item):
                             $itemNumber = $index + 1; // Restart numbering for each agenda
                             ?>
                             <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
-                                data-item-id="<?php echo $item['id']; ?>">
+                                data-item-id="<?php echo (int)$item['id']; ?>">
                                 <div class="flex items-start justify-between">
                                     <div class="flex items-start space-x-4 flex-1">
                                         <!-- Drag Handle -->
@@ -225,14 +256,14 @@ if ($editingItemId) {
                                             <?php endif; ?>
                                         </div>
                                         <div class="flex-shrink-0 flex space-x-2">
-                                            <a href="?meeting_id=<?php echo $meetingId; ?>&edit=<?php echo $item['id']; ?>"
+                                            <a href="?meeting_id=<?php echo $meetingId; ?>&edit=<?php echo htmlspecialchars($item['id'] ?? $item['item_id'] ?? ''); ?>"
                                                 class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
                                                 title="Edit Item">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                             <form method="POST" class="inline" onsubmit="return confirm('Delete this item?');">
                                                 <input type="hidden" name="delete_item" value="1">
-                                                <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                                 <input type="hidden" name="item_id" value="<?php echo htmlspecialchars($item['id'] ?? $item['item_id'] ?? ''); ?>">
                                                 <button type="submit"
                                                     class="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
                                                     title="Delete Item">
@@ -245,8 +276,7 @@ if ($editingItemId) {
                             </div>
                             <?php endforeach; ?>
                         </div>
-                    <?php endif; ?>
-                <?php endif; ?>
+            <?php endif; ?>
             </div>
         </div>
 
@@ -313,13 +343,15 @@ if ($editingItemId) {
                             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                             <option value="">None</option>
                             <?php
-                            $allReferrals = getAllReferrals();
-                            foreach ($allReferrals as $ref):
+                            // Get referrals specifically for this meeting's committee
+                            $committeeReferrals = getReferralsByCommittee($meeting['committee_id']);
+                            foreach ($committeeReferrals as $ref):
+                                // Filter to show only relevant referrals for discussion
                                 if ($ref['status'] !== 'Approved' && $ref['status'] !== 'Rejected'):
                                     ?>
-                                    <option value="<?php echo $ref['id']; ?>" <?php echo ($editingItem && isset($editingItem['referral_id']) && $editingItem['referral_id'] == $ref['id']) ? 'selected' : ''; ?>>
+                                    <option value="<?php echo (int) $ref['id']; ?>" <?php echo ($editingItem && isset($editingItem['referral_id']) && $editingItem['referral_id'] == $ref['id']) ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($ref['title']); ?> (
-                                        <?php echo $ref['status']; ?>)
+                                        <?php echo htmlspecialchars($ref['status']); ?>)
                                     </option>
                                     <?php
                                 endif;
@@ -395,6 +427,26 @@ if ($editingItemId) {
                 });
             }
         });
+
+        function applyTemplate() {
+            const templateId = document.getElementById('template-select').value;
+            if (!templateId) {
+                alert('Please select a template first');
+                return;
+            }
+
+            if (confirm('Apply this template? Existing items will remain, and template items will be added.')) {
+                // We'll use a form submission instead of AJAX for simplicity as requested by the current flow
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.innerHTML = `
+                    <input type="hidden" name="apply_template" value="1">
+                    <input type="hidden" name="template_id" value="${templateId}">
+                `;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
     </script>
 
     <?php include '../../includes/footer.php'; ?>

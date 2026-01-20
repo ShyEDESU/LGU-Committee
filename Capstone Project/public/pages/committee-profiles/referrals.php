@@ -93,34 +93,38 @@ include '../../includes/header.php';
 <!-- Navigation Tabs -->
 <div class="mb-6">
     <div class="border-b border-gray-200 dark:border-gray-700">
-        <nav class="-mb-px flex space-x-8">
+        <nav class="-mb-px flex space-x-8 overflow-x-auto">
             <a href="view.php?id=<?php echo $id; ?>"
-                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
-                Overview
+                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                <i class="bi bi-info-circle mr-1"></i>Overview
             </a>
             <a href="members.php?id=<?php echo $id; ?>"
-                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
-                Members
+                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                <i class="bi bi-people mr-1"></i>Members
             </a>
-            <a href="meetings.php?id=<?php echo $id; ?>"
-                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
-                Meetings
+            <a href="view.php?id=<?php echo $id; ?>&tab=meetings"
+                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                <i class="bi bi-calendar-event mr-1"></i>Meetings
+            </a>
+            <a href="view.php?id=<?php echo $id; ?>&tab=agendas"
+                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                <i class="bi bi-journal-text mr-1"></i>Agendas
             </a>
             <a href="referrals.php?id=<?php echo $id; ?>"
-                class="border-red-500 text-red-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
-                Referrals
-            </a>
-            <a href="reports.php?id=<?php echo $id; ?>"
-                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
-                Reports
+                class="border-red-500 text-red-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                <i class="bi bi-arrow-left-right mr-1"></i>Referrals
             </a>
             <a href="documents.php?id=<?php echo $id; ?>"
-                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
-                Documents
+                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                <i class="bi bi-folder mr-1"></i>Documents
+            </a>
+            <a href="reports.php?id=<?php echo $id; ?>"
+                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                <i class="bi bi-file-earmark-text mr-1"></i>Reports
             </a>
             <a href="history.php?id=<?php echo $id; ?>"
-                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
-                History
+                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                <i class="bi bi-clock-history mr-1"></i>History
             </a>
         </nav>
     </div>

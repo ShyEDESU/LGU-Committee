@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
+require_once __DIR__ . '/../../../app/helpers/ReferralHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -17,10 +19,19 @@ if (!$item) {
     exit();
 }
 
+// Handle delete
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_item'])) {
+    if (deleteActionItem($itemId)) {
+        header('Location: index.php?deleted=1');
+        exit();
+    }
+}
+
 // Get related items
 $committee = !empty($item['committee_id']) ? getCommitteeById($item['committee_id']) : null;
-$meeting = !empty($item['meeting_id']) ? getMeetingById($item['meeting_id']) : null;
+$meeting = !empty($item['related_meeting_id']) ? getMeetingById($item['related_meeting_id']) : null;
 $referral = !empty($item['referral_id']) ? getReferralById($item['referral_id']) : null;
+$agendaItem = !empty($item['agenda_item_id']) ? getAgendaItemById($item['agenda_item_id']) : null;
 
 $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Action Item Details';
@@ -33,7 +44,8 @@ include '../../includes/header.php';
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white"><?php echo htmlspecialchars($item['title']); ?>
             </h1>
             <p class="text-gray-600 dark:text-gray-400 mt-1">
-                <i class="bi bi-person"></i> Assigned to <?php echo htmlspecialchars($item['assigned_to']); ?>
+                <i class="bi bi-person"></i> Assigned to
+                <?php echo htmlspecialchars($item['assigned_to_name'] ?? 'Unassigned'); ?>
             </p>
         </div>
         <div class="flex space-x-2">
@@ -41,6 +53,13 @@ include '../../includes/header.php';
                 class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
                 <i class="bi bi-pencil"></i> Edit
             </a>
+            <form method="POST" class="inline"
+                onsubmit="return confirm('Are you sure you want to delete this action item? This action cannot be undone.');">
+                <button type="submit" name="delete_item" value="1"
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+            </form>
             <a href="index.php"
                 class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
                 <i class="bi bi-arrow-left"></i> Back
@@ -73,13 +92,14 @@ include '../../includes/header.php';
                         class="px-3 py-1 text-sm font-semibold rounded-full 
                         <?php echo ($item['priority'] ?? '') === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
                             (($item['priority'] ?? '') === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'); ?>">
-                        <?php echo htmlspecialchars($item['priority'] ?? 'Medium'); ?>
+                        <?php echo htmlspecialchars(ucfirst($item['priority'] ?? 'Medium')); ?>
                     </span>
                 </div>
                 <div>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Category</p>
                     <p class="font-semibold text-gray-900 dark:text-white">
-                        <?php echo htmlspecialchars($item['category'] ?? 'General'); ?></p>
+                        <?php echo htmlspecialchars($item['category'] ?? 'General'); ?>
+                    </p>
                 </div>
                 <div>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Due Date</p>
@@ -90,12 +110,13 @@ include '../../includes/header.php';
                 <div>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Created By</p>
                     <p class="font-semibold text-gray-900 dark:text-white">
-                        <?php echo htmlspecialchars($item['created_by'] ?? 'System'); ?></p>
+                        <?php echo htmlspecialchars($item['creator_name'] ?? 'System'); ?>
+                    </p>
                 </div>
                 <div>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Created Date</p>
                     <p class="font-semibold text-gray-900 dark:text-white">
-                        <?php echo !empty($item['created_date']) ? date('M j, Y', strtotime($item['created_date'])) : 'N/A'; ?>
+                        <?php echo !empty($item['created_at']) ? date('M j, Y', strtotime($item['created_at'])) : 'N/A'; ?>
                     </p>
                 </div>
                 <?php if (!empty($item['completed_date'])): ?>
@@ -125,7 +146,8 @@ include '../../includes/header.php';
                 <i class="bi bi-card-text mr-2"></i>Description
             </h2>
             <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                <?php echo htmlspecialchars($item['description'] ?? 'No description provided.'); ?></p>
+                <?php echo htmlspecialchars($item['description'] ?? 'No description provided.'); ?>
+            </p>
         </div>
 
         <!-- Time Tracking -->
@@ -138,12 +160,14 @@ include '../../includes/header.php';
                     <div>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Estimated Hours</p>
                         <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                            <?php echo ($item['estimated_hours'] ?? 0); ?>h</p>
+                            <?php echo ($item['estimated_hours'] ?? 0); ?>h
+                        </p>
                     </div>
                     <div>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Actual Hours</p>
                         <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                            <?php echo ($item['actual_hours'] ?? 0); ?>h</p>
+                            <?php echo ($item['actual_hours'] ?? 0); ?>h
+                        </p>
                     </div>
                 </div>
             </div>
@@ -156,7 +180,8 @@ include '../../includes/header.php';
                     <i class="bi bi-sticky mr-2"></i>Internal Notes
                 </h2>
                 <p class="text-yellow-800 dark:text-yellow-200 whitespace-pre-wrap">
-                    <?php echo htmlspecialchars($item['notes']); ?></p>
+                    <?php echo htmlspecialchars($item['notes']); ?>
+                </p>
             </div>
         <?php endif; ?>
     </div>
@@ -205,7 +230,7 @@ include '../../includes/header.php';
         <?php endif; ?>
 
         <!-- Related Items -->
-        <?php if ($committee || $meeting || $referral): ?>
+        <?php if ($committee || $meeting || $referral || $agendaItem): ?>
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4">
                     <i class="bi bi-link-45deg mr-2"></i>Related Items
@@ -227,6 +252,14 @@ include '../../includes/header.php';
                                 class="text-blue-600 dark:text-blue-400 hover:underline font-medium">
                                 <i class="bi bi-calendar-event mr-1"></i><?php echo htmlspecialchars($meeting['title']); ?>
                             </a>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($agendaItem): ?>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Agenda Item</p>
+                            <span class="text-gray-900 dark:text-white font-medium">
+                                <i class="bi bi-list-task mr-1"></i><?php echo htmlspecialchars($agendaItem['title']); ?>
+                            </span>
                         </div>
                     <?php endif; ?>
                     <?php if ($referral): ?>

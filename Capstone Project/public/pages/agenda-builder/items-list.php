@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -218,7 +219,7 @@ $committees = getAllCommittees();
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-gray-900 dark:text-white">
-                                <?php echo date('M j, Y', strtotime($item['meeting_date'])); ?>
+                                <?php echo !empty($item['meeting_date']) ? date('M j, Y', strtotime($item['meeting_date'])) : 'Not Set'; ?>
                             </td>
                             <td class="px-6 py-4 text-gray-900 dark:text-white">
                                 <?php echo ($item['duration'] ?? 0); ?> min

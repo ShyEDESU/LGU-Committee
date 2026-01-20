@@ -15,6 +15,26 @@ if (!$committee) {
 }
 
 $members = getCommitteeMembers($id);
+
+// Handle member deletion
+if (isset($_POST['delete_member'])) {
+    $memberIdToDelete = intval($_POST['delete_member']);
+
+    // Get the user_id from the member record
+    foreach ($members as $m) {
+        if ($m['member_id'] == $memberIdToDelete) {
+            $success = removeCommitteeMember($id, $m['user_id']);
+            if ($success) {
+                $_SESSION['success_message'] = 'Member removed successfully';
+            } else {
+                $_SESSION['error_message'] = 'Failed to remove member';
+            }
+            header('Location: members.php?id=' . $id);
+            exit();
+        }
+    }
+}
+
 $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Committee Members';
 include '../../includes/header.php';
@@ -48,6 +68,46 @@ include '../../includes/header.php';
         </div>
     </div>
 
+    <!-- Navigation Tabs -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200 dark:border-gray-700">
+            <nav class="-mb-px flex space-x-8 overflow-x-auto">
+                <a href="view.php?id=<?php echo $id; ?>"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                    <i class="bi bi-info-circle mr-1"></i>Overview
+                </a>
+                <a href="members.php?id=<?php echo $id; ?>"
+                    class="border-red-500 text-red-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                    <i class="bi bi-people mr-1"></i>Members
+                </a>
+                <a href="view.php?id=<?php echo $id; ?>&tab=meetings"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                    <i class="bi bi-calendar-event mr-1"></i>Meetings
+                </a>
+                <a href="view.php?id=<?php echo $id; ?>&tab=agendas"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                    <i class="bi bi-journal-text mr-1"></i>Agendas
+                </a>
+                <a href="view.php?id=<?php echo $id; ?>&tab=referrals"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                    <i class="bi bi-arrow-left-right mr-1"></i>Referrals
+                </a>
+                <a href="documents.php?id=<?php echo $id; ?>"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                    <i class="bi bi-folder mr-1"></i>Documents
+                </a>
+                <a href="reports.php?id=<?php echo $id; ?>"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                    <i class="bi bi-file-earmark-text mr-1"></i>Reports
+                </a>
+                <a href="history.php?id=<?php echo $id; ?>"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                    <i class="bi bi-clock-history mr-1"></i>History
+                </a>
+            </nav>
+        </div>
+    </div>
+
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
         <?php if (empty($members)): ?>
             <div class="p-12 text-center">
@@ -65,7 +125,7 @@ include '../../includes/header.php';
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">District</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                 </thead>
@@ -76,7 +136,7 @@ include '../../includes/header.php';
                                 <div class="flex items-center">
                                     <div
                                         class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
-                                        <?php echo strtoupper(substr($member['name'], 5, 1)); ?>
+                                        <?php echo strtoupper(substr($member['name'], 0, 1)); ?>
                                     </div>
                                     <span class="font-semibold"><?php echo htmlspecialchars($member['name']); ?></span>
                                 </div>
@@ -86,8 +146,8 @@ include '../../includes/header.php';
                                     <?php echo htmlspecialchars($member['role']); ?>
                                 </span>
                             </td>
-                            <td class="px-6 py-4"><?php echo htmlspecialchars($member['position']); ?></td>
-                            <td class="px-6 py-4"><?php echo htmlspecialchars($member['district']); ?></td>
+                            <td class="px-6 py-4"><?php echo htmlspecialchars($member['position'] ?? 'N/A'); ?></td>
+                            <td class="px-6 py-4"><?php echo htmlspecialchars($member['department'] ?? 'N/A'); ?></td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex justify-end gap-2">
                                     <a href="edit-member.php?committee_id=<?php echo $id; ?>&member_id=<?php echo $member['member_id']; ?>"

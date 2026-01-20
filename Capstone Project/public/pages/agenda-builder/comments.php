@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -114,7 +115,7 @@ include '../../includes/header.php';
                                     <?php echo $item['duration']; ?> min
                                 </span>
                                 <span><i class="bi bi-tag mr-1"></i>
-                                    <?php echo htmlspecialchars($item['type']); ?>
+                                    <?php echo htmlspecialchars($item['type'] ?? 'Discussion'); ?>
                                 </span>
                             </div>
                         </div>
@@ -138,17 +139,23 @@ include '../../includes/header.php';
                                 <div class="flex gap-3">
                                     <div class="flex-shrink-0">
                                         <div
-                                            class="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                                            <span class="text-gray-700 dark:text-gray-300 font-semibold">
-                                                <?php echo strtoupper(substr($comment['author'], 0, 1)); ?>
-                                            </span>
+                                            class="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                            <?php if (!empty($comment['profile_picture'])): ?>
+                                                <img src="../../<?php echo htmlspecialchars($comment['profile_picture']); ?>"
+                                                    alt="<?php echo htmlspecialchars($comment['author_name']); ?>"
+                                                    class="w-full h-full object-cover">
+                                            <?php else: ?>
+                                                <span class="text-gray-700 dark:text-gray-300 font-semibold">
+                                                    <?php echo strtoupper(substr($comment['author_name'], 0, 1)); ?>
+                                                </span>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                     <div class="flex-1">
                                         <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                                             <div class="flex items-center justify-between mb-2">
                                                 <span class="font-semibold text-gray-900 dark:text-white">
-                                                    <?php echo htmlspecialchars($comment['author']); ?>
+                                                    <?php echo htmlspecialchars($comment['author_name']); ?>
                                                 </span>
                                                 <span class="text-xs text-gray-500 dark:text-gray-400">
                                                     <?php echo date('M j, Y g:i A', strtotime($comment['created_at'])); ?>

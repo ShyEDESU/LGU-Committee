@@ -26,19 +26,31 @@ $userName = $_SESSION['user_name'] ?? 'User';
 $userRole = $_SESSION['user_role'] ?? 'User';
 $userId = $_SESSION['user_id'] ?? null;
 
-// Fetch user email from database
+// Fetch user info from database
 $userEmail = 'user@example.com';
+$profilePicture = null;
 if ($userId) {
     require_once '../../../config/database.php';
-    $query = "SELECT email FROM users WHERE user_id = ?";
+    $query = "SELECT email, profile_picture FROM users WHERE user_id = ?";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $userId);
     $stmt->execute();
     $result = $stmt->get_result();
     if ($row = $result->fetch_assoc()) {
         $userEmail = $row['email'];
+        $profilePicture = $row['profile_picture'];
     }
     $stmt->close();
+}
+
+// Get profile picture path
+$imagePathPrefix = '../../../public/'; // Base path for images from module subdirs
+$displayPath = $imagePathPrefix . ($profilePicture ?? 'assets/images/default-avatar.png');
+
+// Check if file exists (optional, but good for robust fallback)
+$fullPath = __DIR__ . '/../../' . ($profilePicture ?? 'assets/images/default-avatar.png');
+if (!empty($profilePicture) && !file_exists($fullPath)) {
+    $displayPath = $imagePathPrefix . 'assets/images/default-avatar.png';
 }
 
 $currentPage = basename($_SERVER['PHP_SELF'], '.php');
@@ -137,25 +149,28 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
         .sidebar.collapsed .sidebar-toggle-btn {
             transform: rotate(180deg);
         }
-        
+
         /* Desktop/Mobile toggle visibility */
         @media (min-width: 768px) {
             .desktop-toggle {
                 display: flex !important;
             }
+
             .mobile-toggle,
             .mobile-only {
                 display: none !important;
             }
         }
-        
+
         @media (max-width: 767px) {
             .desktop-toggle {
                 display: none !important;
             }
+
             .mobile-toggle {
                 display: flex !important;
             }
+
             .mobile-only {
                 display: flex !important;
             }
@@ -252,12 +267,12 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
                 </a>
 
                 <!-- 6: Committee Reports & Recommendations -->
-                <a href="../committee-reports/index.php"
+                <a href="../reports-analytics/index.php"
                     class="w-full text-left px-3 py-3 rounded-lg hover:bg-red-700 transition-all flex items-center space-x-3 font-semibold text-sm group animate-fade-in-up delay-600"
                     title="Committee Reports & Recommendations">
                     <i class="bi bi-file-earmark-text text-lg flex-shrink-0"></i>
                     <span class="sidebar-text group-hover:translate-x-1 transition-transform">Reports &
-                        Recommendations</span>
+                        Analytics</span>
                 </a>
 
                 <!-- SUPPORTING MODULES SECTION -->
@@ -290,15 +305,14 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
                 </a>
             </nav>
 
-            <!-- Footer -->
             <div class="p-3 border-t border-red-700 mt-auto">
                 <div class="flex items-center space-x-3 px-2 py-2 hover:bg-red-700 rounded transition-all">
-                    <div
-                        class="bg-red-600 rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                        A</div>
+                    <div class="w-8 h-8 rounded-full overflow-hidden bg-red-600 flex-shrink-0">
+                        <img src="<?php echo $displayPath; ?>" alt="Profile" class="w-full h-full object-cover">
+                    </div>
                     <div class="sidebar-text flex-1 text-sm">
                         <p class="font-semibold"><?php echo htmlspecialchars($userName); ?></p>
-                        <p class="text-xs text-red-200">Admin</p>
+                        <p class="text-xs text-red-200"><?php echo htmlspecialchars($userRole); ?></p>
                     </div>
                 </div>
             </div>
@@ -482,13 +496,16 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
                             <div class="relative group">
                                 <button
                                     class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                                    <img src="../../../public/assets/images/logo.png" alt="Profile"
-                                        class="w-10 h-10 rounded-full bg-cms-red p-1 object-cover">
+                                    <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-cms-red">
+                                        <img src="<?php echo $displayPath; ?>" alt="Profile"
+                                            class="w-full h-full object-cover">
+                                    </div>
                                     <div class="hidden sm:block text-left">
                                         <p class="text-sm font-semibold text-gray-800 dark:text-white">
                                             <?php echo htmlspecialchars($userName); ?>
                                         </p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            <?php echo htmlspecialchars($userRole); ?></p>
                                     </div>
                                     <i class="bi bi-chevron-down text-gray-600 dark:text-gray-400 text-sm"></i>
                                 </button>
@@ -499,12 +516,15 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
                                     <!-- Profile Header -->
                                     <div class="bg-gradient-to-r from-cms-red to-cms-dark p-4 rounded-t-lg">
                                         <div class="flex items-center space-x-3">
-                                            <img src="../../../public/assets/images/logo.png" alt="Profile"
-                                                class="w-16 h-16 rounded-full bg-white p-1 object-cover">
+                                            <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-white">
+                                                <img src="<?php echo $displayPath; ?>" alt="Profile"
+                                                    class="w-full h-full object-cover">
+                                            </div>
                                             <div class="text-white">
                                                 <p class="font-bold text-lg"><?php echo htmlspecialchars($userName); ?>
                                                 </p>
-                                                <p class="text-sm text-red-100">Administrator</p>
+                                                <p class="text-sm text-red-100">
+                                                    <?php echo htmlspecialchars($userRole); ?></p>
                                                 <p class="text-xs text-red-200 mt-1">
                                                     <?php echo htmlspecialchars($userEmail); ?>
                                                 </p>

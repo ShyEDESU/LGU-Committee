@@ -1,7 +1,8 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
-require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../app/helpers/ReferralHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -12,15 +13,13 @@ if (!isset($_SESSION['user_id'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_action'])) {
     $referralId = $_POST['referral_id'];
     $newStatus = $_POST['new_status'];
-    $finalAction = $_POST['final_action'] ?? '';
+    $notes = $_POST['final_action'] ?? '';
 
-    $updateData = ['status' => $newStatus];
-
-    // If approving or rejecting, add final action details
-    if ($newStatus === 'Approved' || $newStatus === 'Rejected') {
-        $updateData['final_action'] = $finalAction;
-        $updateData['final_action_date'] = date('Y-m-d');
-    }
+    $updateData = [
+        'status' => $newStatus,
+        'notes' => $notes,
+        'committee_id' => $_POST['committee_id'] ?? null // Need committee_id for updateReferral
+    ];
 
     updateReferral($referralId, $updateData);
     $_SESSION['success_message'] = 'Referral status updated to ' . $newStatus;
@@ -39,24 +38,28 @@ if (!$referral) {
 
 // Get related data
 $committee = getCommitteeById($referral['committee_id']);
-$reports = getReportsByCommittee($referral['committee_id']);
+$reports = []; // getReportsByCommittee($referral['committee_id']); - Disabling since reports module is removed
 $relatedReport = null;
+/*
 foreach ($reports as $report) {
     if (stripos($report['title'], 'referral') !== false) {
         $relatedReport = $report;
         break;
     }
 }
+*/
 
 // Handle POST actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['update_status'])) {
-        updateReferral($referralId, ['status' => $_POST['update_status']] + $referral);
+        updateReferral($referralId, ['status' => $_POST['update_status'], 'committee_id' => $referral['committee_id']] +
+            $referral);
         $_SESSION['success_message'] = 'Status updated successfully';
         header('Location: view.php?id=' . $referralId);
         exit();
     } elseif (isset($_POST['reassign'])) {
-        updateReferral($referralId, ['assigned_to' => $_POST['reassign']] + $referral);
+        updateReferral($referralId, ['assigned_member_id' => $_POST['reassign'], 'committee_id' => $referral['committee_id']] +
+            $referral);
         $_SESSION['success_message'] = 'Referral reassigned successfully';
         header('Location: view.php?id=' . $referralId);
         exit();
@@ -115,6 +118,7 @@ include '../../includes/header.php';
             <form method="POST" class="inline">
                 <input type="hidden" name="quick_action" value="1">
                 <input type="hidden" name="referral_id" value="<?php echo $referral['id']; ?>">
+                <input type="hidden" name="committee_id" value="<?php echo $referral['committee_id']; ?>">
                 <input type="hidden" name="new_status" value="Approved">
                 <input type="hidden" name="final_action" value="Approved by authorized user">
                 <button type="submit" onclick="return confirm('Approve this referral?')"
@@ -126,6 +130,7 @@ include '../../includes/header.php';
             <form method="POST" class="inline">
                 <input type="hidden" name="quick_action" value="1">
                 <input type="hidden" name="referral_id" value="<?php echo $referral['id']; ?>">
+                <input type="hidden" name="committee_id" value="<?php echo $referral['committee_id']; ?>">
                 <input type="hidden" name="new_status" value="Rejected">
                 <input type="hidden" name="final_action" value="Rejected by authorized user">
                 <button type="submit" onclick="return confirm('Reject this referral?')"

@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -37,6 +38,11 @@ if ($meeting) {
     $agendaItems = getAgendaByMeeting($meetingId);
     $deliberations = getDeliberationsByAgenda($meetingId);
 }
+
+$successMessage = '';
+if (isset($_GET['added'])) {
+    $successMessage = 'Deliberation recorded successfully.';
+}
 ?>
 
 <div class="mb-6">
@@ -49,8 +55,13 @@ if ($meeting) {
             class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
             <i class="bi bi-arrow-left mr-2"></i> Back
         </a>
-    </div>
 </div>
+
+<?php if ($successMessage): ?>
+    <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 mb-6">
+        <p class="text-green-700 dark:text-green-300"><?php echo $successMessage; ?></p>
+    </div>
+<?php endif; ?>
 
 <!-- Meeting Selection -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
