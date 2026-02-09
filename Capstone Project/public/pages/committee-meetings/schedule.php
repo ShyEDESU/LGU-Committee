@@ -1,8 +1,7 @@
 <?php
-// Suppress all errors to prevent output corruption
-error_reporting(0);
-ini_set('display_errors', '0');
-ini_set('display_startup_errors', '0');
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
 
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
@@ -85,12 +84,18 @@ include '../../includes/header.php';
         </a>
     </div>
 
-    <?php if (!empty($errors)): ?>
+    <?php if (!empty($errors) || isset($_SESSION['error_message'])): ?>
         <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
             <ul class="list-disc list-inside text-red-700">
-                <?php foreach ($errors as $error): ?>
-                    <li><?php echo htmlspecialchars($error); ?></li>
-                <?php endforeach; ?>
+                <?php if (!empty($errors)): ?>
+                    <?php foreach ($errors as $error): ?>
+                        <li><?php echo htmlspecialchars($error); ?></li>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                <?php if (isset($_SESSION['error_message'])): ?>
+                    <li><?php echo htmlspecialchars($_SESSION['error_message']); ?></li>
+                    <?php unset($_SESSION['error_message']); ?>
+                <?php endif; ?>
             </ul>
         </div>
     <?php endif; ?>
@@ -209,6 +214,10 @@ include '../../includes/header.php';
             </button>
         </div>
     </form>
-</div>
+</div> <!-- Closing container-fluid -->
+</div> <!-- Closing module-content-wrapper -->
 
-<?php include '../../includes/footer.php'; ?>
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

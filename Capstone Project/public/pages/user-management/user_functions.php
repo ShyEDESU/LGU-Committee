@@ -24,7 +24,7 @@ function canEditUser($currentUserId, $targetUserId, $currentUserRole, $targetUse
     $targetRoleLower = strtolower($targetUserRole);
 
     // Super Admin can edit anyone
-    if ($currentRoleLower === 'super administrator') {
+    if ($currentRoleLower === 'super admin' || $currentRoleLower === 'super administrator') {
         return [
             'can_edit' => true,
             'can_edit_role' => true,
@@ -32,10 +32,10 @@ function canEditUser($currentUserId, $targetUserId, $currentUserRole, $targetUse
         ];
     }
 
-    // Administrator restrictions
-    if ($currentRoleLower === 'administrator') {
+    // Admin restrictions
+    if ($currentRoleLower === 'admin' || $currentRoleLower === 'administrator') {
         // Can't edit Super Admin or other Admins
-        if ($targetRoleLower === 'super administrator' || $targetRoleLower === 'administrator') {
+        if (strpos($targetRoleLower, 'super admin') !== false || $targetRoleLower === 'super administrator' || $targetRoleLower === 'admin' || $targetRoleLower === 'administrator') {
             return [
                 'can_edit' => false,
                 'can_edit_role' => false,
@@ -371,7 +371,8 @@ function deleteUser($userId, $currentUserId)
 
     // Check if user is last admin
     $user = getUserById($userId);
-    if ($user && strtolower($user['role_name']) === 'administrator') {
+    $roleLower = strtolower($user['role_name']);
+    if ($user && ($roleLower === 'admin' || $roleLower === 'administrator')) {
         $adminCount = countAdmins();
         if ($adminCount <= 1) {
             return ['success' => false, 'message' => 'Cannot delete the last administrator'];
@@ -429,7 +430,7 @@ function countAdmins()
     $query = "SELECT COUNT(*) as count 
               FROM users u
               LEFT JOIN roles r ON u.role_id = r.role_id
-              WHERE LOWER(r.role_name) = 'administrator'";
+              WHERE LOWER(r.role_name) IN ('admin', 'administrator', 'super admin', 'super administrator')";
     $result = $conn->query($query);
     $row = $result->fetch_assoc();
 

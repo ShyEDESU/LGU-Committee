@@ -23,7 +23,7 @@ include '../../includes/header.php';
         </div>
         <div class="flex space-x-2">
             <button onclick="window.print()"
-                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
                 <i class="bi bi-printer"></i> Print
             </button>
             <a href="index.php"
@@ -97,13 +97,15 @@ include '../../includes/header.php';
             <?php foreach ($stats['by_status'] as $status => $count):
                 $percentage = $stats['total'] > 0 ? round(($count / $stats['total']) * 100, 1) : 0;
                 $statusLower = strtolower($status);
-                $color = ($statusLower === 'done') ? 'green' : 
-                         (($statusLower === 'in progress' || $statusLower === 'pending' || $statusLower === 'to do') ? 'blue' : 'gray');
+                $color = ($statusLower === 'done') ? 'green' :
+                    (($statusLower === 'in progress' || $statusLower === 'pending' || $statusLower === 'to do') ? 'blue' : 'gray');
                 ?>
                 <div>
                     <div class="flex justify-between mb-2">
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300"><?php echo htmlspecialchars($status); ?></span>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white"><?php echo $count; ?> (<?php echo $percentage; ?>%)</span>
+                        <span
+                            class="text-sm font-medium text-gray-700 dark:text-gray-300"><?php echo htmlspecialchars($status); ?></span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white"><?php echo $count; ?>
+                            (<?php echo $percentage; ?>%)</span>
                     </div>
                     <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                         <div class="bg-<?php echo $color; ?>-600 h-3 rounded-full transition-all"
@@ -123,13 +125,16 @@ include '../../includes/header.php';
             <?php foreach ($stats['by_priority'] as $priority => $count):
                 $percentage = $stats['total'] > 0 ? round(($count / $stats['total']) * 100, 1) : 0;
                 $priorityLower = strtolower($priority);
-                $color = ($priorityLower === 'high' || $priorityLower === 'urgent') ? 'red' : 
-                         (($priorityLower === 'medium' || $priorityLower === 'normal') ? 'yellow' : 'green');
+                $color = ($priorityLower === 'high' || $priorityLower === 'urgent') ? 'red' :
+                    (($priorityLower === 'medium' || $priorityLower === 'normal') ? 'yellow' : 'green');
                 ?>
                 <div>
                     <div class="flex justify-between mb-2">
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300"><?php echo htmlspecialchars($priority); ?> Priority</span>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white"><?php echo $count; ?> (<?php echo $percentage; ?>%)</span>
+                        <span
+                            class="text-sm font-medium text-gray-700 dark:text-gray-300"><?php echo htmlspecialchars($priority); ?>
+                            Priority</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white"><?php echo $count; ?>
+                            (<?php echo $percentage; ?>%)</span>
                     </div>
                     <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                         <div class="bg-<?php echo $color; ?>-600 h-3 rounded-full transition-all"
@@ -156,9 +161,9 @@ include '../../includes/header.php';
             <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400"><?php echo $stats['upcoming_7_days']; ?>
             </p>
         </div>
-        <div class="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <p class="text-sm text-blue-600 dark:text-blue-400 mb-2">Next 14 Days</p>
-            <p class="text-3xl font-bold text-blue-600 dark:text-blue-400"><?php echo $stats['upcoming_14_days']; ?></p>
+        <div class="text-center p-4 bg-red-50 dark:bg-blue-900/20 rounded-lg">
+            <p class="text-sm text-red-600 dark:text-blue-400 mb-2">Next 14 Days</p>
+            <p class="text-3xl font-bold text-red-600 dark:text-blue-400"><?php echo $stats['upcoming_14_days']; ?></p>
         </div>
         <div class="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
             <p class="text-sm text-green-600 dark:text-green-400 mb-2">Next 30 Days</p>
@@ -180,7 +185,8 @@ include '../../includes/header.php';
                 <div>
                     <p class="font-semibold text-green-900 dark:text-green-300">Excellent Completion Rate</p>
                     <p class="text-sm text-green-700 dark:text-green-400">Your team has achieved a
-                        <?php echo $stats['completion_rate']; ?>% completion rate. Keep up the great work!</p>
+                        <?php echo $stats['completion_rate']; ?>% completion rate. Keep up the great work!
+                    </p>
                 </div>
             </div>
         <?php elseif ($stats['completion_rate'] >= 50): ?>
@@ -189,7 +195,8 @@ include '../../includes/header.php';
                 <div>
                     <p class="font-semibold text-yellow-900 dark:text-yellow-300">Moderate Completion Rate</p>
                     <p class="text-sm text-yellow-700 dark:text-yellow-400">Current completion rate is
-                        <?php echo $stats['completion_rate']; ?>%. Consider reviewing pending items.</p>
+                        <?php echo $stats['completion_rate']; ?>%. Consider reviewing pending items.
+                    </p>
                 </div>
             </div>
         <?php else: ?>
@@ -198,7 +205,8 @@ include '../../includes/header.php';
                 <div>
                     <p class="font-semibold text-red-900 dark:text-red-300">Low Completion Rate</p>
                     <p class="text-sm text-red-700 dark:text-red-400">Completion rate is
-                        <?php echo $stats['completion_rate']; ?>%. Immediate attention required.</p>
+                        <?php echo $stats['completion_rate']; ?>%. Immediate attention required.
+                    </p>
                 </div>
             </div>
         <?php endif; ?>
@@ -215,16 +223,30 @@ include '../../includes/header.php';
         <?php endif; ?>
 
         <?php if ($stats['avg_progress'] >= 70): ?>
-            <div class="flex items-start space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <i class="bi bi-graph-up-arrow text-blue-600 dark:text-blue-400 text-xl"></i>
+            <div class="flex items-start space-x-3 p-4 bg-red-50 dark:bg-blue-900/20 rounded-lg">
+                <i class="bi bi-graph-up-arrow text-red-600 dark:text-blue-400 text-xl"></i>
                 <div>
-                    <p class="font-semibold text-blue-900 dark:text-blue-300">Strong Progress</p>
+                    <p class="font-semibold text-red-900 dark:text-blue-300">Strong Progress</p>
                     <p class="text-sm text-blue-700 dark:text-blue-400">Average progress across all items is
-                        <?php echo $stats['avg_progress']; ?>%. Excellent momentum!</p>
+                        <?php echo $stats['avg_progress']; ?>%. Excellent momentum!
+                    </p>
                 </div>
             </div>
         <?php endif; ?>
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Report Summary: <span class="font-medium"><?php echo $stats['total']; ?></span> action items analyzed
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Completion Rate: <?php echo $stats['completion_rate']; ?>%
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

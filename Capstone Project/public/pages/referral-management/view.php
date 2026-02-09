@@ -89,7 +89,7 @@ include '../../includes/header.php';
         </div>
         <div class="flex gap-2">
             <a href="edit.php?id=<?php echo $referralId; ?>"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
                 <i class="bi bi-pencil"></i> Edit
             </a>
             <a href="index.php"
@@ -109,10 +109,10 @@ include '../../includes/header.php';
 
 <!-- Quick Actions for Status Change (for authorized users) -->
 <?php if ($referral['status'] !== 'Approved' && $referral['status'] !== 'Rejected'): ?>
-    <div class="bg-blue-50 border-l-4 border-blue-500 p-6 mb-6 rounded-lg">
-        <h3 class="font-bold text-blue-900 mb-3"><i class="bi bi-lightning-charge-fill mr-2"></i>Quick Actions (Authorized
+    <div class="bg-red-50 border-l-4 border-red-500 p-6 mb-6 rounded-lg">
+        <h3 class="font-bold text-red-900 mb-3"><i class="bi bi-lightning-charge-fill mr-2"></i>Quick Actions (Authorized
             Users)</h3>
-        <p class="text-sm text-blue-800 mb-4">City Hall President, Committee Chairperson, or authorized staff can take
+        <p class="text-sm text-red-800 mb-4">City Hall President, Committee Chairperson, or authorized staff can take
             action:</p>
         <div class="flex flex-wrap gap-3">
             <form method="POST" class="inline">
@@ -154,7 +154,7 @@ include '../../includes/header.php';
                 <input type="hidden" name="referral_id" value="<?php echo $referral['id']; ?>">
                 <input type="hidden" name="new_status" value="Under Review">
                 <button type="submit"
-                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                    class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold">
                     <i class="bi bi-eye-fill mr-2"></i>Move to Review
                 </button>
             </form>
@@ -190,7 +190,7 @@ include '../../includes/header.php';
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <p class="text-sm text-gray-600 dark:text-gray-400">Type</p>
-                    <span class="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800">
+                    <span class="px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">
                         <?php echo htmlspecialchars($referral['type'] ?? 'Communication'); ?>
                     </span>
                 </div>
@@ -208,7 +208,7 @@ include '../../includes/header.php';
                     <span
                         class="px-3 py-1 text-sm font-semibold rounded-full 
                         <?php echo $referral['status'] === 'Pending' ? 'bg-gray-100 text-gray-800' :
-                            ($referral['status'] === 'Under Review' ? 'bg-blue-100 text-blue-800' :
+                            ($referral['status'] === 'Under Review' ? 'bg-red-100 text-red-800' :
                                 ($referral['status'] === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800')); ?>">
                         <?php echo htmlspecialchars($referral['status']); ?>
                     </span>
@@ -253,7 +253,7 @@ include '../../includes/header.php';
                     <div class="col-span-2">
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Linked Meeting</p>
                         <a href="../committee-meetings/view.php?id=<?php echo $referral['meeting_id']; ?>"
-                            class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition">
+                            class="inline-flex items-center px-4 py-2 bg-red-50 text-blue-700 rounded-lg hover:bg-red-100 transition">
                             <i class="bi bi-calendar-event mr-2"></i>
                             <?php echo htmlspecialchars($meeting['title'] ?? 'Meeting #' . $referral['meeting_id']); ?>
                         </a>
@@ -286,7 +286,7 @@ include '../../includes/header.php';
             <h3 class="font-bold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
             <div class="space-y-2">
                 <a href="edit.php?id=<?php echo $referralId; ?>"
-                    class="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition text-sm flex items-center justify-center">
+                    class="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition text-sm flex items-center justify-center">
                     <i class="bi bi-pencil mr-2"></i> Edit Referral
                 </a>
                 <button onclick="confirmDelete()"
@@ -333,4 +333,17 @@ include '../../includes/header.php';
     }
 </script>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Referral Status: <span class="font-medium"><?php echo htmlspecialchars($referral['status']); ?></span>
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Last Updated: <?php echo date('M j, Y', strtotime($referral['updated_date'] ?? $referral['created_date'])); ?>
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

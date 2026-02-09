@@ -96,10 +96,6 @@ include '../../includes/header.php';
                     class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
                     <i class="bi bi-folder mr-1"></i>Documents
                 </a>
-                <a href="reports.php?id=<?php echo $id; ?>"
-                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
-                    <i class="bi bi-file-earmark-text mr-1"></i>Reports
-                </a>
                 <a href="history.php?id=<?php echo $id; ?>"
                     class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
                     <i class="bi bi-clock-history mr-1"></i>History
@@ -142,7 +138,7 @@ include '../../includes/header.php';
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
                                     <?php echo htmlspecialchars($member['role']); ?>
                                 </span>
                             </td>
@@ -151,7 +147,7 @@ include '../../includes/header.php';
                             <td class="px-6 py-4 text-right">
                                 <div class="flex justify-end gap-2">
                                     <a href="edit-member.php?committee_id=<?php echo $id; ?>&member_id=<?php echo $member['member_id']; ?>"
-                                        class="text-blue-600 hover:text-blue-700" title="Edit Member">
+                                        class="text-red-600 hover:text-red-700" title="Edit Member">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
                                     <form method="POST" class="inline"
@@ -169,6 +165,10 @@ include '../../includes/header.php';
             </table>
         <?php endif; ?>
     </div>
-</div>
+</div> <!-- Closing container-fluid -->
+</div> <!-- Closing module-content-wrapper -->
 
-<?php include '../../includes/footer.php'; ?>
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

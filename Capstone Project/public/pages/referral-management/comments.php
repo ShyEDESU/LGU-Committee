@@ -134,7 +134,7 @@ $comments = [
                         </div>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <button class="text-gray-400 hover:text-blue-600 transition">
+                        <button class="text-gray-400 hover:text-red-600 transition">
                             <i class="bi bi-reply"></i>
                         </button>
                         <button class="text-gray-400 hover:text-gray-600 transition">
@@ -151,13 +151,28 @@ $comments = [
 </div>
 
 <!-- Comment Guidelines -->
-<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mt-6">
-    <h3 class="font-semibold text-blue-900 mb-2"><i class="bi bi-info-circle mr-2"></i>Comment Guidelines</h3>
-    <ul class="text-sm text-blue-800 space-y-1">
+<div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mt-6">
+    <h3 class="font-semibold text-red-900 mb-2"><i class="bi bi-info-circle mr-2"></i>Comment Guidelines</h3>
+    <ul class="text-sm text-red-800 space-y-1">
         <li><i class="bi bi-check-circle mr-1"></i>Keep comments professional and relevant to the referral</li>
         <li><i class="bi bi-check-circle mr-1"></i>Use internal notes for sensitive information</li>
         <li><i class="bi bi-check-circle mr-1"></i>Tag specific members using @mention for direct responses</li>
     </ul>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Showing <span class="font-medium">1</span> to
+        <span class="font-medium"><?php echo count($comments); ?></span> of
+        <span class="font-medium"><?php echo count($comments); ?></span> comment(s)
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Referral ID: <?php echo htmlspecialchars($id); ?>
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

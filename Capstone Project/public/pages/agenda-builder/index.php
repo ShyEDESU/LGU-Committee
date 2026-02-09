@@ -183,8 +183,8 @@ $paginatedAgendas = array_slice($agendas, $offset, $itemsPerPage);
                 <p class="text-sm text-gray-600 dark:text-gray-400">Total Agendas</p>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1"><?php echo $totalAgendas; ?></p>
             </div>
-            <div class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3">
-                <i class="bi bi-file-earmark-text text-blue-600 dark:text-blue-400 text-2xl"></i>
+            <div class="bg-red-100 dark:bg-blue-900/30 rounded-lg p-3">
+                <i class="bi bi-file-earmark-text text-red-600 dark:text-blue-400 text-2xl"></i>
             </div>
         </div>
     </div>
@@ -278,63 +278,63 @@ $paginatedAgendas = array_slice($agendas, $offset, $itemsPerPage);
                 </thead>
                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                     <?php foreach ($paginatedAgendas as $agenda): ?>
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        <td class="px-6 py-4">
-                            <p class="font-semibold text-gray-900 dark:text-white">
-                                <?php echo htmlspecialchars($agenda['meeting']); ?>
-                            </p>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span
-                                class="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                <?php echo htmlspecialchars($agenda['committee']); ?>
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-gray-900 dark:text-white">
-                            <?php echo !empty($agenda['date']) ? date('M j, Y', strtotime($agenda['date'])) : 'Not Set'; ?>
-                        </td>
-                        <td class="px-6 py-4 text-gray-900 dark:text-white">
-                            <?php echo $agenda['item_count']; ?> items
-                        </td>
-                        <td class="px-6 py-4 text-gray-900 dark:text-white">
-                            <?php echo $agenda['duration']; ?> min
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 text-xs font-semibold rounded-full
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <td class="px-6 py-4">
+                                <p class="font-semibold text-gray-900 dark:text-white">
+                                    <?php echo htmlspecialchars($agenda['meeting']); ?>
+                                </p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span
+                                    class="px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                    <?php echo htmlspecialchars($agenda['committee']); ?>
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-gray-900 dark:text-white">
+                                <?php echo !empty($agenda['date']) ? date('M j, Y', strtotime($agenda['date'])) : 'Not Set'; ?>
+                            </td>
+                            <td class="px-6 py-4 text-gray-900 dark:text-white">
+                                <?php echo $agenda['item_count']; ?> items
+                            </td>
+                            <td class="px-6 py-4 text-gray-900 dark:text-white">
+                                <?php echo $agenda['duration']; ?> min
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 text-xs font-semibold rounded-full
                                 <?php
                                 echo $agenda['status'] === 'Draft' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
                                     ($agenda['status'] === 'Published' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                                        'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300');
+                                        'bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300');
                                 ?>">
-                                <?php echo htmlspecialchars($agenda['status']); ?>
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                <a href="view.php?id=<?php echo $agenda['meeting_id']; ?>"
-                                    class="inline-flex items-center px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
-                                    title="View Agenda">
-                                    <i class="bi bi-eye mr-1.5"></i> View
-                                </a>
-                                <a href="items.php?meeting_id=<?php echo $agenda['meeting_id']; ?>"
-                                    class="inline-flex items-center px-3 py-1.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition"
-                                    title="Manage Items">
-                                    <i class="bi bi-pencil mr-1.5"></i> Edit
-                                </a>
-                                <form method="POST" class="inline"
-                                    onsubmit="return confirm('Are you sure you want to delete this agenda and all its items?');">
-                                    <input type="hidden" name="delete_agenda" value="1">
-                                    <input type="hidden" name="agenda_id" value="<?php echo $agenda['id']; ?>">
-                                    <button type="submit"
-                                        class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold"
-                                        title="Delete Agenda">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
+                                    <?php echo htmlspecialchars($agenda['status']); ?>
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <a href="view.php?id=<?php echo $agenda['meeting_id']; ?>"
+                                        class="inline-flex items-center px-3 py-1.5 text-sm text-red-600 dark:text-blue-400 hover:bg-red-50 dark:hover:bg-blue-900/20 rounded-lg transition"
+                                        title="View Agenda">
+                                        <i class="bi bi-eye mr-1.5"></i> View
+                                    </a>
+                                    <a href="items.php?meeting_id=<?php echo $agenda['meeting_id']; ?>"
+                                        class="inline-flex items-center px-3 py-1.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition"
+                                        title="Manage Items">
+                                        <i class="bi bi-pencil mr-1.5"></i> Edit
+                                    </a>
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('Are you sure you want to delete this agenda and all its items?');">
+                                        <input type="hidden" name="delete_agenda" value="1">
+                                        <input type="hidden" name="agenda_id" value="<?php echo $agenda['id']; ?>">
+                                        <button type="submit"
+                                            class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold"
+                                            title="Delete Agenda">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
@@ -368,4 +368,8 @@ $paginatedAgendas = array_slice($agendas, $offset, $itemsPerPage);
     <?php endif; ?>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

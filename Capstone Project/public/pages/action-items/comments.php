@@ -161,4 +161,19 @@ include '../../includes/header.php';
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Showing <span class="font-medium">1</span> to
+        <span class="font-medium"><?php echo count($comments); ?></span> of
+        <span class="font-medium"><?php echo count($comments); ?></span> comment(s)
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Item ID: <?php echo htmlspecialchars($id); ?>
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

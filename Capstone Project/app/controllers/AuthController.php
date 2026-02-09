@@ -84,7 +84,7 @@ class AuthController
             return [
                 'success' => true,
                 'message' => 'Login successful',
-                'redirect' => '/public/dashboard.php'
+                'redirect' => '../public/dashboard.php'
             ];
         }
 
@@ -106,7 +106,7 @@ class AuthController
         return [
             'success' => true,
             'message' => 'Logout successful',
-            'redirect' => '/login.php'
+            'redirect' => '../index.php'
         ];
     }
 

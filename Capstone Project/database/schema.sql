@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `first_name` VARCHAR(100) NOT NULL,
   `last_name` VARCHAR(100) NOT NULL,
   `role_id` INT NOT NULL,
+  `notification_preferences` JSON DEFAULT NULL,
   `profile_picture` VARCHAR(255),
   `phone` VARCHAR(20),
   `department` VARCHAR(100),
@@ -309,7 +310,8 @@ CREATE TABLE IF NOT EXISTS `notifications` (
   `user_id` INT NOT NULL,
   `title` VARCHAR(200) NOT NULL,
   `message` TEXT NOT NULL,
-  `notification_type` ENUM('reminder', 'alert', 'info', 'task_assigned') NOT NULL,
+  `notification_type` ENUM('reminder', 'alert', 'info', 'task_assigned', 'referral_assigned', 'committee_created', 'meeting', 'action_item', 'referral', 'document', 'deadline', 'system', 'comment') NOT NULL,
+  `priority` ENUM('low', 'medium', 'high', 'urgent') DEFAULT 'medium',
   `is_read` BOOLEAN DEFAULT FALSE,
   `action_link` VARCHAR(255),
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -330,10 +332,25 @@ CREATE TABLE IF NOT EXISTS `system_settings` (
   `lgu_contact` VARCHAR(20),
   `lgu_email` VARCHAR(100),
   `lgu_logo_path` VARCHAR(255),
-  `theme_color` VARCHAR(20) DEFAULT '#007bff',
-  `timezone` VARCHAR(50) DEFAULT 'UTC',
+  `theme_color` VARCHAR(20) DEFAULT '#dc2626',
+  `timezone` VARCHAR(50) DEFAULT 'Asia/Manila',
   `auto_backup_enabled` BOOLEAN DEFAULT TRUE,
   `backup_frequency` ENUM('daily', 'weekly', 'monthly') DEFAULT 'daily',
+  `maintenance_mode` TINYINT(1) DEFAULT 0,
+  `session_timeout` INT DEFAULT 30,
+  `min_password_length` INT DEFAULT 8,
+  `require_special_chars` TINYINT(1) DEFAULT 0,
+  `smtp_host` VARCHAR(255) NULL,
+  `smtp_port` INT NULL,
+  `smtp_user` VARCHAR(255) NULL,
+  `smtp_pass` VARCHAR(255) NULL,
+  `smtp_encryption` VARCHAR(10) DEFAULT 'tls',
+  `log_retention_days` INT DEFAULT 90,
+  `system_title` VARCHAR(255) DEFAULT 'CMS - Committee Management System',
+  `system_acronym` VARCHAR(20) DEFAULT 'CMS',
+  `default_language` VARCHAR(10) DEFAULT 'en',
+  `date_format` VARCHAR(50) DEFAULT 'M j, Y',
+  `time_format` VARCHAR(50) DEFAULT 'H:i',
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `updated_by` INT,
   FOREIGN KEY (`updated_by`) REFERENCES `users`(`user_id`) ON DELETE SET NULL
@@ -375,23 +392,21 @@ CREATE TABLE IF NOT EXISTS `error_logs` (
 -- INSERT DEFAULT ROLES
 -- ============================================================================
 INSERT INTO `roles` (`role_name`, `description`, `permissions`) VALUES
-('Super Administrator', 'Complete system access - can manage all users and settings', JSON_OBJECT('all_modules', true, 'user_management', true, 'system_settings', true, 'user_approval', true, 'role_management', true, 'super_admin_panel', true)),
-('Administrator', 'Full system access for LGU admins', JSON_OBJECT('all_modules', true, 'user_management', true, 'system_settings', true, 'user_approval', true)),
-('Committee Chair', 'Can manage committee and create documents', JSON_OBJECT('committee_management', true, 'document_creation', true, 'meeting_scheduling', true)),
-('Committee Secretary', 'Can record minutes, attendance, and manage meetings', JSON_OBJECT('meeting_management', true, 'document_upload', true, 'attendance_recording', true)),
-('Staff/Encoder', 'Can encode and track documents', JSON_OBJECT('document_encoding', true, 'document_tracking', true)),
-('Public Viewer', 'Can view public documents and information', JSON_OBJECT('view_public_documents', true, 'view_calendar', true, 'view_ordinances', true));
+('Super Admin', 'Complete system access - reserves for future automation/API', JSON_OBJECT('all_modules', true, 'user_management', true, 'system_settings', true, 'user_approval', true, 'role_management', true, 'super_admin_panel', true)),
+('Admin', 'Full system access for LGU admins', JSON_OBJECT('all_modules', true, 'user_management', true, 'system_settings', true, 'user_approval', true)),
+('Committee Chairman', 'Can manage assigned committees, meetings, and agendas', JSON_OBJECT('committee_management', true, 'document_creation', true, 'meeting_scheduling', true)),
+('User', 'Committee member access - can view and participate in meetings', JSON_OBJECT('view_public_documents', true, 'view_calendar', true, 'view_ordinances', true, 'vote', true));
 
 -- ============================================================================
 -- INSERT DEFAULT ADMIN USERS
 -- ============================================================================
--- Super Admin (Password: admin123)
+-- Super Admin (Password: admin123) - INACTIVE by default
 INSERT INTO `users` (`email`, `password_hash`, `first_name`, `last_name`, `role_id`, `department`, `position`, `is_active`, `email_verified`) VALUES
-('super.admin@legislative-services.gov', '$2y$10$ywS1emacPWJslIQxDSbwnOCY/5KXEqmbcqqqTA5VJABnsxturerL.', 'Super', 'Administrator', 1, 'National', 'Central Authority', TRUE, TRUE);
+('super.admin@legislative-services.gov', '$2y$10$ywS1emacPWJslIQxDSbwnOCY/5KXEqmbcqqqTA5VJABnsxturerL.', 'Super', 'Admin', 1, 'National', 'Central Authority', FALSE, TRUE);
 
--- LGU Admin (Password: admin123)
+-- LGU Admin (Password: admin123) - ACTIVE focus
 INSERT INTO `users` (`email`, `password_hash`, `first_name`, `last_name`, `role_id`, `department`, `position`, `is_active`, `email_verified`) VALUES
-('LGU@admin.com', '$2y$10$ywS1emacPWJslIQxDSbwnOCY/5KXEqmbcqqqTA5VJABnsxturerL.', 'LGU', 'Administrator', 2, 'Administrative Services', 'LGU Administrator', TRUE, TRUE);
+('LGU@admin.com', '$2y$10$ywS1emacPWJslIQxDSbwnOCY/5KXEqmbcqqqTA5VJABnsxturerL.', 'LGU', 'Admin', 2, 'Administrative Services', 'LGU Administrator', TRUE, TRUE);
 
 -- ============================================================================
 -- 18. AGENDA TEMPLATES & ITEMS

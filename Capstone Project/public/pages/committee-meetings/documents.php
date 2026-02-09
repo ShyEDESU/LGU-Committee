@@ -1,8 +1,8 @@
 <?php
-// Suppress all errors to prevent output corruption
-error_reporting(0);
-ini_set('display_errors', '0');
-ini_set('display_startup_errors', '0');
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
 
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
@@ -82,8 +82,19 @@ include '../../includes/header.php';
 <?php if (isset($_SESSION['success_message'])): ?>
     <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 mb-6">
         <p class="text-green-700 dark:text-green-300">
+            <i class="bi bi-check-circle mr-2"></i>
             <?php echo $_SESSION['success_message'];
             unset($_SESSION['success_message']); ?>
+        </p>
+    </div>
+<?php endif; ?>
+
+<?php if (isset($_SESSION['error_message'])): ?>
+    <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 mb-6">
+        <p class="text-red-700 dark:text-red-300">
+            <i class="bi bi-exclamation-circle mr-2"></i>
+            <?php echo $_SESSION['error_message'];
+            unset($_SESSION['error_message']); ?>
         </p>
     </div>
 <?php endif; ?>
@@ -222,7 +233,7 @@ include '../../includes/header.php';
                                         <div class="flex gap-2">
                                             <button
                                                 onclick="alert('Download functionality will be implemented with actual file storage')"
-                                                class="text-blue-600 hover:text-blue-900 dark:text-blue-400">
+                                                class="text-red-600 hover:text-red-900 dark:text-blue-400">
                                                 <i class="bi bi-download mr-1"></i>Download
                                             </button>
                                             <form method="POST" class="inline" onsubmit="return confirm('Delete this document?')">
@@ -267,11 +278,12 @@ include '../../includes/header.php';
                     </label>
                     <select name="category" required
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white">
-                        <option value="Agenda">Agenda</option>
-                        <option value="Minutes">Minutes</option>
-                        <option value="Reports">Reports</option>
-                        <option value="Presentations">Presentations</option>
-                        <option value="Other">Other</option>
+                        <option value="agenda">Agenda</option>
+                        <option value="minutes">Minutes</option>
+                        <option value="resolution">Resolution</option>
+                        <option value="recommendation">Recommendation</option>
+                        <option value="supporting_doc">Supporting Document</option>
+                        <option value="other">Other</option>
                     </select>
                 </div>
 
@@ -324,5 +336,9 @@ include '../../includes/header.php';
         }
     });
 </script>
+</div> <!-- Closing module-content-wrapper -->
 
-<?php include '../../includes/footer.php'; ?>
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

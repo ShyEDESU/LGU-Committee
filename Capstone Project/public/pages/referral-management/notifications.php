@@ -130,15 +130,15 @@ include '../../includes/header.php';
         <p class="text-xs text-yellow-600 mt-1">High priority items</p>
     </div>
 
-    <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
+    <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500">
         <div class="flex items-center justify-between mb-2">
             <p class="text-sm text-gray-600">Total</p>
-            <i class="bi bi-bell-fill text-2xl text-blue-500"></i>
+            <i class="bi bi-bell-fill text-2xl text-red-500"></i>
         </div>
         <p class="text-3xl font-bold text-gray-900">
             <?php echo count($notifications); ?>
         </p>
-        <p class="text-xs text-blue-600 mt-1">Active notifications</p>
+        <p class="text-xs text-red-600 mt-1">Active notifications</p>
     </div>
 </div>
 
@@ -199,10 +199,14 @@ include '../../includes/header.php';
 </div>
 
 <!-- Notification Settings -->
-<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mt-6">
-    <h3 class="font-semibold text-blue-900 mb-2"><i class="bi bi-gear mr-2"></i>Notification Settings</h3>
-    <p class="text-sm text-blue-800">Configure your notification preferences in Settings to receive email alerts for
+<div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mt-6">
+    <h3 class="font-semibold text-red-900 mb-2"><i class="bi bi-gear mr-2"></i>Notification Settings</h3>
+    <p class="text-sm text-red-800">Configure your notification preferences in Settings to receive email alerts for
         critical updates.</p>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

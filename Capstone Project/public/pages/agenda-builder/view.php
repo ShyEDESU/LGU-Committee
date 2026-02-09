@@ -106,9 +106,9 @@ require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 $isCommitteeMember = isCommitteeMember($currCommitteeId, $userId);
 
 if (!empty($activeVotes) && $isCommitteeMember): ?>
-    <div class="bg-blue-600 rounded-lg shadow-lg p-4 mb-6 text-white flex items-center justify-between">
+    <div class="bg-red-600 rounded-lg shadow-lg p-4 mb-6 text-white flex items-center justify-between">
         <div class="flex items-center">
-            <div class="bg-blue-500 rounded-full p-2 mr-4">
+            <div class="bg-red-500 rounded-full p-2 mr-4">
                 <i class="bi bi-hand-thumbs-up-fill text-xl"></i>
             </div>
             <div>
@@ -117,7 +117,7 @@ if (!empty($activeVotes) && $isCommitteeMember): ?>
             </div>
         </div>
         <a href="member-vote.php?meeting_id=<?php echo $meetingId; ?>"
-            class="px-6 py-2 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition shadow-sm">
+            class="px-6 py-2 bg-white text-red-600 font-bold rounded-lg hover:bg-red-50 transition shadow-sm">
             Vote Now
         </a>
     </div>
@@ -172,7 +172,7 @@ if (!empty($activeVotes) && $isCommitteeMember): ?>
             <span class="inline-block px-3 py-1 text-sm font-semibold rounded-full 
                 <?php
                 echo $agendaStatus === 'Draft' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                    ($agendaStatus === 'Under Review' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                    ($agendaStatus === 'Under Review' ? 'bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300' :
                         ($agendaStatus === 'Approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
                             ($agendaStatus === 'Published' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
                                 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300')));
@@ -222,8 +222,8 @@ if (!empty($activeVotes) && $isCommitteeMember): ?>
                     ?>
                 </p>
             </div>
-            <div class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3">
-                <i class="bi bi-calendar-check text-blue-600 dark:text-blue-400 text-2xl"></i>
+            <div class="bg-red-100 dark:bg-blue-900/30 rounded-lg p-3">
+                <i class="bi bi-calendar-check text-red-600 dark:text-blue-400 text-2xl"></i>
             </div>
         </div>
     </div>
@@ -328,7 +328,7 @@ if (!empty($activeVotes) && $isCommitteeMember): ?>
             <i class="bi bi-chat-left-text mr-2"></i> Start Deliberation
         </a>
         <a href="voting.php?meeting_id=<?php echo $meetingId; ?>"
-            class="flex items-center justify-center px-4 py-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition">
+            class="flex items-center justify-center px-4 py-3 bg-red-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-red-100 dark:hover:bg-blue-900/30 transition">
             <i class="bi bi-hand-thumbs-up mr-2"></i> Manage Voting
         </a>
     </div>
@@ -454,7 +454,7 @@ if (!empty($activeVotes) && $isCommitteeMember): ?>
             if (newStatus === 'Draft') {
                 statusBadge.className += ' bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
             } else if (newStatus === 'Under Review') {
-                statusBadge.className += ' bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+                statusBadge.className += ' bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300';
             } else if (newStatus === 'Approved') {
                 statusBadge.className += ' bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
             } else if (newStatus === 'Published') {
@@ -512,5 +512,9 @@ if (!empty($activeVotes) && $isCommitteeMember): ?>
         }, 3000);
     }
 </script>
+</div> <!-- Closing module-content-wrapper -->
 
-<?php include '../../includes/footer.php'; ?>
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

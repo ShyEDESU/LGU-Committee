@@ -49,8 +49,7 @@ include '../../includes/header.php';
         <ol class="breadcrumb bg-transparent p-0">
             <li class="breadcrumb-item"><a href="../../dashboard.php" class="text-red-600">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="../committee-meetings/index.php" class="text-red-600">Meetings</a></li>
-            <li class="breadcrumb-item"><a href="../committee-meetings/view.php?id=<?php echo $meetingId; ?>"
-                    class="text-red-600">
+            <li class="breadcrumb-item"><a href="view.php?id=<?php echo $meetingId; ?>" class="text-red-600">
                     <?php echo htmlspecialchars($meeting['title']); ?>
                 </a></li>
             <li class="breadcrumb-item active">Voting</li>
@@ -75,9 +74,15 @@ include '../../includes/header.php';
         </div>
     <?php endif; ?>
 
-    <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Active Voting Motions</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-1">Cast your vote on open items for this meeting.</p>
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Active Voting Motions</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Cast your vote on open items for this meeting.</p>
+        </div>
+        <a href="view.php?id=<?php echo $meetingId; ?>"
+            class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            <i class="bi bi-arrow-left mr-2"></i> Back to Agenda
+        </a>
     </div>
 
     <?php if (empty($activeVotes)): ?>
@@ -87,9 +92,9 @@ include '../../includes/header.php';
             <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2">No Active Votes</h2>
             <p class="text-gray-600 dark:text-gray-400">There are currently no open motions for voting in this meeting.</p>
             <div class="mt-6">
-                <a href="../committee-meetings/view.php?id=<?php echo $meetingId; ?>"
+                <a href="view.php?id=<?php echo $meetingId; ?>"
                     class="inline-flex items-center text-red-600 hover:text-red-700 font-semibold">
-                    <i class="bi bi-arrow-left mr-2"></i> Back to Meeting Details
+                    <i class="bi bi-arrow-left mr-2"></i> Back to Agenda Details
                 </a>
             </div>
         </div>
@@ -104,7 +109,7 @@ include '../../includes/header.php';
                         <div class="flex items-start justify-between mb-4">
                             <div>
                                 <span
-                                    class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 mb-2 inline-block">
+                                    class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300 mb-2 inline-block">
                                     <?php echo htmlspecialchars($vote['item_title']); ?>
                                 </span>
                                 <h2 class="text-xl font-bold text-gray-900 dark:text-white">
@@ -125,7 +130,7 @@ include '../../includes/header.php';
                                 <?php echo htmlspecialchars($vote['voting_method']); ?>
                             </p>
                             <?php if ($myVote): ?>
-                                <p class="mt-2 text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                <p class="mt-2 text-sm font-semibold text-red-600 dark:text-blue-400">
                                     <i class="bi bi-check2-circle mr-2"></i> You voted: <span class="uppercase">
                                         <?php echo $myVote; ?>
                                     </span>
@@ -168,4 +173,9 @@ include '../../includes/header.php';
     }
 </style>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

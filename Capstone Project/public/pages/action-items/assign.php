@@ -100,12 +100,12 @@ foreach ($assignedItems as $item) {
 </div>
 
 <!-- Clarification Box -->
-<div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mb-6">
+<div class="bg-red-50 dark:bg-blue-900/20 border-l-4 border-red-500 p-4 mb-6">
     <div class="flex items-start">
-        <i class="bi bi-info-circle text-blue-600 dark:text-blue-400 text-xl mt-1 mr-3"></i>
+        <i class="bi bi-info-circle text-red-600 dark:text-blue-400 text-xl mt-1 mr-3"></i>
         <div>
-            <h3 class="font-semibold text-blue-900 dark:text-blue-300 mb-1">About the Assign Tab</h3>
-            <p class="text-blue-800 dark:text-blue-300 text-sm">
+            <h3 class="font-semibold text-red-900 dark:text-blue-300 mb-1">About the Assign Tab</h3>
+            <p class="text-red-800 dark:text-blue-300 text-sm">
                 This tab helps you <strong>manage WHO does WHAT</strong>. View unassigned items that need someone
                 assigned,
                 see who is working on what, and reassign tasks as needed. To edit task details (title, description, due
@@ -132,8 +132,8 @@ foreach ($assignedItems as $item) {
                 <p class="text-sm text-gray-600 dark:text-gray-400">Total Items</p>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1"><?php echo count($actionItems); ?></p>
             </div>
-            <div class="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg">
-                <i class="bi bi-list-task text-2xl text-blue-600 dark:text-blue-400"></i>
+            <div class="bg-red-100 dark:bg-blue-900/30 p-3 rounded-lg">
+                <i class="bi bi-list-task text-2xl text-red-600 dark:text-blue-400"></i>
             </div>
         </div>
     </div>
@@ -251,7 +251,7 @@ foreach ($assignedItems as $item) {
                                         <div class="flex items-center gap-3 mt-1">
                                             <span
                                                 class="text-xs px-2 py-1 rounded-full <?php echo ($item['status'] ?? '') === 'Done' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                                                    (($item['status'] ?? '') === 'In Progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300'); ?>">
+                                                    (($item['status'] ?? '') === 'In Progress' ? 'bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300'); ?>">
                                                 <?php echo htmlspecialchars($item['status'] ?? 'To Do'); ?>
                                             </span>
                                             <?php if (($item['progress'] ?? 0) > 0): ?>
@@ -321,4 +321,20 @@ foreach ($assignedItems as $item) {
     }
 </script>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Showing <span class="font-medium">1</span> to
+        <span class="font-medium"><?php echo count($assignedItems) + count($unassignedItems); ?></span> of
+        <span class="font-medium"><?php echo count($assignedItems) + count($unassignedItems); ?></span> item(s) to
+        assign
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Filter: All Items
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

@@ -121,9 +121,9 @@ include '../../includes/header.php';
     $userId = $_SESSION['user_id'] ?? 0;
     $isCommitteeMember = isCommitteeMember($meeting['committee_id'] ?? 0, $userId);
     if (!empty($activeVotes) && $isCommitteeMember): ?>
-        <div class="bg-blue-600 rounded-lg shadow-lg p-4 mb-6 text-white flex items-center justify-between">
+        <div class="bg-red-600 rounded-lg shadow-lg p-4 mb-6 text-white flex items-center justify-between">
             <div class="flex items-center">
-                <div class="bg-blue-500 rounded-full p-2 mr-4">
+                <div class="bg-red-500 rounded-full p-2 mr-4">
                     <i class="bi bi-hand-thumbs-up-fill text-xl"></i>
                 </div>
                 <div>
@@ -132,7 +132,7 @@ include '../../includes/header.php';
                 </div>
             </div>
             <a href="../agenda-builder/member-vote.php?meeting_id=<?php echo $id; ?>"
-                class="px-6 py-2 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition shadow-sm">
+                class="px-6 py-2 bg-white text-red-600 font-bold rounded-lg hover:bg-red-50 transition shadow-sm">
                 Vote Now
             </a>
         </div>
@@ -214,14 +214,14 @@ include '../../includes/header.php';
             <?php elseif ($meeting['status'] === 'Completed'): ?>
                 <form method="POST" class="inline">
                     <button type="submit" name="update_status" value="Ongoing"
-                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition mr-1">
+                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition mr-1">
                         <i class="bi bi-arrow-counterclockwise mr-2"></i>Reopen Meeting
                     </button>
                 </form>
             <?php endif; ?>
 
             <a href="edit.php?id=<?php echo $id; ?>"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
                 <i class="bi bi-pencil mr-2"></i>Edit
             </a>
         </div>
@@ -280,8 +280,8 @@ include '../../includes/header.php';
                         <?php echo $minutesStatus; ?>
                     </p>
                 </div>
-                <div class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3">
-                    <i class="bi bi-file-earmark-text text-blue-600 dark:text-blue-400 text-2xl"></i>
+                <div class="bg-red-100 dark:bg-blue-900/30 rounded-lg p-3">
+                    <i class="bi bi-file-earmark-text text-red-600 dark:text-blue-400 text-2xl"></i>
                 </div>
             </div>
         </div>
@@ -367,7 +367,7 @@ include '../../includes/header.php';
                     <div>
                         <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Status</p>
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold
-                            <?php echo $meeting['status'] === 'Scheduled' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                            <?php echo $meeting['status'] === 'Scheduled' ? 'bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300' :
                                 ($meeting['status'] === 'Completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
                                     'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'); ?>">
                             <i class="bi bi-circle-fill mr-2 text-xs"></i>
@@ -395,7 +395,7 @@ include '../../includes/header.php';
                     <?php if ($hasAgenda): ?>
                         <div class="flex space-x-2">
                             <a href="../agenda-builder/view.php?id=<?php echo $id; ?>"
-                                class="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm font-semibold transition">
+                                class="text-red-600 hover:text-red-700 dark:text-blue-400 text-sm font-semibold transition">
                                 <i class="bi bi-eye mr-1"></i>View Full
                             </a>
                             <a href="../agenda-builder/items.php?meeting_id=<?php echo $id; ?>"
@@ -511,7 +511,7 @@ include '../../includes/header.php';
                             </a>
                             <a href="#" onclick="addToOutlook(); return false;"
                                 class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
-                                <i class="bi bi-microsoft text-blue-500 mr-2"></i>Outlook
+                                <i class="bi bi-microsoft text-red-500 mr-2"></i>Outlook
                             </a>
                             <a href="#" onclick="addToCalendar(); return false;"
                                 class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-b-lg transition">
@@ -639,4 +639,8 @@ $icsDataUrl = 'data:text/calendar;charset=utf-8,' . rawurlencode($icsContent);
     }
 </script>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

@@ -81,7 +81,7 @@ include '../../includes/header.php';
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <p class="text-sm text-gray-600 dark:text-gray-400">In Progress</p>
-        <p class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+        <p class="text-3xl font-bold text-red-600 dark:text-blue-400 mt-1">
             <?php echo count(getActionItemsByStatus('In Progress')); ?>
         </p>
     </div>
@@ -149,7 +149,7 @@ include '../../includes/header.php';
                 </div>
                 <div class="flex-shrink-0">
                     <a href="view.php?id=<?php echo $activityItem['id']; ?>"
-                        class="text-blue-600 dark:text-blue-400 hover:underline text-sm">
+                        class="text-red-600 dark:text-blue-400 hover:underline text-sm">
                         View
                     </a>
                 </div>
@@ -166,4 +166,19 @@ include '../../includes/header.php';
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Showing <span class="font-medium">1</span> to
+        <span class="font-medium"><?php echo count($displayItems); ?></span> of
+        <span class="font-medium"><?php echo count($displayItems); ?></span> activity record(s)
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Module: History
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

@@ -50,7 +50,7 @@ include '../../includes/header.php';
         </div>
         <div class="flex space-x-2">
             <a href="edit.php?id=<?php echo $item['id']; ?>"
-                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
                 <i class="bi bi-pencil"></i> Edit
             </a>
             <form method="POST" class="inline"
@@ -82,7 +82,7 @@ include '../../includes/header.php';
                     <span
                         class="px-3 py-1 text-sm font-semibold rounded-full 
                         <?php echo ($item['status'] ?? '') === 'Done' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                            (($item['status'] ?? '') === 'In Progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'); ?>">
+                            (($item['status'] ?? '') === 'In Progress' ? 'bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'); ?>">
                         <?php echo htmlspecialchars($item['status'] ?? 'To Do'); ?>
                     </span>
                 </div>
@@ -131,7 +131,7 @@ include '../../includes/header.php';
                 <div class="col-span-2">
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Progress</p>
                     <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-6">
-                        <div class="bg-blue-600 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold transition-all"
+                        <div class="bg-red-600 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold transition-all"
                             style="width: <?php echo ($item['progress'] ?? 0); ?>%">
                             <?php echo ($item['progress'] ?? 0); ?>%
                         </div>
@@ -195,7 +195,7 @@ include '../../includes/header.php';
             </h3>
             <div class="space-y-2">
                 <a href="edit.php?id=<?php echo $item['id']; ?>"
-                    class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition text-sm flex items-center justify-center">
+                    class="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition text-sm flex items-center justify-center">
                     <i class="bi bi-pencil mr-2"></i>Edit Details
                 </a>
                 <?php if (($item['status'] ?? '') !== 'Done'): ?>
@@ -221,7 +221,7 @@ include '../../includes/header.php';
                 <div class="flex flex-wrap gap-2">
                     <?php foreach ($item['tags'] as $tag): ?>
                         <span
-                            class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm rounded-full">
+                            class="px-3 py-1 bg-red-100 dark:bg-blue-900/30 text-red-800 dark:text-blue-300 text-sm rounded-full">
                             <?php echo htmlspecialchars($tag); ?>
                         </span>
                     <?php endforeach; ?>
@@ -240,7 +240,7 @@ include '../../includes/header.php';
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Committee</p>
                             <a href="../committee-profiles/view.php?id=<?php echo $committee['id']; ?>"
-                                class="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                                class="text-red-600 dark:text-blue-400 hover:underline font-medium">
                                 <i class="bi bi-building mr-1"></i><?php echo htmlspecialchars($committee['name']); ?>
                             </a>
                         </div>
@@ -249,7 +249,7 @@ include '../../includes/header.php';
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Meeting</p>
                             <a href="../committee-meetings/view.php?id=<?php echo $meeting['id']; ?>"
-                                class="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                                class="text-red-600 dark:text-blue-400 hover:underline font-medium">
                                 <i class="bi bi-calendar-event mr-1"></i><?php echo htmlspecialchars($meeting['title']); ?>
                             </a>
                         </div>
@@ -266,7 +266,7 @@ include '../../includes/header.php';
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Referral</p>
                             <a href="../referral-management/view.php?id=<?php echo $referral['id']; ?>"
-                                class="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                                class="text-red-600 dark:text-blue-400 hover:underline font-medium">
                                 <i class="bi bi-file-earmark-text mr-1"></i><?php echo htmlspecialchars($referral['title']); ?>
                             </a>
                         </div>
@@ -277,4 +277,17 @@ include '../../includes/header.php';
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Item Status: <span class="font-medium"><?php echo htmlspecialchars($item['status'] ?? 'To Do'); ?></span>
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Priority: <?php echo htmlspecialchars($item['priority'] ?? 'Medium'); ?>
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

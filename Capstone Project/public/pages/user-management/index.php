@@ -13,8 +13,8 @@ $userId = $_SESSION['user_id'];
 $pageTitle = 'User Management';
 
 // Check if user is admin
-$userRole = $_SESSION['user_role'] ?? 'User';
-$isAdmin = (strtolower($userRole) === 'admin' || strtolower($userRole) === 'administrator');
+$userRoleLower = strtolower($_SESSION['user_role'] ?? 'User');
+$isAdmin = ($userRoleLower === 'admin' || $userRoleLower === 'administrator' || $userRoleLower === 'super admin' || $userRoleLower === 'super administrator');
 
 // Redirect non-admins
 if (!$isAdmin) {
@@ -43,7 +43,8 @@ $adminCount = 0;
 
 foreach ($users as $user) {
     if ($user['status'] === 'active') $activeUsers++;
-    if (strtolower($user['role_name']) === 'administrator') $adminCount++;
+    $rLower = strtolower($user['role_name']);
+    if ($rLower === 'admin' || $rLower === 'administrator' || $rLower === 'super admin' || $rLower === 'super administrator') $adminCount++;
 }
 
 // Include shared header
@@ -61,7 +62,7 @@ include '../../includes/header.php';
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-100">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-bold text-gray-800 dark:text-white">Total Users</h3>
-            <i class="bi bi-people text-2xl text-blue-600"></i>
+            <i class="bi bi-people text-2xl text-red-600"></i>
         </div>
         <p class="text-3xl font-bold text-gray-900 dark:text-white"><?php echo $totalUsers; ?></p>
         <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Registered accounts</p>
@@ -257,7 +258,7 @@ include '../../includes/header.php';
                             </td>
                             <td class="px-6 py-4">
                                 <span class="px-3 py-1 text-xs font-semibold rounded-full 
-                                    <?php echo strtolower($user['role_name']) === 'administrator' || strtolower($user['role_name']) === 'super administrator' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'; ?>">
+                                    <?php echo strtolower($user['role_name']) === 'administrator' || strtolower($user['role_name']) === 'super administrator' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : 'bg-red-100 text-red-800 dark:bg-blue-900 dark:text-blue-200'; ?>">
                                     <?php echo htmlspecialchars($user['role_name']); ?>
                                 </span>
                             </td>
@@ -273,7 +274,7 @@ include '../../includes/header.php';
                             <td class="px-6 py-4 text-sm space-x-2">
                                 <?php if ($canEdit): ?>
                                     <button onclick="editUser(<?php echo $user['user_id']; ?>)"
-                                        class="text-blue-600 hover:text-blue-700 dark:text-blue-400" title="Edit">
+                                        class="text-red-600 hover:text-red-700 dark:text-blue-400" title="Edit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                 <?php else: ?>
@@ -332,4 +333,8 @@ include '../../includes/header.php';
 </div>
 
 <?php include 'modals.php'; ?>
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

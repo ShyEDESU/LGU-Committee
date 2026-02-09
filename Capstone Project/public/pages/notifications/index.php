@@ -4,7 +4,8 @@ require_once '../../../config/database.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
-    header('Location: ../../../auth/login.php');
+    $redirect = (strpos($_SERVER['PHP_SELF'], '/pages/') !== false) ? '../../../auth/login.php' : '../auth/login.php';
+    header('Location: ' . $redirect);
     exit();
 }
 
@@ -12,13 +13,22 @@ $userName = $_SESSION['user_name'] ?? 'User';
 $userRole = $_SESSION['user_role'] ?? 'User';
 $pageTitle = 'Notifications';
 
-// Load NotificationHelper
+// Load helpers
 require_once __DIR__ . '/../../../app/helpers/NotificationHelper.php';
+require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
+
+// Get current user data for preferences
+$user = getUserById($_SESSION['user_id']);
+$prefs = json_decode($user['notification_preferences'] ?? '{}', true);
+
+// Default preferences if none set
+$defaults = ['email' => true, 'meetings' => true, 'tasks' => true, 'system' => true];
+$prefs = array_merge($defaults, $prefs);
 
 // Get all notifications for the user
 $userId = $_SESSION['user_id'];
-$allNotifications = NotificationHelper::getUserNotifications($userId);
-$unreadCount = NotificationHelper::getUnreadCount($userId);
+$allNotifications = getUserNotifications($userId, 100); // Increased limit
+$unreadCount = getUnreadNotificationCount($userId);
 
 // Filter notifications based on query parameters
 $filterType = $_GET['type'] ?? 'all';
@@ -121,7 +131,7 @@ include '../../includes/header.php';
         <div class="divide-y divide-gray-200 dark:divide-gray-700">
             <?php foreach ($filteredNotifications as $notification): ?>
                 <div
-                    class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition <?php echo !$notification['is_read'] ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''; ?>">
+                    class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition <?php echo !$notification['is_read'] ? 'bg-red-50/50 dark:bg-blue-900/10' : ''; ?>">
                     <div class="flex items-start space-x-4">
                         <!-- Icon -->
                         <div
@@ -138,7 +148,7 @@ include '../../includes/header.php';
                                         <?php echo htmlspecialchars($notification['title']); ?>
                                         <?php if (!$notification['is_read']): ?>
                                             <span
-                                                class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400">
+                                                class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-blue-900/30 text-red-800 dark:text-blue-400">
                                                 New
                                             </span>
                                         <?php endif; ?>
@@ -149,7 +159,7 @@ include '../../includes/header.php';
                                     <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
                                         <span class="flex items-center gap-1">
                                             <i class="bi bi-clock"></i>
-                                            <?php echo NotificationHelper::timeAgo($notification['created_at']); ?>
+                                            <?php echo timeAgo($notification['created_at']); ?>
                                         </span>
                                         <span class="flex items-center gap-1">
                                             <i class="bi bi-tag"></i>
@@ -168,7 +178,7 @@ include '../../includes/header.php';
                                 <div class="flex items-center gap-2 ml-4">
                                     <?php if (!$notification['is_read']): ?>
                                         <button onclick="markAsRead(<?php echo $notification['id']; ?>)"
-                                            class="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
+                                            class="p-2 text-gray-400 hover:text-red-600 dark:hover:text-blue-400 hover:bg-red-50 dark:hover:bg-blue-900/20 rounded-lg transition"
                                             title="Mark as read">
                                             <i class="bi bi-check2"></i>
                                         </button>
@@ -205,7 +215,7 @@ include '../../includes/header.php';
                 <p class="text-sm text-gray-500 dark:text-gray-400">Receive notifications via email</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" class="sr-only peer" checked>
+                <input type="checkbox" class="sr-only peer preference-toggle" data-key="email" <?php echo $prefs['email'] ? 'checked' : ''; ?>>
                 <div
                     class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 dark:peer-focus:ring-red-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600">
                 </div>
@@ -218,7 +228,7 @@ include '../../includes/header.php';
                 <p class="text-sm text-gray-500 dark:text-gray-400">Get reminded before meetings</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" class="sr-only peer" checked>
+                <input type="checkbox" class="sr-only peer preference-toggle" data-key="meetings" <?php echo $prefs['meetings'] ? 'checked' : ''; ?>>
                 <div
                     class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 dark:peer-focus:ring-red-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600">
                 </div>
@@ -231,7 +241,7 @@ include '../../includes/header.php';
                 <p class="text-sm text-gray-500 dark:text-gray-400">Alerts for assigned tasks</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" class="sr-only peer" checked>
+                <input type="checkbox" class="sr-only peer preference-toggle" data-key="tasks" <?php echo $prefs['tasks'] ? 'checked' : ''; ?>>
                 <div
                     class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 dark:peer-focus:ring-red-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600">
                 </div>
@@ -244,7 +254,7 @@ include '../../includes/header.php';
                 <p class="text-sm text-gray-500 dark:text-gray-400">Important system announcements</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" class="sr-only peer" checked>
+                <input type="checkbox" class="sr-only peer preference-toggle" data-key="system" <?php echo $prefs['system'] ? 'checked' : ''; ?>>
                 <div
                     class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 dark:peer-focus:ring-red-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600">
                 </div>
@@ -278,6 +288,45 @@ include '../../includes/header.php';
             location.reload();
         }
     }
-</script>
 
-<?php include '../../includes/footer.php'; ?>
+    // Handle preference toggles
+    document.querySelectorAll('.preference-toggle').forEach(toggle => {
+        toggle.addEventListener('change', async function () {
+            const key = this.dataset.key;
+            const value = this.checked;
+
+            // Collect all current preferences
+            const preferences = {};
+            document.querySelectorAll('.preference-toggle').forEach(t => {
+                preferences[t.dataset.key] = t.checked;
+            });
+
+            try {
+                const response = await fetch('../../api/save_preferences.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(preferences)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    console.log('Preferences saved successfully');
+                } else {
+                    alert('Failed to save preferences: ' + result.message);
+                    this.checked = !value; // Revert toggle
+                }
+            } catch (error) {
+                console.error('Error saving preferences:', error);
+                alert('An error occurred while saving preferences');
+                this.checked = !value; // Revert toggle
+            }
+        });
+    });
+</script>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

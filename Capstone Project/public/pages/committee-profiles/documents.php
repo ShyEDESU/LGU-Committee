@@ -90,10 +90,6 @@ include '../../includes/header.php';
                     class="border-red-500 text-red-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
                     <i class="bi bi-folder mr-1"></i>Documents
                 </a>
-                <a href="reports.php?id=<?php echo $id; ?>"
-                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
-                    <i class="bi bi-file-earmark-text mr-1"></i>Reports
-                </a>
                 <a href="history.php?id=<?php echo $id; ?>"
                     class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
                     <i class="bi bi-clock-history mr-1"></i>History
@@ -131,7 +127,7 @@ include '../../includes/header.php';
                                     break;
                                 case 'docx':
                                 case 'doc':
-                                    $iconClass = 'bi-file-earmark-word text-blue-600';
+                                    $iconClass = 'bi-file-earmark-word text-red-600';
                                     break;
                             }
                             ?>
@@ -147,7 +143,7 @@ include '../../includes/header.php';
                         </p>
                         <div class="flex flex-wrap gap-1 mb-2">
                             <span
-                                class="inline-block px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded text-xs">
+                                class="inline-block px-2 py-1 bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300 rounded text-xs">
                                 <?php echo htmlspecialchars($doc['type']); ?>
                             </span>
                             <?php if (isset($doc['source'])): ?>
@@ -170,7 +166,7 @@ include '../../includes/header.php';
                         <div class="flex gap-2">
                             <?php if (!empty($doc['file_path'])): ?>
                                 <a href="download-document.php?id=<?php echo $doc['id']; ?>"
-                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm transition text-center">
+                                    class="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-sm transition text-center">
                                     <i class="bi bi-download mr-1"></i>Download
                                 </a>
                             <?php else: ?>
@@ -193,4 +189,8 @@ include '../../includes/header.php';
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing container-fluid and module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

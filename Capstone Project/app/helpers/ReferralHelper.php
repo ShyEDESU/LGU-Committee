@@ -158,6 +158,36 @@ function createReferral($data)
 
         $referralId = $conn->insert_id;
 
+        // Automatic Notification for Assignee
+        if (!empty($assignedTo)) {
+            require_once __DIR__ . '/NotificationHelper.php';
+            $title = "New Referral Assigned";
+            $message = "You have been assigned: '{$data['title']}'";
+            $type = 'referral_assigned';
+            $priority = strtolower($data['priority'] ?? 'medium');
+            $link = "pages/referral-management/view.php?id=" . $referralId;
+            createNotification($assignedTo, $title, $message, $type, $priority, $link);
+        }
+
+        // Automatic Notification for Committee Chairman
+        if (!empty($data['committee_id'])) {
+            require_once __DIR__ . '/CommitteeHelper.php';
+            require_once __DIR__ . '/NotificationHelper.php';
+            $committee = getCommitteeById($data['committee_id']);
+            if ($committee && !empty($committee['chairperson_id'])) {
+                $title = "New Committee Referral";
+                $message = "A new referral '{$data['title']}' has been assigned to your committee.";
+                $type = 'referral_assigned';
+                $priority = 'medium';
+                $link = "pages/referral-management/view.php?id=" . $referralId;
+
+                // Avoid double notification if chairman is also the assignee
+                if ($committee['chairperson_id'] != $assignedTo) {
+                    createNotification($committee['chairperson_id'], $title, $message, $type, $priority, $link);
+                }
+            }
+        }
+
         // Log the action
         logAuditAction(
             $_SESSION['user_id'] ?? null,

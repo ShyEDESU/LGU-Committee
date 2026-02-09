@@ -199,4 +199,8 @@ include '../../includes/header.php';
     </div>
 </form>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

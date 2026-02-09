@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_template'])) {
         'committee_type' => $_POST['committee_type'] ?? 'General',
         'items' => $items
     ];
-    
+
     $newId = createAgendaTemplate($templateData);
     if ($newId) {
         $_SESSION['success_message'] = 'Agenda template created successfully';
@@ -72,7 +72,10 @@ $templates = getAllAgendaTemplates();
     <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 mb-6">
         <div class="flex items-center">
             <i class="bi bi-check-circle text-green-700 dark:text-green-300 text-xl mr-3"></i>
-            <p class="text-green-700 dark:text-green-300 font-medium"><?php echo $_SESSION['success_message']; unset($_SESSION['success_message']); ?></p>
+            <p class="text-green-700 dark:text-green-300 font-medium">
+                <?php echo $_SESSION['success_message'];
+                unset($_SESSION['success_message']); ?>
+            </p>
         </div>
     </div>
 <?php endif; ?>
@@ -81,7 +84,10 @@ $templates = getAllAgendaTemplates();
     <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 mb-6">
         <div class="flex items-center">
             <i class="bi bi-exclamation-circle text-red-700 dark:text-red-300 text-xl mr-3"></i>
-            <p class="text-red-700 dark:text-red-300 font-medium"><?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?></p>
+            <p class="text-red-700 dark:text-red-300 font-medium">
+                <?php echo $_SESSION['error_message'];
+                unset($_SESSION['error_message']); ?>
+            </p>
         </div>
     </div>
 <?php endif; ?>
@@ -104,7 +110,7 @@ $templates = getAllAgendaTemplates();
                             <?php echo htmlspecialchars($template['description']); ?>
                         </p>
                         <span
-                            class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                            class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300">
                             <?php echo $template['committee_type'] ?? 'General'; ?>
                         </span>
                     </div>
@@ -145,7 +151,7 @@ $templates = getAllAgendaTemplates();
 
                 <div class="flex space-x-2">
                     <button onclick='viewTemplate(<?php echo json_encode($template); ?>)'
-                        class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-center rounded-lg transition text-sm font-semibold">
+                        class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-center rounded-lg transition text-sm font-semibold">
                         <i class="bi bi-eye mr-1"></i> View
                     </button>
                     <form method="POST" class="inline" onsubmit="return confirm('Delete this template?');">
@@ -228,7 +234,7 @@ $templates = getAllAgendaTemplates();
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">Template Items</h3>
                     <button type="button" onclick="addTemplateItem()"
-                        class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">
+                        class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm">
                         <i class="bi bi-plus-lg mr-1"></i> Add Item
                     </button>
                 </div>
@@ -341,7 +347,7 @@ $templates = getAllAgendaTemplates();
         let content = `
         <div class="mb-4">
             <p class="text-gray-600 dark:text-gray-400">${template.description}</p>
-            <span class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+            <span class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300">
                 ${template.committee_type}
             </span>
         </div>
@@ -376,4 +382,9 @@ $templates = getAllAgendaTemplates();
     }
 </script>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

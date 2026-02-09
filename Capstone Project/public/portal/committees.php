@@ -76,10 +76,10 @@
 
             <!-- Committee Card 2 -->
             <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
-                <div class="bg-blue-600 text-white p-4">
+                <div class="bg-red-600 text-white p-4">
                     <div class="flex items-center justify-between">
                         <h3 class="text-xl font-bold">Health Committee</h3>
-                        <span class="bg-white text-blue-600 text-xs font-semibold px-2 py-1 rounded">Standing</span>
+                        <span class="bg-white text-red-600 text-xs font-semibold px-2 py-1 rounded">Standing</span>
                     </div>
                 </div>
                 <div class="p-6">
@@ -101,7 +101,7 @@
                         <span><i class="bi bi-file-text mr-1"></i>6 reports</span>
                     </div>
                     <a href="#"
-                        class="block text-center bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition">
+                        class="block text-center bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-medium transition">
                         View Details
                     </a>
                 </div>

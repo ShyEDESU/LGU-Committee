@@ -68,8 +68,8 @@ $doneItems = getActionItemsByStatus('Done');
 <?php endif; ?>
 
 <?php if (isset($_GET['updated'])): ?>
-    <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mb-6">
-        <p class="text-blue-800 dark:text-blue-300">
+    <div class="bg-red-50 dark:bg-blue-900/20 border-l-4 border-red-500 p-4 mb-6">
+        <p class="text-red-800 dark:text-blue-300">
             <i class="bi bi-check-circle mr-2"></i>Action item updated successfully!
         </p>
     </div>
@@ -209,7 +209,7 @@ $doneItems = getActionItemsByStatus('Done');
                         </span>
                         <div class="flex space-x-1">
                             <a href="view.php?id=<?php echo $item['id']; ?>"
-                                class="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded"
+                                class="p-1 text-red-600 dark:text-blue-400 hover:bg-red-100 dark:hover:bg-blue-900/20 rounded"
                                 title="View">
                                 <i class="bi bi-eye"></i>
                             </a>
@@ -237,12 +237,12 @@ $doneItems = getActionItemsByStatus('Done');
     <!-- In Progress Column -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
         <h3 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center">
-            <span class="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+            <span class="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
             In Progress (<?php echo count($inProgressItems); ?>)
         </h3>
         <div class="space-y-3">
             <?php foreach ($inProgressItems as $item): ?>
-                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-500">
+                <div class="bg-red-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-red-500">
                     <h4 class="font-semibold text-gray-900 dark:text-white mb-2">
                         <?php echo htmlspecialchars($item['title']); ?>
                     </h4>
@@ -257,7 +257,7 @@ $doneItems = getActionItemsByStatus('Done');
                     <?php endif; ?>
                     <div class="mb-2">
                         <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                            <div class="bg-blue-600 h-2 rounded-full"
+                            <div class="bg-red-600 h-2 rounded-full"
                                 style="width: <?php echo ($item['progress'] ?? 0); ?>%">
                             </div>
                         </div>
@@ -275,7 +275,7 @@ $doneItems = getActionItemsByStatus('Done');
                         </span>
                         <div class="flex space-x-1">
                             <a href="view.php?id=<?php echo $item['id']; ?>"
-                                class="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded"
+                                class="p-1 text-red-600 dark:text-blue-400 hover:bg-red-100 dark:hover:bg-blue-900/20 rounded"
                                 title="View">
                                 <i class="bi bi-eye"></i>
                             </a>
@@ -327,7 +327,7 @@ $doneItems = getActionItemsByStatus('Done');
                         </span>
                         <div class="flex space-x-1">
                             <a href="view.php?id=<?php echo $item['id']; ?>"
-                                class="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded"
+                                class="p-1 text-red-600 dark:text-blue-400 hover:bg-red-100 dark:hover:bg-blue-900/20 rounded"
                                 title="View">
                                 <i class="bi bi-eye"></i>
                             </a>
@@ -348,4 +348,20 @@ $doneItems = getActionItemsByStatus('Done');
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Kanban Board: <span
+            class="font-medium"><?php echo count($todoItems) + count($inProgressItems) + count($doneItems); ?></span>
+        total action items
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Status: <?php echo count($todoItems); ?> To Do, <?php echo count($inProgressItems); ?> In Progress,
+        <?php echo count($doneItems); ?> Done
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

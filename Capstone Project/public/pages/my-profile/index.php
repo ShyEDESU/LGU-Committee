@@ -187,36 +187,40 @@ include '../../includes/header.php';
 
 <!-- Statistics Cards -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-    <div class="bg-white rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-100">
+    <div
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-100 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between mb-2">
-            <span class="text-gray-600 text-sm">Documents</span>
+            <span class="text-gray-600 dark:text-gray-400 text-sm">Documents</span>
             <i class="bi bi-file-earmark-text text-2xl text-red-600"></i>
         </div>
-        <p class="text-3xl font-bold text-gray-900"><?php echo $docCount; ?></p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white"><?php echo $docCount; ?></p>
     </div>
 
-    <div class="bg-white rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-200">
+    <div
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-200 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between mb-2">
-            <span class="text-gray-600 text-sm">Activities</span>
+            <span class="text-gray-600 dark:text-gray-400 text-sm">Activities</span>
             <i class="bi bi-activity text-2xl text-green-600"></i>
         </div>
-        <p class="text-3xl font-bold text-gray-900"><?php echo $activityCount; ?></p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white"><?php echo $activityCount; ?></p>
     </div>
 
-    <div class="bg-white rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-300">
+    <div
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-300 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between mb-2">
-            <span class="text-gray-600 text-sm">Member Since</span>
+            <span class="text-gray-600 dark:text-gray-400 text-sm">Member Since</span>
             <i class="bi bi-calendar-check text-2xl text-purple-600"></i>
         </div>
-        <p class="text-2xl font-bold text-gray-900"><?php echo $memberSince; ?></p>
+        <p class="text-2xl font-bold text-gray-900 dark:text-white"><?php echo $memberSince; ?></p>
     </div>
 
-    <div class="bg-white rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-400">
+    <div
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-400 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between mb-2">
-            <span class="text-gray-600 text-sm">Last Active</span>
-            <i class="bi bi-clock-history text-2xl text-blue-600"></i>
+            <span class="text-gray-600 dark:text-gray-400 text-sm">Last Active</span>
+            <i class="bi bi-clock-history text-2xl text-red-600"></i>
         </div>
-        <p class="text-xl font-bold text-gray-900"><?php echo $lastActive; ?></p>
+        <p class="text-xl font-bold text-gray-900 dark:text-white"><?php echo $lastActive; ?></p>
     </div>
 </div>
 
@@ -225,54 +229,57 @@ include '../../includes/header.php';
     <!-- Left Column - Personal Information -->
     <div class="lg:col-span-2 space-y-6">
         <!-- Personal Information Card -->
-        <div class="bg-white rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-500">
+        <div
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-500 border border-gray-200 dark:border-gray-700">
             <div class="flex items-center mb-6">
                 <i class="bi bi-person-circle text-red-600 text-2xl mr-3"></i>
-                <h2 class="text-xl font-bold text-gray-900">Personal Information</h2>
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Personal Information</h2>
             </div>
 
             <form method="POST" id="profileForm">
                 <input type="hidden" name="action" value="update_profile">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">First
+                            Name</label>
                         <input type="text" name="first_name"
                             value="<?php echo htmlspecialchars($user['first_name'] ?? ''); ?>"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             disabled>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Last Name</label>
                         <input type="text" name="last_name"
                             value="<?php echo htmlspecialchars($user['last_name'] ?? ''); ?>"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             disabled>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Email Address <span
-                                class="text-xs text-gray-500">(Cannot be changed)</span></label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address
+                            <span class="text-xs text-gray-500">(Cannot be changed)</span></label>
                         <input type="email" name="email" value="<?php echo htmlspecialchars($userEmail); ?>"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 cursor-not-allowed text-gray-500 dark:text-gray-400"
                             disabled readonly>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone
+                            Number</label>
                         <input type="tel" name="phone" value="<?php echo htmlspecialchars($userPhone); ?>"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             disabled>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Department <span
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Department <span
                                 class="text-xs text-gray-500">(Cannot be changed)</span></label>
                         <input type="text" name="department" value="<?php echo htmlspecialchars($userDepartment); ?>"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 cursor-not-allowed text-gray-500 dark:text-gray-400"
                             disabled readonly>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Position <span
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Position <span
                                 class="text-xs text-gray-500">(Cannot be changed)</span></label>
                         <input type="text" name="position" value="<?php echo htmlspecialchars($userPosition); ?>"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 cursor-not-allowed text-gray-500 dark:text-gray-400"
                             disabled readonly>
                     </div>
                 </div>
@@ -286,63 +293,67 @@ include '../../includes/header.php';
         </div>
 
         <!-- Recent Activity Card -->
-        <div class="bg-white rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-600">
+        <div
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-600 border border-gray-200 dark:border-gray-700">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center">
                     <i class="bi bi-clock-history text-red-600 text-2xl mr-3"></i>
-                    <h2 class="text-xl font-bold text-gray-900">Recent Activity</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Recent Activity</h2>
                 </div>
-                <a href="#" class="text-red-600 hover:text-red-700 text-sm font-medium">View All</a>
+                <a href="../audit-logs/index.php"
+                    class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm font-medium">View
+                    All</a>
             </div>
 
             <div class="space-y-4">
                 <?php if (empty($recentActivities)): ?>
-                    <p class="text-center text-gray-500 py-4">No recent activity found.</p>
+                    <p class="text-center text-gray-500 dark:text-gray-400 py-4">No recent activity found.</p>
                 <?php else: ?>
                     <?php foreach ($recentActivities as $activity): ?>
-                        <div class="flex items-start gap-4 p-3 hover:bg-gray-50 rounded-lg transition">
+                        <div
+                            class="flex items-start gap-4 p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition">
                             <div class="rounded-full p-2 <?php
                             switch ($activity['action']) {
                                 case 'UPDATE_PROFILE':
-                                    echo 'bg-blue-50';
+                                    echo 'bg-red-50 dark:bg-red-900/30';
                                     break;
                                 case 'CHANGE_PASSWORD':
-                                    echo 'bg-yellow-50';
+                                    echo 'bg-yellow-50 dark:bg-yellow-900/30';
                                     break;
                                 case 'UPDATE_PICTURE':
-                                    echo 'bg-purple-50';
+                                    echo 'bg-purple-50 dark:bg-purple-900/30';
                                     break;
                                 case 'REMOVE_PICTURE':
-                                    echo 'bg-red-50';
+                                    echo 'bg-red-50 dark:bg-red-900/30';
                                     break;
                                 default:
-                                    echo 'bg-red-50';
+                                    echo 'bg-red-50 dark:bg-red-900/30';
                             }
                             ?>">
                                 <i class="bi <?php
                                 switch ($activity['action']) {
                                     case 'UPDATE_PROFILE':
-                                        echo 'bi-pencil text-blue-600';
+                                        echo 'bi-pencil text-red-600 dark:text-red-400';
                                         break;
                                     case 'CHANGE_PASSWORD':
-                                        echo 'bi-shield-lock text-yellow-600';
+                                        echo 'bi-shield-lock text-yellow-600 dark:text-yellow-400';
                                         break;
                                     case 'UPDATE_PICTURE':
-                                        echo 'bi-image text-purple-600';
+                                        echo 'bi-image text-purple-600 dark:text-purple-400';
                                         break;
                                     case 'REMOVE_PICTURE':
-                                        echo 'bi-trash text-red-600';
+                                        echo 'bi-trash text-red-600 dark:text-red-400';
                                         break;
                                     default:
-                                        echo 'bi-clock text-red-600';
+                                        echo 'bi-clock text-red-600 dark:text-red-400';
                                 }
                                 ?>"></i>
                             </div>
                             <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-900">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">
                                     <?php echo htmlspecialchars($activity['description']); ?>
                                 </p>
-                                <p class="text-xs text-gray-500 mt-1">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                     <?php echo date('M j, Y g:i A', strtotime($activity['timestamp'])); ?>
                                 </p>
                             </div>
@@ -356,44 +367,45 @@ include '../../includes/header.php';
     <!-- Right Column - Security & Quick Links -->
     <div class="space-y-6">
         <!-- Account Security Card -->
-        <div class="bg-white rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-700">
+        <div
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-700 border border-gray-200 dark:border-gray-700">
             <div class="flex items-center mb-6">
                 <i class="bi bi-shield-check text-red-600 text-2xl mr-3"></i>
-                <h2 class="text-xl font-bold text-gray-900">Account Security</h2>
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Account Security</h2>
             </div>
 
             <div class="space-y-4">
                 <button onclick="openChangePasswordModal()"
-                    class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
+                    class="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition border border-gray-100 dark:border-gray-600">
                     <div class="flex items-center gap-3">
-                        <i class="bi bi-key text-red-600 text-xl"></i>
+                        <i class="bi bi-key text-red-600 dark:text-red-400 text-xl"></i>
                         <div class="text-left">
-                            <p class="font-semibold text-gray-900">Change Password</p>
-                            <p class="text-sm text-gray-600">Update your password</p>
+                            <p class="font-semibold text-gray-900 dark:text-white">Change Password</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Update your password</p>
                         </div>
                     </div>
                     <i class="bi bi-chevron-right text-gray-400"></i>
                 </button>
 
                 <button
-                    class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
+                    class="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition border border-gray-100 dark:border-gray-600">
                     <div class="flex items-center gap-3">
-                        <i class="bi bi-shield-lock text-blue-600 text-xl"></i>
+                        <i class="bi bi-shield-lock text-red-600 dark:text-red-400 text-xl"></i>
                         <div class="text-left">
-                            <p class="font-semibold text-gray-900">Two-Factor Auth</p>
-                            <p class="text-sm text-gray-600">Not enabled</p>
+                            <p class="font-semibold text-gray-900 dark:text-white">Two-Factor Auth</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Not enabled</p>
                         </div>
                     </div>
                     <i class="bi bi-chevron-right text-gray-400"></i>
                 </button>
 
                 <button
-                    class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
+                    class="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition border border-gray-100 dark:border-gray-600">
                     <div class="flex items-center gap-3">
-                        <i class="bi bi-clock-history text-purple-600 text-xl"></i>
+                        <i class="bi bi-clock-history text-purple-600 dark:text-purple-400 text-xl"></i>
                         <div class="text-left">
-                            <p class="font-semibold text-gray-900">Login History</p>
-                            <p class="text-sm text-gray-600">View recent logins</p>
+                            <p class="font-semibold text-gray-900 dark:text-white">Login History</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">View recent logins</p>
                         </div>
                     </div>
                     <i class="bi bi-chevron-right text-gray-400"></i>
@@ -402,29 +414,33 @@ include '../../includes/header.php';
         </div>
 
         <!-- Quick Links Card -->
-        <div class="bg-white rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-800">
+        <div
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-800 border border-gray-200 dark:border-gray-700">
             <div class="flex items-center mb-6">
                 <i class="bi bi-link-45deg text-red-600 text-2xl mr-3"></i>
-                <h2 class="text-xl font-bold text-gray-900">Quick Links</h2>
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Quick Links</h2>
             </div>
 
             <div class="space-y-2">
-                <a href="../../dashboard.php" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition">
-                    <i class="bi bi-speedometer2 text-red-600 mr-3"></i>
-                    <span class="font-semibold text-gray-700">Dashboard</span>
+                <a href="../../dashboard.php"
+                    class="flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                    <i class="bi bi-speedometer2 text-red-600 dark:text-red-400 mr-3"></i>
+                    <span class="font-semibold text-gray-700 dark:text-gray-300">Dashboard</span>
                 </a>
                 <a href="../user-management/index.php"
-                    class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition">
-                    <i class="bi bi-people text-red-600 mr-3"></i>
-                    <span class="font-semibold text-gray-700">User Management</span>
+                    class="flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                    <i class="bi bi-people text-red-600 dark:text-red-400 mr-3"></i>
+                    <span class="font-semibold text-gray-700 dark:text-gray-300">User Management</span>
                 </a>
-                <a href="../audit-logs/index.php" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition">
-                    <i class="bi bi-clock-history text-red-600 mr-3"></i>
-                    <span class="font-semibold text-gray-700">Audit Logs</span>
+                <a href="../audit-logs/index.php"
+                    class="flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                    <i class="bi bi-clock-history text-red-600 dark:text-red-400 mr-3"></i>
+                    <span class="font-semibold text-gray-700 dark:text-gray-300">Audit Logs</span>
                 </a>
-                <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition">
-                    <i class="bi bi-question-circle text-red-600 mr-3"></i>
-                    <span class="font-semibold text-gray-700">Help Center</span>
+                <a href="#"
+                    class="flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                    <i class="bi bi-question-circle text-red-600 dark:text-red-400 mr-3"></i>
+                    <span class="font-semibold text-gray-700 dark:text-gray-300">Help Center</span>
                 </a>
             </div>
         </div>
@@ -434,11 +450,12 @@ include '../../includes/header.php';
 <!-- Upload Profile Picture Modal -->
 <div id="uploadPictureModal"
     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-fade-in-up">
-        <div class="p-6 border-b border-gray-200">
+    <div
+        class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full animate-fade-in-up border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-800">Update Profile Picture</h2>
-                <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600">
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white">Update Profile Picture</h2>
+                <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                     <i class="bi bi-x-lg text-xl"></i>
                 </button>
             </div>
@@ -449,7 +466,7 @@ include '../../includes/header.php';
                 <!-- Current Picture Preview -->
                 <div class="flex justify-center">
                     <div id="previewContainer"
-                        class="w-40 h-40 rounded-full bg-gray-100 border-4 border-gray-200 flex items-center justify-center overflow-hidden">
+                        class="w-40 h-40 rounded-full bg-gray-100 dark:bg-gray-700 border-4 border-gray-200 dark:border-gray-600 flex items-center justify-center overflow-hidden">
                         <?php if ($profilePicture): ?>
                             <img id="currentPreview" src="../../<?php echo htmlspecialchars($profilePicture); ?>"
                                 alt="Current" class="w-full h-full object-cover">
@@ -462,11 +479,13 @@ include '../../includes/header.php';
 
                 <!-- File Input -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Choose New Picture</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Choose New
+                        Picture</label>
                     <input type="file" id="profilePictureInput" accept="image/jpeg,image/png"
                         onchange="previewImage(this)"
-                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer">
-                    <p class="mt-2 text-xs text-gray-500">JPG or PNG only. Max size: 5MB. Max dimensions:
+                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 dark:file:bg-red-900/30 file:text-red-700 dark:file:text-red-400 hover:file:bg-red-100 cursor-pointer">
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">JPG or PNG only. Max size: 5MB. Max
+                        dimensions:
                         2000x2000px</p>
                 </div>
 
@@ -478,12 +497,12 @@ include '../../includes/header.php';
                     </button>
                     <?php if ($profilePicture): ?>
                         <button onclick="removeProfilePicture()"
-                            class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 px-4 py-2 rounded-lg font-semibold transition">
+                            class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-300 px-4 py-2 rounded-lg font-semibold transition">
                             <i class="bi bi-trash mr-2"></i>Remove
                         </button>
                     <?php endif; ?>
                     <button onclick="closeUploadModal()"
-                        class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 px-4 py-2 rounded-lg font-semibold transition">
+                        class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-300 px-4 py-2 rounded-lg font-semibold transition">
                         Cancel
                     </button>
                 </div>
@@ -495,11 +514,13 @@ include '../../includes/header.php';
 <!-- Change Password Modal -->
 <div id="changePasswordModal"
     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-fade-in-up">
-        <div class="p-6 border-b border-gray-200">
+    <div
+        class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full animate-fade-in-up border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-800">Change Password</h2>
-                <button onclick="closeChangePasswordModal()" class="text-gray-400 hover:text-gray-600">
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white">Change Password</h2>
+                <button onclick="closeChangePasswordModal()"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                     <i class="bi bi-x-lg text-xl"></i>
                 </button>
             </div>
@@ -509,21 +530,23 @@ include '../../includes/header.php';
             <input type="hidden" name="action" value="change_password">
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current
+                        Password</label>
                     <input type="password" name="current_password"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 text-base"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password</label>
                     <input type="password" name="new_password"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 text-base"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm New
+                        Password</label>
                     <input type="password" name="confirm_password"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 text-base"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         required>
                 </div>
             </div>
@@ -534,7 +557,7 @@ include '../../includes/header.php';
                     <i class="bi bi-key mr-2"></i>Update Password
                 </button>
                 <button type="button" onclick="closeChangePasswordModal()"
-                    class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 px-4 py-2 rounded-lg font-semibold transition">
+                    class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-300 px-4 py-2 rounded-lg font-semibold transition">
                     Cancel
                 </button>
             </div>
@@ -712,4 +735,8 @@ include '../../includes/header.php';
     }
 </script>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

@@ -71,7 +71,7 @@ $publicReferrals = array_filter($allReferrals, function ($ref) {
 
         <!-- Stats -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-500">
+            <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-500">
                 <p class="text-sm text-gray-600">Total Public</p>
                 <p class="text-2xl font-bold text-gray-900">
                     <?php echo count($publicReferrals); ?>
@@ -123,7 +123,7 @@ $publicReferrals = array_filter($allReferrals, function ($ref) {
                                         <?php echo htmlspecialchars($ref['description']); ?>
                                     </p>
                                     <div class="flex items-center gap-3 mt-3 text-sm">
-                                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                                        <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full">
                                             <?php echo $ref['type']; ?>
                                         </span>
                                         <span
@@ -151,10 +151,10 @@ $publicReferrals = array_filter($allReferrals, function ($ref) {
         </div>
 
         <!-- Info Box -->
-        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mt-6">
-            <h3 class="font-semibold text-blue-900 mb-2"><i class="bi bi-info-circle mr-2"></i>About Public Referrals
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mt-6">
+            <h3 class="font-semibold text-red-900 mb-2"><i class="bi bi-info-circle mr-2"></i>About Public Referrals
             </h3>
-            <p class="text-sm text-blue-800">This portal provides public access to committee referrals. Only referrals
+            <p class="text-sm text-red-800">This portal provides public access to committee referrals. Only referrals
                 marked as public are displayed here. For full access and management features, please log in as staff.
             </p>
         </div>

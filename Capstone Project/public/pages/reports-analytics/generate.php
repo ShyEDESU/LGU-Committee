@@ -17,7 +17,7 @@ $committees = getAllCommittees(); // Existing helper function
 
 <div class="px-6 py-8">
     <div class="mb-8">
-        <a href="index.php" class="text-blue-600 hover:text-blue-700 flex items-center gap-2 mb-4 font-semibold">
+        <a href="index.php" class="text-red-600 hover:text-red-700 flex items-center gap-2 mb-4 font-semibold">
             <i class="bi bi-arrow-left"></i> Back to Dashboard
         </a>
         <h1 class="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
@@ -93,8 +93,8 @@ $committees = getAllCommittees(); // Existing helper function
         </div>
 
         <!-- Quick Tips card -->
-        <div class="mt-8 bg-blue-50 rounded-2xl p-6 border border-blue-100 border-dashed">
-            <h4 class="text-blue-800 font-bold mb-2 flex items-center gap-2">
+        <div class="mt-8 bg-red-50 rounded-2xl p-6 border border-blue-100 border-dashed">
+            <h4 class="text-red-800 font-bold mb-2 flex items-center gap-2">
                 <i class="bi bi-lightbulb"></i> Pro Tip
             </h4>
             <p class="text-blue-700 text-sm leading-relaxed">

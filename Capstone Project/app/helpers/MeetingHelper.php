@@ -191,7 +191,9 @@ function createMeeting($data)
         return $meetingId;
     }
 
-    error_log("Error creating meeting: " . $conn->error);
+    $error = $conn->error;
+    error_log("Error creating meeting: " . $error);
+    $_SESSION['error_message'] = "Database Error: " . $error;
     return false;
 }
 
@@ -341,7 +343,7 @@ function autoInviteCommitteeMembers($meetingId, $committeeId)
 function getAgendaItems($meetingId)
 {
     global $conn;
-    $stmt = $conn->prepare("SELECT * FROM agenda_items WHERE meeting_id = ? ORDER BY sort_order ASC");
+    $stmt = $conn->prepare("SELECT * FROM agenda_items WHERE meeting_id = ? ORDER BY item_order ASC");
     $stmt->bind_param("i", $meetingId);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -365,8 +367,8 @@ function addAgendaItem($meetingId, $data)
 {
     global $conn;
     $referralId = $data['referral_id'] ?? null;
-    $stmt = $conn->prepare("INSERT INTO agenda_items (meeting_id, referral_id, title, description, duration, presenter, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("iissisi", $meetingId, $referralId, $data['title'], $data['description'], $data['duration'], $data['presenter'], $data['sort_order']);
+    $stmt = $conn->prepare("INSERT INTO agenda_items (meeting_id, referral_id, title, description, duration, presenter, item_order) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("iissisi", $meetingId, $referralId, $data['title'], $data['description'], $data['duration'], $data['presenter'], $data['item_order']);
     $success = $stmt->execute();
     if ($success) {
         logAuditAction(
@@ -405,8 +407,8 @@ function updateAgendaItem($itemId, $data)
         'description' => 'description',
         'duration' => 'duration',
         'presenter' => 'presenter',
-        'sort_order' => 'sort_order',
-        'item_number' => 'sort_order' // UI uses item_number for sorting
+        'item_order' => 'item_order',
+        'item_number' => 'item_order' // UI uses item_number for sorting
     ];
 
     foreach ($map as $key => $column) {
@@ -637,9 +639,19 @@ function getMeetingDocuments($meetingId)
     // Map fields for UI compatibility
     return array_map(function ($doc) {
         $doc['name'] = $doc['title'];
+        $doc['description'] = $doc['content'] ?? '';
         $doc['uploaded_by'] = $doc['uploaded_by_name'];
+        $doc['uploaded_at'] = $doc['created_at'];
         $doc['version'] = '1.0'; // Default version
-        $doc['file_size'] = 0; // Unknown
+
+        $doc['file_size'] = 0;
+        if (!empty($doc['file_path'])) {
+            $fullPath = __DIR__ . '/../../' . $doc['file_path'];
+            if (file_exists($fullPath)) {
+                $doc['file_size'] = round(filesize($fullPath) / 1024, 2);
+            }
+        }
+
         $doc['id'] = $doc['document_id'];
         $doc['category'] = ucfirst($doc['document_type']);
         return $doc;
@@ -650,10 +662,37 @@ function addMeetingDocument($meetingId, $data, $file = null)
 {
     global $conn;
     $uploadedBy = $_SESSION['user_id'] ?? 1;
-    $filePath = $file ? 'uploads/' . basename($file['name']) : ''; // Mock path
+    $filePath = '';
+
+    // Normalize category to lowercase to match DB ENUM
+    $category = strtolower($data['category'] ?? 'supporting_doc');
+    // Map 'other' to 'supporting_doc' as it's not in the ENUM but useful for UI
+    if ($category === 'other')
+        $category = 'supporting_doc';
+
+    if ($file && $file['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = __DIR__ . '/../../uploads/meeting-documents/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $fileName = 'meeting_' . $meetingId . '_' . time() . '_' . uniqid() . '.' . $extension;
+        $targetPath = $uploadDir . $fileName;
+
+        if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+            $filePath = 'uploads/meeting-documents/' . $fileName;
+        } else {
+            error_log("Failed to move uploaded file to $targetPath");
+            return false;
+        }
+    } elseif ($file && $file['error'] !== UPLOAD_ERR_NO_FILE) {
+        error_log("File upload error: " . $file['error']);
+        return false;
+    }
 
     $stmt = $conn->prepare("INSERT INTO meeting_documents (meeting_id, document_type, title, content, file_path, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("issssi", $meetingId, $data['category'], $data['name'], $data['description'], $filePath, $uploadedBy);
+    $stmt->bind_param("issssi", $meetingId, $category, $data['name'], $data['description'], $filePath, $uploadedBy);
     return $stmt->execute();
 }
 
@@ -682,8 +721,10 @@ function getMeetingMinutes($meetingId)
         if (!$data) {
             $data = ['content' => $row['content'], 'decisions' => [], 'action_items' => []];
         }
-        $data['status'] = 'Draft'; // Default
+        $data['status'] = $data['status'] ?? 'Draft';
         $data['id'] = $row['document_id'];
+        $data['approved_by'] = $data['approved_by'] ?? null;
+        $data['approved_at'] = $data['approved_at'] ?? null;
         return $data;
     }
     return null;
@@ -696,24 +737,37 @@ function saveMinutes($meetingId, $data)
     $jsonContent = json_encode($data);
     $title = "Minutes for Meeting " . $meetingId;
 
-    // Check if minutes already exist
-    $stmt = $conn->prepare("SELECT document_id FROM meeting_documents WHERE meeting_id = ? AND document_type = 'minutes'");
+    // Check if minutes already exist (check most recent)
+    $stmt = $conn->prepare("SELECT document_id FROM meeting_documents WHERE meeting_id = ? AND document_type = 'minutes' ORDER BY created_at DESC LIMIT 1");
     $stmt->bind_param("i", $meetingId);
     $stmt->execute();
-    if ($row = $stmt->get_result()->fetch_assoc()) {
+    $result = $stmt->get_result();
+
+    if ($row = $result->fetch_assoc()) {
         $stmt = $conn->prepare("UPDATE meeting_documents SET content = ?, uploaded_by = ?, updated_at = NOW() WHERE document_id = ?");
         $stmt->bind_param("sii", $jsonContent, $uploadedBy, $row['document_id']);
     } else {
         $stmt = $conn->prepare("INSERT INTO meeting_documents (meeting_id, document_type, title, content, uploaded_by) VALUES (?, 'minutes', ?, ?, ?)");
-        $stmt->bind_param("isssi", $meetingId, $title, $jsonContent, $uploadedBy);
+        $stmt->bind_param("issi", $meetingId, $title, $jsonContent, $uploadedBy);
     }
-    return $stmt->execute();
+
+    $success = $stmt->execute();
+    if (!$success) {
+        error_log("Failed to save minutes for meeting $meetingId: " . $conn->error);
+    }
+    return $success;
 }
 
 function approveMinutes($meetingId)
 {
-    // Mock approval
-    return true;
+    $minutes = getMeetingMinutes($meetingId);
+    if ($minutes) {
+        $minutes['status'] = 'Approved';
+        $minutes['approved_by'] = $_SESSION['user_name'] ?? 'System';
+        $minutes['approved_at'] = date('Y-m-d H:i:s');
+        return saveMinutes($meetingId, $minutes);
+    }
+    return false;
 }
 
 /**
@@ -764,6 +818,62 @@ function getAllAgendaTemplates()
         }
     }
     return $templates;
+}
+
+/**
+ * Get items for a template
+ */
+function getTemplateItems($templateId)
+{
+    global $conn;
+    $stmt = $conn->prepare("SELECT * FROM agenda_template_items WHERE template_id = ? ORDER BY item_order ASC");
+    $stmt->bind_param("i", $templateId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $items = [];
+    while ($row = $result->fetch_assoc()) {
+        $items[] = $row;
+    }
+    return $items;
+}
+
+/**
+ * Apply a template to a meeting agenda
+ */
+function applyTemplateToAgenda($meetingId, $templateId)
+{
+    global $conn;
+    $items = getTemplateItems($templateId);
+    if (empty($items)) {
+        return false;
+    }
+
+    $conn->begin_transaction();
+    try {
+        $stmt = $conn->prepare("INSERT INTO agenda_items (meeting_id, title, description, duration, item_type, item_order) VALUES (?, ?, ?, ?, ?, ?)");
+        foreach ($items as $item) {
+            $stmt->bind_param(
+                "issisi",
+                $meetingId,
+                $item['title'],
+                $item['description'],
+                $item['duration'],
+                $item['item_type'],
+                $item['item_order']
+            );
+            $stmt->execute();
+        }
+
+        // Update meeting status if it was 'None'
+        $conn->query("UPDATE meetings SET agenda_status = 'Draft' WHERE meeting_id = $meetingId AND (agenda_status IS NULL OR agenda_status = 'None' OR agenda_status = '')");
+
+        $conn->commit();
+        return true;
+    } catch (Exception $e) {
+        $conn->rollback();
+        error_log("Error applying template: " . $e->getMessage());
+        return false;
+    }
 }
 
 /**
@@ -916,13 +1026,20 @@ function getDistributionLog($meetingId)
 function getAgendasByCommittee($committeeId)
 {
     global $conn;
-    $sql = "SELECT m.* FROM meetings m WHERE m.committee_id = ? AND m.agenda_status != 'None' ORDER BY m.meeting_date DESC";
+    // Join with agenda_items and group by meeting_id to ensure we only return meetings that actually HAVE agenda items
+    $sql = "SELECT DISTINCT m.* 
+            FROM meetings m 
+            INNER JOIN agenda_items ai ON m.meeting_id = ai.meeting_id
+            WHERE m.committee_id = ? 
+            ORDER BY m.meeting_date DESC";
+
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $committeeId);
     $stmt->execute();
     $result = $stmt->get_result();
     $agendas = [];
     while ($row = $result->fetch_assoc()) {
+        // Since we did an INNER JOIN, we know items exist, but we still use the helper for consistency
         $items = getAgendaItems($row['meeting_id']);
         $agendas[] = [
             'meeting' => [
@@ -944,63 +1061,14 @@ function getAgendasByCommittee($committeeId)
 function getActiveVotesByMeeting($meetingId)
 {
     global $conn;
-    $sql = "SELECT v.*, ai.title as item_title 
+    $sql = "SELECT v.*, v.vote_id as id, ai.title as item_title 
             FROM votes v
             JOIN agenda_items ai ON v.agenda_item_id = ai.item_id
-            WHERE ai.meeting_id = ? AND v.status = 'Open'";
+            WHERE ai.meeting_id = ? AND v.result = 'Pending'";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $meetingId);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $votes = [];
-    while ($row = $result->fetch_assoc()) {
-        $row['id'] = $row['vote_id'];
-        $votes[] = $row;
-    }
-    return $votes;
-}
-
-
-function getTemplateItems($templateId)
-{
-    global $conn;
-    $stmt = $conn->prepare("SELECT * FROM agenda_template_items WHERE template_id = ? ORDER BY item_order ASC");
-    $stmt->bind_param("i", $templateId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $items = [];
-    while ($row = $result->fetch_assoc()) {
-        $items[] = $row;
-    }
-    return $items;
-}
-
-function applyTemplateToAgenda($meetingId, $templateId)
-{
-    global $conn;
-
-    // Get items from template
-    $items = getTemplateItems($templateId);
-    if (empty($items))
-        return false;
-
-    // Insert into agenda_items
-    $stmt = $conn->prepare("INSERT INTO agenda_items (meeting_id, item_order, title, description, duration, item_type) VALUES (?, ?, ?, ?, ?, ?)");
-
-    $success = true;
-    foreach ($items as $item) {
-        $stmt->bind_param("iisssi", $meetingId, $item['item_order'], $item['title'], $item['description'], $item['duration'], $item['item_type']);
-        if (!$stmt->execute()) {
-            $success = false;
-        }
-    }
-
-    if ($success) {
-        // Update meeting agenda status to Draft if it was None
-        $conn->query("UPDATE meetings SET agenda_status = 'Draft' WHERE meeting_id = $meetingId AND agenda_status = 'None'");
-    }
-
-    return $success;
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
 /**

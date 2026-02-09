@@ -1,277 +1,198 @@
 <?php
 /**
- * Notification Helper
- * Manages user notifications and alerts
+ * NotificationHelper.php
+ * Handles creating, fetching, and updating user notifications.
  */
 
-class NotificationHelper
+require_once __DIR__ . '/../../config/database.php';
+
+/**
+ * Creates a new notification for a specific user.
+ * 
+ * @param int $userId The ID of the user to notify.
+ * @param string $title The notification title.
+ * @param string $message The notification message.
+ * @param string $type The type of notification (reminder, alert, info, task_assigned, referral_assigned, committee_created).
+ * @param string $priority The priority (low, medium, high).
+ * @param string|null $link Optional link for the action.
+ * @return bool True on success, false on failure.
+ */
+function createNotification($userId, $title, $message, $type = 'info', $priority = 'medium', $link = null)
 {
+    global $conn;
 
-    /**
-     * Get all notifications for a user
-     * @param int $userId User ID
-     * @return array Array of notifications
-     */
-    public static function getUserNotifications($userId)
-    {
-        // In production, this would query the database
-        // For now, return dummy data
+    $stmt = $conn->prepare("INSERT INTO notifications (user_id, title, message, notification_type, priority, action_link) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("isssss", $userId, $title, $message, $type, $priority, $link);
+    $result = $stmt->execute();
+    $stmt->close();
 
-        $notifications = [
-            [
-                'id' => 1,
-                'user_id' => $userId,
-                'type' => 'meeting',
-                'title' => 'New Committee Meeting Scheduled',
-                'message' => 'Finance Committee meeting scheduled for Dec 15, 2025 at 2:00 PM',
-                'link' => '/pages/committee-meetings/view.php?id=1',
-                'icon' => 'bi-calendar-event',
-                'color' => 'blue',
-                'is_read' => false,
-                'created_at' => date('Y-m-d H:i:s', strtotime('-5 minutes')),
-                'priority' => 'high'
-            ],
-            [
-                'id' => 2,
-                'user_id' => $userId,
-                'type' => 'action_item',
-                'title' => 'New Action Item Assigned',
-                'message' => 'You have been assigned: Review 2025 Budget Proposal',
-                'link' => '/pages/action-items/view.php?id=1',
-                'icon' => 'bi-check2-square',
-                'color' => 'green',
-                'is_read' => false,
-                'created_at' => date('Y-m-d H:i:s', strtotime('-1 hour')),
-                'priority' => 'high'
-            ],
-            [
-                'id' => 3,
-                'user_id' => $userId,
-                'type' => 'referral',
-                'title' => 'New Referral Received',
-                'message' => 'Budget Allocation Review has been referred to your committee',
-                'link' => '/pages/referral-management/view.php?id=1',
-                'icon' => 'bi-inbox',
-                'color' => 'orange',
-                'is_read' => false,
-                'created_at' => date('Y-m-d H:i:s', strtotime('-2 hours')),
-                'priority' => 'medium'
-            ],
-            [
-                'id' => 4,
-                'user_id' => $userId,
-                'type' => 'document',
-                'title' => 'Document Approved',
-                'message' => 'Committee Report Nov 2025 has been approved',
-                'link' => '/pages/committee-reports/view.php?id=1',
-                'icon' => 'bi-file-earmark-check',
-                'color' => 'green',
-                'is_read' => true,
-                'created_at' => date('Y-m-d H:i:s', strtotime('-3 hours')),
-                'priority' => 'low'
-            ],
-            [
-                'id' => 5,
-                'user_id' => $userId,
-                'type' => 'deadline',
-                'title' => 'Deadline Approaching',
-                'message' => 'Action item "Complete Budget Review" is due in 2 days',
-                'link' => '/pages/action-items/view.php?id=1',
-                'icon' => 'bi-clock',
-                'color' => 'red',
-                'is_read' => true,
-                'created_at' => date('Y-m-d H:i:s', strtotime('-5 hours')),
-                'priority' => 'high'
-            ],
-            [
-                'id' => 6,
-                'user_id' => $userId,
-                'type' => 'system',
-                'title' => 'System Update',
-                'message' => 'New features have been added to the Committee Management System',
-                'link' => '#',
-                'icon' => 'bi-info-circle',
-                'color' => 'purple',
-                'is_read' => true,
-                'created_at' => date('Y-m-d H:i:s', strtotime('-1 day')),
-                'priority' => 'low'
-            ],
-            [
-                'id' => 7,
-                'user_id' => $userId,
-                'type' => 'comment',
-                'title' => 'New Comment on Agenda',
-                'message' => 'John Doe commented on Q4 Budget Review agenda',
-                'link' => '/pages/agenda-builder/view.php?id=1',
-                'icon' => 'bi-chat-left-text',
-                'color' => 'blue',
-                'is_read' => true,
-                'created_at' => date('Y-m-d H:i:s', strtotime('-2 days')),
-                'priority' => 'low'
-            ],
-            [
-                'id' => 8,
-                'user_id' => $userId,
-                'type' => 'meeting',
-                'title' => 'Meeting Minutes Published',
-                'message' => 'Minutes for Finance Committee meeting are now available',
-                'link' => '/pages/committee-meetings/view.php?id=2',
-                'icon' => 'bi-file-text',
-                'color' => 'blue',
-                'is_read' => true,
-                'created_at' => date('Y-m-d H:i:s', strtotime('-3 days')),
-                'priority' => 'low'
-            ]
-        ];
+    return $result;
+}
 
-        return $notifications;
-    }
-
-    /**
-     * Get unread notification count
-     * @param int $userId User ID
-     * @return int Count of unread notifications
-     */
-    public static function getUnreadCount($userId)
-    {
-        $notifications = self::getUserNotifications($userId);
-        return count(array_filter($notifications, function ($n) {
-            return !$n['is_read'];
-        }));
-    }
-
-    /**
-     * Get recent notifications (for dropdown)
-     * @param int $userId User ID
-     * @param int $limit Number of notifications to return
-     * @return array Array of recent notifications
-     */
-    public static function getRecentNotifications($userId, $limit = 5)
-    {
-        $notifications = self::getUserNotifications($userId);
-        return array_slice($notifications, 0, $limit);
-    }
-
-    /**
-     * Mark notification as read
-     * @param int $notificationId Notification ID
-     * @return bool Success
-     */
-    public static function markAsRead($notificationId)
-    {
-        // In production, update database
-        // For now, just return true
-        return true;
-    }
-
-    /**
-     * Mark all notifications as read
-     * @param int $userId User ID
-     * @return bool Success
-     */
-    public static function markAllAsRead($userId)
-    {
-        // In production, update database
-        // For now, just return true
-        return true;
-    }
-
-    /**
-     * Delete notification
-     * @param int $notificationId Notification ID
-     * @return bool Success
-     */
-    public static function deleteNotification($notificationId)
-    {
-        // In production, delete from database
-        // For now, just return true
-        return true;
-    }
-
-    /**
-     * Get notification icon class based on type
-     * @param string $type Notification type
-     * @return string Icon class
-     */
-    public static function getIconClass($type)
-    {
-        $icons = [
-            'meeting' => 'bi-calendar-event',
-            'action_item' => 'bi-check2-square',
-            'referral' => 'bi-inbox',
-            'document' => 'bi-file-earmark-check',
-            'deadline' => 'bi-clock',
-            'system' => 'bi-info-circle',
-            'comment' => 'bi-chat-left-text',
-            'user' => 'bi-person',
-            'approval' => 'bi-check-circle',
-            'reminder' => 'bi-bell'
-        ];
-
-        return $icons[$type] ?? 'bi-bell';
-    }
-
-    /**
-     * Get notification color based on type
-     * @param string $type Notification type
-     * @return string Color class
-     */
-    public static function getColorClass($type)
-    {
-        $colors = [
-            'meeting' => 'blue',
-            'action_item' => 'green',
-            'referral' => 'orange',
-            'document' => 'green',
-            'deadline' => 'red',
-            'system' => 'purple',
-            'comment' => 'blue',
-            'user' => 'gray',
-            'approval' => 'green',
-            'reminder' => 'yellow'
-        ];
-
-        return $colors[$type] ?? 'gray';
-    }
-
-    /**
-     * Format time ago
-     * @param string $datetime Datetime string
-     * @return string Formatted time ago
-     */
-    public static function timeAgo($datetime)
-    {
-        $timestamp = strtotime($datetime);
-        $diff = time() - $timestamp;
-
-        if ($diff < 60) {
-            return 'Just now';
-        } elseif ($diff < 3600) {
-            $minutes = floor($diff / 60);
-            return $minutes . ' minute' . ($minutes > 1 ? 's' : '') . ' ago';
-        } elseif ($diff < 86400) {
-            $hours = floor($diff / 3600);
-            return $hours . ' hour' . ($hours > 1 ? 's' : '') . ' ago';
-        } elseif ($diff < 604800) {
-            $days = floor($diff / 86400);
-            return $days . ' day' . ($days > 1 ? 's' : '') . ' ago';
-        } else {
-            return date('M j, Y', $timestamp);
-        }
-    }
-
-    /**
-     * Create a new notification
-     * @param array $data Notification data
-     * @return bool Success
-     */
-    public static function createNotification($data)
-    {
-        // In production, insert into database
-        // Required fields: user_id, type, title, message
-        // Optional fields: link, priority
-
-        // For now, just return true
-        return true;
+/**
+ * Gets the color associated with a notification type.
+ */
+function getNotificationColor($type)
+{
+    switch ($type) {
+        case 'alert':
+        case 'overdue':
+            return 'red';
+        case 'task_assigned':
+        case 'referral_assigned':
+            return 'blue';
+        case 'committee_created':
+            return 'green';
+        case 'deadline':
+        case 'deadline_approaching':
+            return 'orange';
+        case 'comment':
+            return 'purple';
+        default:
+            return 'gray';
     }
 }
+
+/**
+ * Gets the icon associated with a notification type.
+ */
+function getNotificationIcon($type)
+{
+    switch ($type) {
+        case 'alert':
+        case 'overdue':
+            return 'bi-exclamation-octagon';
+        case 'task_assigned':
+            return 'bi-clipboard-check';
+        case 'referral_assigned':
+            return 'bi-file-earmark-arrow-right';
+        case 'committee_created':
+            return 'bi-people';
+        case 'deadline':
+        case 'deadline_approaching':
+            return 'bi-calendar-x';
+        case 'comment':
+            return 'bi-chat-dots';
+        case 'system':
+            return 'bi-gear';
+        default:
+            return 'bi-info-circle';
+    }
+}
+
+/**
+ * Fetches recent notifications for a user with mapped keys.
+ * 
+ * @param int $userId The ID of the user.
+ * @param int $limit Max number of notifications to fetch.
+ * @return array Array of notification records.
+ */
+function getUserNotifications($userId, $limit = 50)
+{
+    global $conn;
+
+    $stmt = $conn->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?");
+    $stmt->bind_param("ii", $userId, $limit);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $notifications = [];
+
+    while ($row = $result->fetch_assoc()) {
+        // Map database columns to view-friendly keys to prevent PHP warnings
+        $notifications[] = [
+            'id' => $row['notification_id'],
+            'title' => $row['title'],
+            'message' => $row['message'],
+            'type' => $row['notification_type'],
+            'priority' => $row['priority'] ?? 'medium',
+            'is_read' => (bool) $row['is_read'],
+            'link' => $row['action_link'] ?? '#',
+            'created_at' => $row['created_at'],
+            'color' => getNotificationColor($row['notification_type']),
+            'icon' => getNotificationIcon($row['notification_type'])
+        ];
+    }
+    $stmt->close();
+
+    return $notifications;
+}
+
+/**
+ * Gets the count of unread notifications for a user.
+ * 
+ * @param int $userId The ID of the user.
+ * @return int Number of unread notifications.
+ */
+function getUnreadNotificationCount($userId)
+{
+    global $conn;
+
+    $stmt = $conn->prepare("SELECT COUNT(*) as unread_count FROM notifications WHERE user_id = ? AND is_read = 0");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $stmt->close();
+
+    return (int) ($row['unread_count'] ?? 0);
+}
+
+/**
+ * Marks all notifications as read for a user.
+ * 
+ * @param int $userId The ID of the user.
+ * @return bool True on success, false on failure.
+ */
+function markAllNotificationsRead($userId)
+{
+    global $conn;
+
+    $stmt = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ?");
+    $stmt->bind_param("i", $userId);
+    $result = $stmt->execute();
+    $stmt->close();
+
+    return $result;
+}
+
+/**
+ * Marks a single notification as read.
+ * 
+ * @param int $notificationId The ID of the notification.
+ * @return bool True on success, false on failure.
+ */
+function markNotificationRead($notificationId)
+{
+    global $conn;
+
+    $stmt = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE notification_id = ?");
+    $stmt->bind_param("i", $notificationId);
+    $result = $stmt->execute();
+    $stmt->close();
+
+    return $result;
+}
+
+/**
+ * Returns a human-readable time difference.
+ * 
+ * @param string $datetime The datetime string.
+ * @return string Time ago string.
+ */
+function timeAgo($datetime)
+{
+    $time = strtotime($datetime);
+    $diff = time() - $time;
+
+    if ($diff < 60)
+        return "Just now";
+    if ($diff < 3600)
+        return floor($diff / 60) . " mins ago";
+    if ($diff < 86400)
+        return floor($diff / 3600) . " hours ago";
+    if ($diff < 604800)
+        return floor($diff / 86400) . " days ago";
+
+    return date('M j, Y', $time);
+}
+?>

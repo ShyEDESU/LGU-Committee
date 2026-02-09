@@ -76,7 +76,7 @@ $avgTurnaround = $count > 0 ? round($totalDays / $count, 1) : 0;
 
 <!-- Key Metrics -->
 <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-    <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
+    <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500">
         <p class="text-sm text-gray-600 mb-1">Total Referrals</p>
         <p class="text-3xl font-bold text-gray-900">
             <?php echo $totalReferrals; ?>
@@ -122,7 +122,7 @@ $avgTurnaround = $count > 0 ? round($totalDays / $count, 1) : 0;
                     </span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div class="bg-blue-600 h-2 rounded-full"
+                    <div class="bg-red-600 h-2 rounded-full"
                         style="width: <?php echo $totalReferrals > 0 ? ($ordinances / $totalReferrals * 100) : 0; ?>%">
                     </div>
                 </div>
@@ -284,7 +284,7 @@ $avgTurnaround = $count > 0 ? round($totalDays / $count, 1) : 0;
 <div class="bg-white rounded-lg shadow-sm p-6">
     <h3 class="text-lg font-bold mb-4"><i class="bi bi-download mr-2"></i>Export Reports</h3>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button class="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+        <button class="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
             <i class="bi bi-file-pdf mr-2"></i>Export to PDF
         </button>
         <button class="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
@@ -296,4 +296,17 @@ $avgTurnaround = $count > 0 ? round($totalDays / $count, 1) : 0;
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Report Summary: <span class="font-medium"><?php echo $totalReferrals; ?></span> referrals analyzed
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Avg. Turnaround: <?php echo $avgTurnaround; ?> days
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

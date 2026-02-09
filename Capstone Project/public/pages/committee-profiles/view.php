@@ -60,6 +60,9 @@ $urgentReferralsCount = count(array_filter($committeeReferrals, function ($r) {
     return $r['status'] === 'Pending' || ($r['priority'] ?? '') === 'High';
 }));
 
+// Committee Agendas
+$committeeAgendas = getAgendasByCommittee($id);
+
 // Pagination logic
 $itemsPerPage = 10;
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
@@ -104,7 +107,7 @@ include '../../includes/header.php';
                 <i class="bi bi-arrow-left mr-2"></i>Back to List
             </a>
             <a href="edit.php?id=<?php echo $id; ?>"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
                 <i class="bi bi-pencil mr-2"></i>Edit
             </a>
             <button onclick="window.print()"
@@ -127,8 +130,8 @@ include '../../includes/header.php';
                     </p>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total members</p>
                 </div>
-                <div class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-4">
-                    <i class="bi bi-people text-blue-600 dark:text-blue-400 text-3xl"></i>
+                <div class="bg-red-100 dark:bg-blue-900/30 rounded-lg p-4">
+                    <i class="bi bi-people text-red-600 dark:text-blue-400 text-3xl"></i>
                 </div>
             </div>
         </div>
@@ -212,10 +215,10 @@ include '../../includes/header.php';
                 <a href="view.php?id=<?php echo $id; ?>&tab=agendas"
                     class="<?php echo isset($_GET['tab']) && $_GET['tab'] === 'agendas' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'; ?> whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
                     <i class="bi bi-journal-text mr-1"></i>Agendas
-                    <?php if ($urgentAgendasCount > 0): ?>
+                    <?php if (count($committeeAgendas) > 0): ?>
                         <span
                             class="ml-2 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 text-xs font-semibold px-2 py-0.5 rounded-full">
-                            <?php echo $urgentAgendasCount; ?>
+                            <?php echo count($committeeAgendas); ?>
                         </span>
                     <?php endif; ?>
                 </a>
@@ -224,7 +227,7 @@ include '../../includes/header.php';
                     <i class="bi bi-arrow-left-right mr-1"></i>Referrals
                     <?php if ($urgentReferralsCount > 0): ?>
                         <span
-                            class="ml-2 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-xs font-semibold px-2 py-0.5 rounded-full">
+                            class="ml-2 bg-red-100 text-red-800 dark:bg-blue-900 dark:text-blue-300 text-xs font-semibold px-2 py-0.5 rounded-full">
                             <?php echo $urgentReferralsCount; ?>
                         </span>
                     <?php endif; ?>
@@ -294,7 +297,7 @@ include '../../includes/header.php';
                                         </div>
                                         <div class="flex flex-col items-end gap-2">
                                             <span
-                                                class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                                class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-blue-900 dark:text-blue-300">
                                                 <?php echo $meeting['status']; ?>
                                             </span>
                                             <a href="../committee-meetings/view.php?id=<?php echo $meeting['id']; ?>"
@@ -348,21 +351,24 @@ include '../../includes/header.php';
 
                             <!-- Pagination for Meetings -->
                             <?php if ($totalPagesMeetings > 1): ?>
-                                <div class="flex items-center justify-between mt-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+                                <div
+                                    class="flex items-center justify-between mt-4 border-t border-gray-100 dark:border-gray-700 pt-4">
                                     <div class="text-xs text-gray-500">
-                                        Showing <?php echo $offset + 1; ?>-<?php echo min($offset + $itemsPerPage, $totalPastMeetings); ?> of <?php echo $totalPastMeetings; ?>
+                                        Showing
+                                        <?php echo $offset + 1; ?>-<?php echo min($offset + $itemsPerPage, $totalPastMeetings); ?>
+                                        of <?php echo $totalPastMeetings; ?>
                                     </div>
                                     <div class="flex gap-2">
                                         <?php if ($page > 1): ?>
                                             <a href="?id=<?php echo $id; ?>&tab=meetings&page=<?php echo $page - 1; ?>"
-                                               class="p-2 border border-gray-300 rounded hover:bg-gray-100 text-xs">
-                                               <i class="bi bi-chevron-left"></i>
+                                                class="p-2 border border-gray-300 rounded hover:bg-gray-100 text-xs">
+                                                <i class="bi bi-chevron-left"></i>
                                             </a>
                                         <?php endif; ?>
                                         <?php if ($page < $totalPagesMeetings): ?>
                                             <a href="?id=<?php echo $id; ?>&tab=meetings&page=<?php echo $page + 1; ?>"
-                                               class="p-2 border border-gray-300 rounded hover:bg-gray-100 text-xs">
-                                               <i class="bi bi-chevron-right"></i>
+                                                class="p-2 border border-gray-300 rounded hover:bg-gray-100 text-xs">
+                                                <i class="bi bi-chevron-right"></i>
                                             </a>
                                         <?php endif; ?>
                                     </div>
@@ -391,18 +397,19 @@ include '../../includes/header.php';
                 </div>
             <?php else: ?>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <?php 
+                    <?php
                     $totalAgendas = count($committeeMeetings);
                     $paginatedAgendas = array_slice($committeeMeetings, $offset, $itemsPerPage);
                     $totalPagesAgendas = ceil($totalAgendas / $itemsPerPage);
-                    
+
                     foreach ($paginatedAgendas as $meeting): ?>
                         <div
                             class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition">
                             <div
                                 class="p-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                                 <h3 class="font-bold text-gray-900 dark:text-white">
-                                    <?php echo htmlspecialchars($meeting['title']); ?></h3>
+                                    <?php echo htmlspecialchars($meeting['title']); ?>
+                                </h3>
                                 <span
                                     class="text-xs text-gray-500"><?php echo date('M j, Y', strtotime($meeting['date'])); ?></span>
                             </div>
@@ -440,18 +447,20 @@ include '../../includes/header.php';
 
                 <!-- Pagination for Agendas -->
                 <?php if ($totalPagesAgendas > 1): ?>
-                    <div class="flex items-center justify-between mt-6 bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div
+                        class="flex items-center justify-between mt-6 bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div class="text-sm text-gray-500">
-                            Showing <?php echo $offset + 1; ?>-<?php echo min($offset + $itemsPerPage, $totalAgendas); ?> of <?php echo $totalAgendas; ?> agendas
+                            Showing <?php echo $offset + 1; ?>-<?php echo min($offset + $itemsPerPage, $totalAgendas); ?> of
+                            <?php echo $totalAgendas; ?> agendas
                         </div>
                         <div class="flex gap-2">
                             <?php if ($page > 1): ?>
                                 <a href="?id=<?php echo $id; ?>&tab=agendas&page=<?php echo $page - 1; ?>"
-                                   class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm">Previous</a>
+                                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm">Previous</a>
                             <?php endif; ?>
                             <?php if ($page < $totalPagesAgendas): ?>
                                 <a href="?id=<?php echo $id; ?>&tab=agendas&page=<?php echo $page + 1; ?>"
-                                   class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm">Next</a>
+                                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm">Next</a>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -500,18 +509,20 @@ include '../../includes/header.php';
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                            <?php 
+                            <?php
                             $totalReferrals = count($committeeReferrals);
                             $paginatedReferrals = array_slice($committeeReferrals, $offset, $itemsPerPage);
                             $totalPagesReferrals = ceil($totalReferrals / $itemsPerPage);
-                             
+
                             foreach ($paginatedReferrals as $ref): ?>
                                 <tr>
                                     <td class="px-6 py-4">
                                         <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                            <?php echo htmlspecialchars($ref['title']); ?></div>
+                                            <?php echo htmlspecialchars($ref['title']); ?>
+                                        </div>
                                         <div class="text-xs text-gray-500">
-                                            <?php echo htmlspecialchars($ref['document_number'] ?? 'N/A'); ?></div>
+                                            <?php echo htmlspecialchars($ref['document_number'] ?? 'N/A'); ?>
+                                        </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <?php echo date('M j, Y', strtotime($ref['created_at'])); ?>
@@ -532,18 +543,20 @@ include '../../includes/header.php';
 
                 <!-- Pagination for Referrals -->
                 <?php if ($totalPagesReferrals > 1): ?>
-                    <div class="flex items-center justify-between mt-6 bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div
+                        class="flex items-center justify-between mt-6 bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div class="text-sm text-gray-500">
-                            Showing <?php echo $offset + 1; ?>-<?php echo min($offset + $itemsPerPage, $totalReferrals); ?> of <?php echo $totalReferrals; ?> referrals
+                            Showing <?php echo $offset + 1; ?>-<?php echo min($offset + $itemsPerPage, $totalReferrals); ?> of
+                            <?php echo $totalReferrals; ?> referrals
                         </div>
                         <div class="flex gap-2">
                             <?php if ($page > 1): ?>
                                 <a href="?id=<?php echo $id; ?>&tab=referrals&page=<?php echo $page - 1; ?>"
-                                   class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm">Previous</a>
+                                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm">Previous</a>
                             <?php endif; ?>
                             <?php if ($page < $totalPagesReferrals): ?>
                                 <a href="?id=<?php echo $id; ?>&tab=referrals&page=<?php echo $page + 1; ?>"
-                                   class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm">Next</a>
+                                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm">Next</a>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -572,7 +585,7 @@ include '../../includes/header.php';
                         </div>
                         <div>
                             <p class="text-sm text-gray-600 dark:text-gray-400">Type</p>
-                            <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                            <span class="inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
                                 <?php echo htmlspecialchars($committee['type']); ?>
                             </span>
                         </div>
@@ -658,7 +671,7 @@ include '../../includes/header.php';
                                             <?php echo htmlspecialchars($meeting['title']); ?>
                                         </p>
                                         <span
-                                            class="px-2 py-1 text-xs rounded-full <?php echo $meeting['status'] === 'Scheduled' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'; ?>">
+                                            class="px-2 py-1 text-xs rounded-full <?php echo $meeting['status'] === 'Scheduled' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'; ?>">
                                             <?php echo $meeting['status']; ?>
                                         </span>
                                     </div>
@@ -712,7 +725,7 @@ include '../../includes/header.php';
                                         </p>
                                         <span
                                             class="px-2 py-1 text-xs rounded-full <?php echo $referral['status'] === 'Pending' ? 'bg-gray-100 text-gray-800' :
-                                                ($referral['status'] === 'Under Review' ? 'bg-blue-100 text-blue-800' :
+                                                ($referral['status'] === 'Under Review' ? 'bg-red-100 text-red-800' :
                                                     ($referral['status'] === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800')); ?>">
                                             <?php echo $referral['status']; ?>
                                         </span>
@@ -773,7 +786,7 @@ include '../../includes/header.php';
                                         </p>
                                         <span
                                             class="px-2 py-1 text-xs rounded-full <?php echo ($actionItem['status'] ?? '') === 'Done' ? 'bg-green-100 text-green-800' :
-                                                (($actionItem['status'] ?? '') === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'); ?>">
+                                                (($actionItem['status'] ?? '') === 'In Progress' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'); ?>">
                                             <?php echo htmlspecialchars($actionItem['status'] ?? 'To Do'); ?>
                                         </span>
                                     </div>
@@ -798,7 +811,7 @@ include '../../includes/header.php';
                                     <?php if (($actionItem['progress'] ?? 0) > 0): ?>
                                         <div class="mb-2">
                                             <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                                                <div class="bg-blue-600 h-2 rounded-full"
+                                                <div class="bg-red-600 h-2 rounded-full"
                                                     style="width: <?php echo ($actionItem['progress'] ?? 0); ?>%"></div>
                                             </div>
                                             <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
@@ -832,7 +845,7 @@ include '../../includes/header.php';
                         </a>
                     </div>
                     <?php
-                    $committeeAgendas = getAgendasByCommittee($id);
+                    // Already fetched at the top
                     ?>
                     <?php if (empty($committeeAgendas)): ?>
                         <p class="text-gray-500">No agendas created yet</p>
@@ -894,8 +907,8 @@ include '../../includes/header.php';
                             <?php foreach (array_slice($documents, 0, 5) as $doc): ?>
                                 <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center justify-between">
                                     <div class="flex items-center overflow-hidden">
-                                        <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded mr-3 flex-shrink-0">
-                                            <i class="bi bi-file-earmark-text text-blue-600 dark:text-blue-400"></i>
+                                        <div class="p-2 bg-red-100 dark:bg-blue-900/30 rounded mr-3 flex-shrink-0">
+                                            <i class="bi bi-file-earmark-text text-red-600 dark:text-blue-400"></i>
                                         </div>
                                         <div class="truncate">
                                             <p class="font-semibold text-sm truncate">
@@ -909,7 +922,7 @@ include '../../includes/header.php';
                                     </div>
                                     <?php if (!empty($doc['file_path'])): ?>
                                         <a href="download-document.php?id=<?php echo $doc['id']; ?>"
-                                            class="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded flex-shrink-0">
+                                            class="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-blue-900/20 rounded flex-shrink-0">
                                             <i class="bi bi-download"></i>
                                         </a>
                                     <?php endif; ?>
@@ -927,7 +940,7 @@ include '../../includes/header.php';
                     <div class="space-y-4">
                         <div class="flex justify-between items-center">
                             <span class="text-gray-600 dark:text-gray-400">Members</span>
-                            <span class="text-2xl font-bold text-blue-600">
+                            <span class="text-2xl font-bold text-red-600">
                                 <?php echo $committee['member_count'] ?? 0; ?>
                             </span>
                         </div>
@@ -956,7 +969,7 @@ include '../../includes/header.php';
                     <h2 class="text-lg font-bold mb-4">Quick Actions</h2>
                     <div class="space-y-2">
                         <a href="../committee-meetings/schedule.php?committee=<?php echo $id; ?>"
-                            class="block w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center">
+                            class="block w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-center">
                             <i class="bi bi-calendar-plus mr-2"></i>Schedule Meeting
                         </a>
                         <a href="../referral-management/create.php?committee=<?php echo $id; ?>"
@@ -975,6 +988,9 @@ include '../../includes/header.php';
             </div>
         </div>
     <?php endif; ?>
-</div>
-
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing container-fluid -->
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

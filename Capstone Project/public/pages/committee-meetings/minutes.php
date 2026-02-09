@@ -190,7 +190,7 @@ include '../../includes/header.php';
                 
                 <?php if (!$minutes || $minutes['status'] !== 'Approved'): ?>
                     <button type="button" onclick="addDecision()"
-                        class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        class="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
                         <i class="bi bi-plus-circle mr-2"></i>Add Decision
                     </button>
                 <?php endif; ?>
@@ -223,7 +223,7 @@ include '../../includes/header.php';
                 
                 <?php if (!$minutes || $minutes['status'] !== 'Approved'): ?>
                     <button type="button" onclick="addActionItem()"
-                        class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        class="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
                         <i class="bi bi-plus-circle mr-2"></i>Add Action Item
                     </button>
                 <?php endif; ?>
@@ -324,7 +324,7 @@ include '../../includes/header.php';
                     </div>
                     
                     <a href="attendance.php?id=<?php echo $meetingId; ?>"
-                        class="mt-3 block text-center text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                        class="mt-3 block text-center text-sm text-red-600 hover:text-red-800 dark:text-blue-400">
                         View Full Attendance →
                     </a>
                 </div>
@@ -381,5 +381,9 @@ function addActionItem() {
     container.appendChild(div);
 }
 </script>
+</div> <!-- Closing module-content-wrapper -->
 
-<?php include '../../includes/footer.php'; ?>
+<?php 
+include '../../includes/footer.php'; 
+include '../../includes/layout-end.php';
+?>

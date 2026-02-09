@@ -68,9 +68,9 @@ if ($search || $typeFilter || $statusFilter) {
 </div>
 
 <!-- Info Message -->
-<div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mb-6">
+<div class="bg-red-50 dark:bg-blue-900/20 border-l-4 border-red-500 p-4 mb-6">
     <div class="flex items-center space-x-2">
-        <i class="bi bi-info-circle text-blue-600 dark:text-blue-400"></i>
+        <i class="bi bi-info-circle text-red-600 dark:text-blue-400"></i>
         <p class="text-sm text-gray-700 dark:text-gray-300">
             Click on any committee card below to view full details, members, documents, and more
         </p>
@@ -189,7 +189,7 @@ if ($search || $typeFilter || $statusFilter) {
                         </h3>
                         <div class="flex flex-wrap gap-2">
                             <span class="px-2 py-1 text-xs font-semibold rounded-full 
-                                <?php echo $committee['type'] === 'Standing' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                                <?php echo $committee['type'] === 'Standing' ? 'bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300' :
                                     ($committee['type'] === 'Special' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
                                         'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'); ?>">
                                 <?php echo $committee['type']; ?>
@@ -741,5 +741,8 @@ if ($search || $typeFilter || $statusFilter) {
     });
 </script>
 
-
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

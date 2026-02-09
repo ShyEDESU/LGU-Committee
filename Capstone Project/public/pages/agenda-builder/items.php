@@ -119,7 +119,7 @@ if ($editingItemId) {
 <?php endif; ?>
 
 <?php if (isset($_GET['updated'])): ?>
-    <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mb-6">
+    <div class="bg-red-50 dark:bg-blue-900/20 border-l-4 border-red-500 p-4 mb-6">
         <div class="flex items-center">
             <i class="bi bi-check-circle text-blue-700 dark:text-blue-300 text-xl mr-3"></i>
             <p class="text-blue-700 dark:text-blue-300 font-medium">Agenda item updated successfully!</p>
@@ -163,7 +163,7 @@ if ($editingItemId) {
                     min</span>
             </div>
             <div class="flex items-center">
-                <i class="bi bi-calendar-event text-blue-600 dark:text-blue-400 text-xl mr-2"></i>
+                <i class="bi bi-calendar-event text-red-600 dark:text-blue-400 text-xl mr-2"></i>
                 <span class="text-sm text-gray-600 dark:text-gray-400">Meeting:</span>
                 <span
                     class="ml-2 text-lg font-bold text-gray-900 dark:text-white"><?php echo !empty($meeting['date']) ? date('M j, Y', strtotime($meeting['date'])) : 'No Date Set'; ?></span>
@@ -257,7 +257,7 @@ if ($editingItemId) {
                                         </div>
                                         <div class="flex-shrink-0 flex space-x-2">
                                             <a href="?meeting_id=<?php echo $meetingId; ?>&edit=<?php echo htmlspecialchars($item['id'] ?? $item['item_id'] ?? ''); ?>"
-                                                class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
+                                                class="p-2 text-red-600 dark:text-blue-400 hover:bg-red-50 dark:hover:bg-blue-900/20 rounded-lg transition"
                                                 title="Edit Item">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
@@ -369,7 +369,7 @@ if ($editingItemId) {
                                 Cancel
                             </a>
                             <button type="submit"
-                                class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                                class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
                                 Update
                             </button>
                         <?php else: ?>
@@ -394,7 +394,7 @@ if ($editingItemId) {
                 new Sortable(itemsList, {
                     animation: 150,
                     handle: '.bi-grip-vertical',
-                    ghostClass: 'bg-blue-100',
+                    ghostClass: 'bg-red-100',
                     dragClass: 'opacity-50',
                     onEnd: function (evt) {
                         // Get new order of items
@@ -449,4 +449,9 @@ if ($editingItemId) {
         }
     </script>
 
-    <?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+
+<?php 
+include '../../includes/footer.php'; 
+include '../../includes/layout-end.php';
+?>

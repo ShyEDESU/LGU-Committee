@@ -117,8 +117,8 @@ $committees = getAllCommittees();
                     <?php echo count($allItems); ?>
                 </p>
             </div>
-            <div class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3">
-                <i class="bi bi-list-check text-blue-600 dark:text-blue-400 text-2xl"></i>
+            <div class="bg-red-100 dark:bg-blue-900/30 rounded-lg p-3">
+                <i class="bi bi-list-check text-red-600 dark:text-blue-400 text-2xl"></i>
             </div>
         </div>
     </div>
@@ -214,7 +214,7 @@ $committees = getAllCommittees();
                             </td>
                             <td class="px-6 py-4">
                                 <span
-                                    class="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                    class="px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300">
                                     <?php echo htmlspecialchars($item['committee_name']); ?>
                                 </span>
                             </td>
@@ -227,7 +227,7 @@ $committees = getAllCommittees();
                             <td class="px-6 py-4">
                                 <div class="flex space-x-2">
                                     <a href="view.php?id=<?php echo $item['meeting_id']; ?>"
-                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold"
+                                        class="text-red-600 dark:text-blue-400 hover:text-red-700 dark:hover:text-blue-300 font-semibold"
                                         title="View Agenda">
                                         <i class="bi bi-eye"></i>
                                     </a>
@@ -246,4 +246,9 @@ $committees = getAllCommittees();
     <?php endif; ?>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

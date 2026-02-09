@@ -130,6 +130,24 @@ function createCommittee($data)
     if ($stmt->execute()) {
         $committeeId = $conn->insert_id;
 
+        // Automatic Notification for Admins
+        require_once __DIR__ . '/UserHelper.php';
+        require_once __DIR__ . '/NotificationHelper.php';
+
+        // Find Admins (Role ID 1 is Super Admin, Role ID 2 is Admin in most standard schemas)
+        // We'll notify all users who have 'Admin' in their role name
+        $allUsers = getAllUsers();
+        foreach ($allUsers as $user) {
+            if (isset($user['role_name']) && (stripos($user['role_name'], 'Admin') !== false)) {
+                $title = "New Committee Created";
+                $message = "A new committee has been created: '{$data['name']}'";
+                $type = 'committee_created';
+                $priority = 'medium';
+                $link = "pages/committee-profiles/view.php?id=" . $committeeId;
+                createNotification($user['user_id'], $title, $message, $type, $priority, $link);
+            }
+        }
+
         // Log the action with details
         if (function_exists('logAuditAction')) {
             $details = "Created committee '{$data['name']}' (Type: {$data['type']})";

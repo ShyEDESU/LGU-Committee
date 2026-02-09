@@ -6,23 +6,24 @@
 window.logout = function () {
     if (confirm('Are you sure you want to log out?')) {
         // Determine base path based on current URL structure
-        // /pages/module-name/page.php -> ../../../ (3 levels up to root)
-        // /dashboard.php or /index.php -> ../ (1 level up to root for app/ folder)
-        const isDeep = window.location.href.includes('/pages/');
-        const basePath = isDeep ? '../../../' : '../';
-        const redirectPath = isDeep ? '../../index.php' : 'index.php';
+        // If in /public/pages/module/index.php -> ../../../ (to root)
+        // If in /public/dashboard.php -> ../ (to root)
+        const isInPages = window.location.pathname.includes('/pages/');
+        const root = isInPages ? '../../../' : '../';
 
-        fetch(basePath + 'app/controllers/AuthController.php', {
+        // Final destination after logout
+        const landingPage = root + 'index.php';
+
+        fetch(root + 'app/controllers/AuthController.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'action=logout'
         })
             .then(() => {
-                window.location.href = redirectPath + '?logout=success';
+                window.location.href = landingPage + '?logout=success';
             })
             .catch(() => {
-                // If fetch fails (network issue), still attempt to redirect to land safely
-                window.location.href = redirectPath + '?logout=success';
+                window.location.href = landingPage + '?logout=success';
             });
     }
 };
@@ -80,32 +81,45 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ==========================================
-    // 2. DESKTOP SIDEBAR TOGGLE (Robust)
+    // 2. DESKTOP SIDEBAR TOGGLE (Robust Multi-button support)
     // ==========================================
-    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebarToggles = document.querySelectorAll('#sidebar-toggle, #sidebar-collapse, .sidebar-collapse-btn');
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('main-content');
-    const sidebarIcon = document.querySelector('.sidebar-icon');
-    const arrowIcon = document.querySelector('.arrow-icon');
 
-    if (sidebarToggle && sidebar) {
+    if (sidebar && sidebarToggles.length > 0) {
         // Load state
         const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
         if (isCollapsed) {
             sidebar.classList.add('collapsed');
-            sidebarToggle.classList.add('sidebar-hidden');
             mainContent?.classList.add('expanded');
-            sidebarIcon?.classList.add('hidden');
-            arrowIcon?.classList.remove('hidden');
+            sidebarToggles.forEach(btn => {
+                btn.classList.add('sidebar-hidden');
+                btn.querySelector('.sidebar-icon')?.classList.add('hidden');
+                btn.querySelector('.arrow-icon')?.classList.remove('hidden');
+            });
         }
 
-        sidebarToggle.addEventListener('click', function () {
-            sidebar.classList.toggle('collapsed');
-            mainContent?.classList.toggle('expanded');
-            this.classList.toggle('sidebar-hidden');
-            sidebarIcon?.classList.toggle('hidden');
-            arrowIcon?.classList.toggle('hidden');
-            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        sidebarToggles.forEach(toggleBtn => {
+            toggleBtn.addEventListener('click', function () {
+                const isNowCollapsed = sidebar.classList.toggle('collapsed');
+                mainContent?.classList.toggle('expanded');
+
+                // Update all toggle buttons to match state
+                sidebarToggles.forEach(btn => {
+                    if (isNowCollapsed) {
+                        btn.classList.add('sidebar-hidden');
+                        btn.querySelector('.sidebar-icon')?.classList.add('hidden');
+                        btn.querySelector('.arrow-icon')?.classList.remove('hidden');
+                    } else {
+                        btn.classList.remove('sidebar-hidden');
+                        btn.querySelector('.sidebar-icon')?.classList.remove('hidden');
+                        btn.querySelector('.arrow-icon')?.classList.add('hidden');
+                    }
+                });
+
+                localStorage.setItem('sidebarCollapsed', isNowCollapsed);
+            });
         });
     }
 
@@ -163,6 +177,15 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('click', function () {
         notificationsDropdown?.classList.add('hidden');
         profileDropdown?.classList.add('hidden');
+    });
+
+    // Mark all as read placeholder
+    const markAllReadBtn = document.getElementById('mark-all-read-btn');
+    markAllReadBtn?.addEventListener('click', function () {
+        showToast('Notifications marked as read', 'success');
+        notificationsDropdown?.classList.add('hidden');
+        const badge = document.getElementById('notification-count');
+        if (badge) badge.style.display = 'none';
     });
 
     // ==========================================

@@ -194,6 +194,10 @@ include '../../includes/header.php';
             </button>
         </div>
     </form>
-</div>
+</div> <!-- Closing container-fluid -->
+</div> <!-- Closing module-content-wrapper -->
 
-<?php include '../../includes/footer.php'; ?>
+<?php 
+include '../../includes/footer.php'; 
+include '../../includes/layout-end.php';
+?>

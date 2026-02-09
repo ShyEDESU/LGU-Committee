@@ -129,12 +129,12 @@ include '../../includes/header.php';
 </div>
 
 <!-- Note Box -->
-<div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mt-6">
+<div class="bg-red-50 dark:bg-blue-900/20 border-l-4 border-red-500 p-4 mt-6">
     <div class="flex items-start">
-        <i class="bi bi-lightbulb text-blue-600 dark:text-blue-400 text-xl mr-3 mt-1"></i>
+        <i class="bi bi-lightbulb text-red-600 dark:text-blue-400 text-xl mr-3 mt-1"></i>
         <div>
-            <h4 class="font-semibold text-blue-900 dark:text-blue-300 mb-1">Note</h4>
-            <p class="text-blue-800 dark:text-blue-300 text-sm">
+            <h4 class="font-semibold text-red-900 dark:text-blue-300 mb-1">Note</h4>
+            <p class="text-red-800 dark:text-blue-300 text-sm">
                 This page only edits the agenda title and description. To manage agenda items, use the "Edit Items"
                 button on the view page.
             </p>
@@ -142,4 +142,9 @@ include '../../includes/header.php';
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

@@ -154,15 +154,15 @@ $paginatedReferrals = array_slice($filteredReferrals, $offset, $itemsPerPage);
 
 <!-- Statistics Cards -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border-l-4 border-red-500">
         <div class="flex items-center justify-between mb-2">
             <p class="text-sm text-gray-600 dark:text-gray-400">Total Referrals</p>
-            <i class="bi bi-list-ul text-2xl text-blue-500"></i>
+            <i class="bi bi-list-ul text-2xl text-red-500"></i>
         </div>
         <p class="text-3xl font-bold text-gray-900 dark:text-white">
             <?php echo $totalReferrals; ?>
         </p>
-        <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">All referrals</p>
+        <p class="text-xs text-red-600 dark:text-blue-400 mt-1">All referrals</p>
     </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border-l-4 border-gray-500">
@@ -235,7 +235,7 @@ $paginatedReferrals = array_slice($filteredReferrals, $offset, $itemsPerPage);
                         <td class="px-6 py-4">
                             <span class="px-2 py-1 text-xs rounded-full <?php
                             echo $referral['status'] === 'Pending' ? 'bg-gray-100 text-gray-800' :
-                                ($referral['status'] === 'Under Review' ? 'bg-blue-100 text-blue-800' :
+                                ($referral['status'] === 'Under Review' ? 'bg-red-100 text-red-800' :
                                     ($referral['status'] === 'In Committee' ? 'bg-purple-100 text-purple-800' :
                                         ($referral['status'] === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')));
                             ?>">
@@ -256,7 +256,7 @@ $paginatedReferrals = array_slice($filteredReferrals, $offset, $itemsPerPage);
                         <td class="px-6 py-4">
                             <div class="flex space-x-2">
                                 <a href="view.php?id=<?php echo $referral['id']; ?>"
-                                    class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm"
+                                    class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
                                     title="View">
                                     <i class="bi bi-eye"></i>
                                 </a>
@@ -311,4 +311,19 @@ $paginatedReferrals = array_slice($filteredReferrals, $offset, $itemsPerPage);
     <?php endif; ?>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Showing <span class="font-medium"><?php echo ($offset + 1); ?></span> to
+        <span class="font-medium"><?php echo min($offset + $itemsPerPage, $totalReferralsCount); ?></span> of
+        <span class="font-medium"><?php echo $totalReferralsCount; ?></span> referrals
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Page <?php echo $page; ?> of <?php echo $totalPages ?: 1; ?>
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

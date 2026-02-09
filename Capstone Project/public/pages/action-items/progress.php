@@ -82,7 +82,7 @@ include '../../includes/header.php';
 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <p class="text-sm text-gray-600 dark:text-gray-400">Average Progress</p>
-        <p class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1"><?php echo $stats['avg_progress']; ?>%</p>
+        <p class="text-3xl font-bold text-red-600 dark:text-blue-400 mt-1"><?php echo $stats['avg_progress']; ?>%</p>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <p class="text-sm text-gray-600 dark:text-gray-400">Completion Rate</p>
@@ -97,7 +97,7 @@ include '../../includes/header.php';
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <p class="text-sm text-gray-600 dark:text-gray-400">In Progress</p>
-        <p class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+        <p class="text-3xl font-bold text-red-600 dark:text-blue-400 mt-1">
             <?php echo $stats['by_status']['In Progress']; ?>
         </p>
     </div>
@@ -131,7 +131,7 @@ include '../../includes/header.php';
                         items</span>
                 </div>
                 <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
-                    <div class="bg-blue-600 h-4 rounded-full"
+                    <div class="bg-red-600 h-4 rounded-full"
                         style="width: <?php echo $stats['total'] > 0 ? ($stats['by_status']['In Progress'] / $stats['total']) * 100 : 0; ?>%">
                     </div>
                 </div>
@@ -248,7 +248,7 @@ include '../../includes/header.php';
                         <td class="px-6 py-4">
                             <div class="flex items-center">
                                 <div class="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
-                                    <div class="bg-blue-600 h-2 rounded-full"
+                                    <div class="bg-red-600 h-2 rounded-full"
                                         style="width: <?php echo $data['avg_progress']; ?>%"></div>
                                 </div>
                                 <span
@@ -280,4 +280,21 @@ include '../../includes/header.php';
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<!-- Pagination/Summary Box - Styled to match index.php exactly -->
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Showing analytics for <span class="font-medium">1</span> to
+        <span class="font-medium"><?php echo count($byAssignee); ?></span> of
+        <span class="font-medium"><?php echo count($byAssignee); ?></span> assignee(s)
+    </div>
+    <div class="flex gap-2">
+        <div class="text-xs text-gray-400 italic font-medium">Action Items Module</div>
+    </div>
+</div>
+
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

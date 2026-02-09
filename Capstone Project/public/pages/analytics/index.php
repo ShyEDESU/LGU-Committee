@@ -36,7 +36,7 @@ include '../../includes/header.php';
     <div class="bg-white rounded-xl shadow-md p-6 animate-fade-in-up animation-delay-200">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-bold text-gray-800">Total Views</h3>
-            <i class="bi bi-eye text-2xl text-blue-600"></i>
+            <i class="bi bi-eye text-2xl text-red-600"></i>
         </div>
         <p class="text-3xl font-bold text-gray-900">1,234</p>
         <p class="text-sm text-green-600 mt-2"><i class="bi bi-arrow-up mr-1"></i>8% from last month</p>
@@ -81,8 +81,8 @@ include '../../includes/header.php';
 
         <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:shadow-md transition">
             <div class="flex items-center">
-                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                    <span class="text-blue-600 font-bold">JD</span>
+                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                    <span class="text-red-600 font-bold">JD</span>
                 </div>
                 <span class="text-gray-800 font-medium">John Doe</span>
             </div>

@@ -280,6 +280,18 @@ function createActionItem($data)
     if ($stmt->execute()) {
         $taskId = $conn->insert_id;
         logAuditAction($_SESSION['user_id'] ?? null, 'CREATE', 'tasks', "Created action item: '{$data['title']}'");
+
+        // Automatic Notification for Assignee
+        if (!empty($data['assigned_to'])) {
+            require_once __DIR__ . '/NotificationHelper.php';
+            $title = "New Action Item Assigned";
+            $message = "You have been assigned: '{$data['title']}'";
+            $type = 'task_assigned';
+            $priority = strtolower($data['priority'] ?? 'medium');
+            $link = "pages/action-items/view.php?id=" . $taskId;
+            createNotification($data['assigned_to'], $title, $message, $type, $priority, $link);
+        }
+
         return $taskId;
     }
     error_log("Error creating task: " . $stmt->error);

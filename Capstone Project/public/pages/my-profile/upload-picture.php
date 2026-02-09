@@ -6,7 +6,7 @@
 
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../config/database.php';
-require_once __DIR__ . '/../../helpers/AuditHelper.php';
+require_once __DIR__ . '/../../../app/helpers/AuditHelper.php';
 
 header('Content-Type: application/json');
 

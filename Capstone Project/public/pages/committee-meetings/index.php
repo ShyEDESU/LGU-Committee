@@ -110,8 +110,8 @@ $paginatedMeetings = array_slice($meetings, $offset, $itemsPerPage);
                 <p class="text-sm text-gray-600 dark:text-gray-400">Total Meetings</p>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white mt-1"><?php echo count($meetings); ?></p>
             </div>
-            <div class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3">
-                <i class="bi bi-calendar-event text-blue-600 dark:text-blue-400 text-2xl"></i>
+            <div class="bg-red-100 dark:bg-blue-900/30 rounded-lg p-3">
+                <i class="bi bi-calendar-event text-red-600 dark:text-blue-400 text-2xl"></i>
             </div>
         </div>
     </div>
@@ -208,7 +208,7 @@ $paginatedMeetings = array_slice($meetings, $offset, $itemsPerPage);
                         </td>
                         <td class="px-6 py-4">
                             <span
-                                class="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                class="px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300">
                                 <?php echo htmlspecialchars($meeting['committee_name']); ?>
                             </span>
                         </td>
@@ -250,7 +250,7 @@ $paginatedMeetings = array_slice($meetings, $offset, $itemsPerPage);
                         </td>
                         <td class="px-6 py-4">
                             <span class="px-3 py-1 text-xs font-semibold rounded-full 
-                            <?php echo $meeting['status'] === 'Scheduled' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                            <?php echo $meeting['status'] === 'Scheduled' ? 'bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300' :
                                 ($meeting['status'] === 'Ongoing' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
                                     ($meeting['status'] === 'Completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
                                         'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300')); ?>">
@@ -260,7 +260,7 @@ $paginatedMeetings = array_slice($meetings, $offset, $itemsPerPage);
                         <td class="px-6 py-4">
                             <div class="flex items-center space-x-3">
                                 <a href="view.php?id=<?php echo $meeting['id']; ?>"
-                                    class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold"
+                                    class="text-red-600 dark:text-blue-400 hover:text-red-700 dark:hover:text-blue-300 font-semibold"
                                     title="View">
                                     <i class="bi bi-eye"></i>
                                 </a>
@@ -315,4 +315,8 @@ $paginatedMeetings = array_slice($meetings, $offset, $itemsPerPage);
     <?php endif; ?>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

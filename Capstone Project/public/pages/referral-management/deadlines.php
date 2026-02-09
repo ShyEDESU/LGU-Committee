@@ -95,15 +95,15 @@ $upcoming30Days = getReferralsByDeadline($today, $next30Days);
         <p class="text-xs text-yellow-600 mt-1">Due in 2 weeks</p>
     </div>
 
-    <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
+    <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500">
         <div class="flex items-center justify-between mb-2">
             <p class="text-sm text-gray-600">Next 30 Days</p>
-            <i class="bi bi-calendar-month text-2xl text-blue-500"></i>
+            <i class="bi bi-calendar-month text-2xl text-red-500"></i>
         </div>
         <p class="text-3xl font-bold text-gray-900">
             <?php echo count($upcoming30Days); ?>
         </p>
-        <p class="text-xs text-blue-600 mt-1">Due this month</p>
+        <p class="text-xs text-red-600 mt-1">Due this month</p>
     </div>
 </div>
 
@@ -243,7 +243,7 @@ $upcoming30Days = getReferralsByDeadline($today, $next30Days);
 
     <!-- Next 30 Days -->
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div class="bg-blue-500 text-white p-4">
+        <div class="bg-red-500 text-white p-4">
             <h3 class="text-lg font-bold flex items-center">
                 <i class="bi bi-calendar-month mr-2"></i>
                 Next 30 Days
@@ -268,7 +268,7 @@ $upcoming30Days = getReferralsByDeadline($today, $next30Days);
                                 <?php echo htmlspecialchars($referral['committee_name']); ?>
                             </p>
                             <div class="flex items-center justify-between">
-                                <span class="text-xs font-medium text-blue-600">
+                                <span class="text-xs font-medium text-red-600">
                                     <i class="bi bi-clock"></i>
                                     <?php echo $daysLeft; ?> day(s) left
                                 </span>
@@ -285,4 +285,23 @@ $upcoming30Days = getReferralsByDeadline($today, $next30Days);
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Showing <span class="font-medium">1</span> to
+        <span
+            class="font-medium"><?php echo count($overdueReferrals) + count($upcoming14Days) + count($upcoming30Days); ?></span>
+        of
+        <span
+            class="font-medium"><?php echo count($overdueReferrals) + count($upcoming14Days) + count($upcoming30Days); ?></span>
+        record(s) with deadlines
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Module: Deadlines
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

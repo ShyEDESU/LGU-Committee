@@ -1,17 +1,17 @@
 <?php
 // Root index.php - Landing Page
-require_once __DIR__ . '/../config/session_config.php';
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/config/session_config.php';
+require_once __DIR__ . '/config/database.php';
 
 // Helper Includes
-require_once __DIR__ . '/../app/helpers/MeetingHelper.php';
-require_once __DIR__ . '/../app/helpers/CommitteeHelper.php';
-require_once __DIR__ . '/../app/helpers/DataHelper.php';
-require_once __DIR__ . '/../app/helpers/ReferralHelper.php';
+require_once __DIR__ . '/app/helpers/MeetingHelper.php';
+require_once __DIR__ . '/app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/app/helpers/DataHelper.php';
+require_once __DIR__ . '/app/helpers/ReferralHelper.php';
 
 // If user is already logged in, redirect to dashboard
 if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
-    header('Location: dashboard.php');
+    header('Location: public/dashboard.php');
     exit();
 }
 
@@ -78,8 +78,8 @@ try {
     <title>Legislative CMS | City of Valenzuela</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="assets/images/logo.png">
-    <link rel="apple-touch-icon" href="assets/images/logo.png">
+    <link rel="icon" type="image/png" href="public/assets/images/logo.png">
+    <link rel="apple-touch-icon" href="public/assets/images/logo.png">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -99,7 +99,7 @@ try {
             theme: {
                 extend: {
                     colors: {
-                        'v-navy': '#002147',
+                        'v-navy': '#450a0a',
                         'v-red': '#D22B2B',
                         'v-gold': '#FFD700',
                     }
@@ -195,7 +195,7 @@ try {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20" id="navHeightContainer">
                 <div class="flex items-center gap-3">
-                    <img src="assets/images/logo.png" alt="Logo" class="h-14 w-auto">
+                    <img src="public/assets/images/logo.png" alt="Logo" class="h-14 w-auto">
                     <div class="hidden md:block">
                         <span
                             class="block text-2xl font-black text-slate-900 dark:text-white leading-tight brand">CMS<span
@@ -232,7 +232,7 @@ try {
                         <i class="bi bi-sun-fill hidden dark:inline"></i>
                     </button>
 
-                    <a href="../auth/login.php"
+                    <a href="auth/login.php"
                         class="bg-red-600 dark:bg-red-700 text-white px-8 py-3 rounded-full font-bold text-sm shadow-xl hover:bg-red-700 dark:hover:bg-red-800 transition-all transform hover:scale-105 active:scale-95">
                         <i class="bi bi-shield-lock-fill mr-2"></i>Staff Access
                     </a>
@@ -253,13 +253,13 @@ try {
     <!-- Hero Section -->
     <section class="relative min-h-[85vh] flex items-center bg-gradient-to-br from-red-900 to-red-800 overflow-hidden">
         <div class="absolute inset-0">
-            <img src="assets/images/legislative-building.jpg" alt="Valenzuela Legislative Building"
+            <img src="public/assets/images/legislative-building.jpg" alt="Valenzuela Legislative Building"
                 class="w-full h-full object-cover opacity-30">
         </div>
         <div class="absolute inset-0 hero-pattern"></div>
         <!-- Decorative circular gradient -->
         <div class="absolute -top-24 -right-24 w-96 h-96 bg-red-600/20 rounded-full blur-[120px]"></div>
-        <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px]"></div>
+        <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-red-600/20 rounded-full blur-[120px]"></div>
 
         <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid lg:grid-cols-2 gap-16 items-center">
@@ -428,7 +428,7 @@ try {
                     </h3>
                 </div>
                 <div class="pb-2">
-                    <a href="pages/committee-meetings/index.php"
+                    <a href="public/pages/committee-meetings/index.php"
                         class="group text-slate-900 dark:text-slate-300 font-extrabold flex items-center gap-2 hover:text-v-red dark:hover:text-red-400 transition-all">
                         Complete Session Archive <i
                             class="bi bi-arrow-right-short text-2xl group-hover:translate-x-1 transition-transform"></i>
@@ -457,7 +457,7 @@ try {
                                     </div>
                                 <?php else: ?>
                                     <div
-                                        class="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                        class="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
                                         UPCOMING</div>
                                 <?php endif; ?>
                                 <div
@@ -477,7 +477,7 @@ try {
                                     <span class="flex items-center gap-1"><i class="bi bi-geo-alt"></i>
                                         <?php echo htmlspecialchars($session['venue']); ?></span>
                                 </div>
-                                <a href="pages/committee-meetings/view.php?id=<?php echo $session['id']; ?>"
+                                <a href="public/pages/committee-meetings/view.php?id=<?php echo $session['id']; ?>"
                                     class="block text-center py-4 bg-v-navy dark:bg-slate-700 text-white rounded-xl font-bold hover:bg-v-red dark:hover:bg-red-600 transition-all">
                                     <?php echo ($session['status'] === 'Ongoing') ? 'Monitor Deliberation' : 'View Agenda'; ?>
                                 </a>
@@ -554,7 +554,7 @@ try {
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </div>
-                        <a href="pages/legislative-tracker/index.php"
+                        <a href="public/pages/legislative-tracker/index.php"
                             class="block w-full mt-8 py-4 text-center font-black uppercase text-xs tracking-widest text-slate-400 hover:text-v-red transition-colors">
                             Explore full digital repository <i class="bi bi-arrow-right ml-2"></i>
                         </a>
@@ -595,7 +595,7 @@ try {
                     class="bg-v-navy dark:bg-slate-800 text-white p-8 rounded-[2.5rem] shadow-xl flex flex-col justify-center card-hover overflow-hidden relative border border-transparent dark:border-red-600/30">
                     <div class="absolute -right-4 -bottom-4 opacity-10 text-8xl"><i class="bi bi-diagram-3"></i></div>
                     <h4 class="font-black mb-4">Explore All 24 Committees</h4>
-                    <a href="pages/committee-profiles/index.php"
+                    <a href="public/pages/committee-profiles/index.php"
                         class="text-xs font-black uppercase tracking-widest text-red-500 hover:text-white transition-colors">Current
                         Directory <i class="bi bi-arrow-right"></i></a>
                 </div>
@@ -617,8 +617,9 @@ try {
                 <div class="group scroll-reveal">
                     <div
                         class="relative aspect-[4/5] rounded-[3rem] overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-2xl mb-8">
-                        <img src="assets/images/mayor-wes.jpg" alt="Mayor Wes Gatchalian"
-                            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                        <div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-700">
+                            <i class="bi bi-person-fill text-slate-400 text-8xl"></i>
+                        </div>
                         <div
                             class="absolute inset-0 bg-gradient-to-t from-v-navy/90 via-v-navy/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-10">
                             <p class="text-slate-300 text-sm font-medium italic">"Tuloy ang Progreso para sa Pamilyang
@@ -635,8 +636,9 @@ try {
                 <div class="group scroll-reveal" style="transition-delay: 100ms;">
                     <div
                         class="relative aspect-[4/5] rounded-[3rem] overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-2xl mb-8 border-4 border-v-red/20 scale-105">
-                        <img src="assets/images/vice-mayor-lorie.jpg" alt="Vice Mayor Lorie Natividad-Borja"
-                            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                        <div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-700">
+                            <i class="bi bi-person-fill text-slate-400 text-8xl"></i>
+                        </div>
                         <div
                             class="absolute inset-0 bg-gradient-to-t from-v-red/90 via-v-red/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-10">
                             <p class="text-white text-sm font-medium italic">"Presiding Officer, 8th City Council."</p>
@@ -693,7 +695,7 @@ try {
                 <div class="group scroll-reveal">
                     <div
                         class="aspect-video bg-slate-200 dark:bg-slate-800 rounded-[3rem] overflow-hidden mb-8 shadow-2xl relative group-hover:scale-[1.02] transition-transform duration-700">
-                        <img src="assets/images/peoples-park.jpg" alt="Valenzuela People's Park"
+                        <img src="public/assets/images/peoples-park.jpg" alt="Valenzuela People's Park"
                             class="w-full h-full object-cover">
                         <div
                             class="absolute top-8 left-8 bg-black/40 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest px-5 py-2 rounded-full border border-white/20">
@@ -711,7 +713,8 @@ try {
                 <div class="group scroll-reveal" style="transition-delay: 150ms;">
                     <div
                         class="aspect-video bg-slate-200 dark:bg-slate-800 rounded-[3rem] overflow-hidden mb-8 shadow-2xl relative group-hover:scale-[1.02] transition-transform duration-700">
-                        <img src="assets/images/wes-arena.jpg" alt="WES Arena" class="w-full h-full object-cover">
+                        <img src="public/assets/images/wes-arena.jpg" alt="WES Arena"
+                            class="w-full h-full object-cover">
                         <div
                             class="absolute top-8 left-8 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest px-5 py-2 rounded-full shadow-lg">
                             Social Impact</div>
@@ -729,73 +732,7 @@ try {
     </section>
 
     <!-- Footer -->
-    <footer class="bg-gradient-to-br from-slate-900 to-slate-800 text-white pt-24 pb-12 overflow-hidden relative">
-        <div class="absolute top-0 right-0 p-20 opacity-5 pointer-events-none">
-            <img src="assets/images/logo.png" alt="" class="w-96">
-        </div>
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 mb-20">
-                <div class="space-y-8">
-                    <div class="flex items-center gap-4">
-                        <img src="assets/images/logo.png" alt="Logo" class="h-16">
-                        <div>
-                            <span class="block text-2xl font-black brand">CMS<span
-                                    class="text-red-500">VAL</span></span>
-                            <span
-                                class="block text-[8px] font-black text-slate-500 uppercase tracking-widest">Established
-                                2026</span>
-                        </div>
-                    </div>
-                    <p class="text-slate-400 font-medium leading-relaxed">The unified legislative operating system for
-                        the Sangguniang Panlungsod of Valenzuela City. Building the city of the future, today.</p>
-                </div>
-
-                <div>
-                    <h5 class="text-sm font-black uppercase tracking-[0.3em] text-red-500 mb-8">Legislative Link</h5>
-                    <ul class="space-y-4 text-slate-400 font-bold text-sm">
-                        <li><a href="#" class="hover:text-white transition-colors">Session Calendar</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Digital Code of Ordinances</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Committee Directory</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Public Hearing Requests</a></li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h5 class="text-sm font-black uppercase tracking-[0.3em] text-red-500 mb-8">Government</h5>
-                    <ul class="space-y-4 text-slate-400 font-bold text-sm">
-                        <li><a href="#" class="hover:text-white transition-colors">Valenzuela City Hall</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Office of the Mayor</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Office of the Vice Mayor</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Public Documents Portal</a></li>
-                    </ul>
-                </div>
-
-                <div class="space-y-8">
-                    <h5 class="text-sm font-black uppercase tracking-[0.3em] text-red-500 mb-8">Contact & Access</h5>
-                    <div class="space-y-4">
-                        <a href="../auth/login.php"
-                            class="block w-full text-center py-4 bg-white/5 border border-white/10 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-white/10 transition-all">
-                            Secure Staff Login
-                        </a>
-                        <div class="text-slate-500 text-xs space-y-2 font-bold uppercase tracking-widest pt-4">
-                            <p><i class="bi bi-geo-alt mr-2 text-red-500"></i> Valenzuela City Hall</p>
-                            <p><i class="bi bi-envelope mr-2 text-red-500"></i> info@valenzuela.gov.ph</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div
-                class="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-[10px] font-black uppercase tracking-[0.4em] text-slate-600">
-                <p>&copy; 2026 City Government of Valenzuela | Legislative Digital Services</p>
-                <div class="flex gap-8">
-                    <a href="#" class="hover:text-white transition-colors">Privacy</a>
-                    <a href="#" class="hover:text-white transition-colors">Terms</a>
-                    <a href="#" class="hover:text-white transition-colors">Accessibility</a>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <?php include 'public/includes/footer.php'; ?>
 
     <!-- Template Scripts -->
     <script src="assets/js/script-updated.js"></script>
@@ -833,8 +770,10 @@ try {
                     navContainer.classList.remove('h-16');
                 }
             }
-        });
     </script>
+
+    <!-- System Scripts -->
+    <script src="public/assets/js/script-updated.js"></script>
 </body>
 
 </html>

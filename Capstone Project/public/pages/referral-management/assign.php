@@ -112,13 +112,13 @@ $users = getAllUsers();
         <p class="text-xs text-green-600 mt-1">Currently assigned</p>
     </div>
 
-    <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
+    <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500">
         <div class="flex items-center justify-between mb-2">
             <p class="text-sm text-gray-600">Total</p>
-            <i class="bi bi-list-check text-2xl text-blue-500"></i>
+            <i class="bi bi-list-check text-2xl text-red-500"></i>
         </div>
         <p class="text-3xl font-bold text-gray-900"><?php echo count($allReferrals); ?></p>
-        <p class="text-xs text-blue-600 mt-1">All referrals</p>
+        <p class="text-xs text-red-600 mt-1">All referrals</p>
     </div>
 </div>
 
@@ -228,7 +228,7 @@ $users = getAllUsers();
                             </p>
                             <span
                                 class="inline-block mt-1 px-2 py-1 text-xs rounded-full <?php echo $ref['status'] === 'Pending' ? 'bg-gray-100 text-gray-800' :
-                                    ($ref['status'] === 'Under Review' ? 'bg-blue-100 text-blue-800' :
+                                    ($ref['status'] === 'Under Review' ? 'bg-red-100 text-red-800' :
                                         ($ref['status'] === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800')); ?>">
                                 <?php echo $ref['status']; ?>
                             </span>
@@ -273,4 +273,20 @@ $users = getAllUsers();
     });
 </script>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Showing <span class="font-medium">1</span> to
+        <span class="font-medium"><?php echo count($unassignedReferrals) + count($assignedReferrals); ?></span> of
+        <span class="font-medium"><?php echo count($unassignedReferrals) + count($assignedReferrals); ?></span> total
+        referral(s)
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Module: Referral Assignment
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

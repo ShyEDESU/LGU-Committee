@@ -140,8 +140,8 @@ include '../../includes/header.php';
                     </select>
                 </div>
 
-                <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mb-6">
-                    <p class="text-sm text-blue-800 dark:text-blue-300">
+                <div class="bg-red-50 dark:bg-blue-900/20 border-l-4 border-red-500 p-4 mb-6">
+                    <p class="text-sm text-red-800 dark:text-blue-300">
                         <i class="bi bi-info-circle mr-2"></i>
                         Recipients will receive the agenda with all
                         <?php echo count($agendaItems); ?> agenda items
@@ -241,4 +241,9 @@ include '../../includes/header.php';
     }
 </script>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

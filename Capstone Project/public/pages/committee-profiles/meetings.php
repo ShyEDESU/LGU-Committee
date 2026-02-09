@@ -93,10 +93,6 @@ include '../../includes/header.php';
                 class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
                 Referrals
             </a>
-            <a href="reports.php?id=<?php echo $id; ?>"
-                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
-                Reports
-            </a>
             <a href="documents.php?id=<?php echo $id; ?>"
                 class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
                 Documents
@@ -119,7 +115,7 @@ include '../../includes/header.php';
                 All
             </a>
             <a href="?id=<?php echo $id; ?>&status=Scheduled"
-                class="px-4 py-2 rounded-lg <?php echo $statusFilter === 'Scheduled' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'; ?>">
+                class="px-4 py-2 rounded-lg <?php echo $statusFilter === 'Scheduled' ? 'bg-red-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'; ?>">
                 Scheduled
             </a>
             <a href="?id=<?php echo $id; ?>&status=Completed"
@@ -201,7 +197,7 @@ include '../../includes/header.php';
                         <td class="px-6 py-4 whitespace-nowrap">
                             <?php
                             $statusColors = [
-                                'Scheduled' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+                                'Scheduled' => 'bg-red-100 text-red-800 dark:bg-blue-900 dark:text-blue-300',
                                 'Completed' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
                                 'Cancelled' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
                             ];
@@ -214,7 +210,7 @@ include '../../includes/header.php';
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <a href="../committee-meetings/view.php?id=<?php echo $meeting['id']; ?>"
-                                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 mr-3">
+                                class="text-red-600 hover:text-red-900 dark:text-blue-400 mr-3">
                                 <i class="bi bi-eye mr-1"></i>View
                             </a>
                             <a href="../committee-meetings/edit.php?id=<?php echo $meeting['id']; ?>"
@@ -234,4 +230,8 @@ include '../../includes/header.php';
     </div>
 <?php endif; ?>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

@@ -31,7 +31,7 @@
                 <div class="text-gray-600">Active Committees</div>
             </div>
             <div class="text-center p-6 bg-gray-50 rounded-lg">
-                <div class="text-4xl font-bold text-blue-600 mb-2">8</div>
+                <div class="text-4xl font-bold text-red-600 mb-2">8</div>
                 <div class="text-gray-600">Meetings This Month</div>
             </div>
             <div class="text-center p-6 bg-gray-50 rounded-lg">
@@ -90,8 +90,8 @@
             <!-- Meeting Card 2 -->
             <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
                 <div class="flex items-start justify-between mb-4">
-                    <div class="bg-blue-100 rounded-lg p-3">
-                        <i class="bi bi-calendar-event text-blue-600 text-2xl"></i>
+                    <div class="bg-red-100 rounded-lg p-3">
+                        <i class="bi bi-calendar-event text-red-600 text-2xl"></i>
                     </div>
                     <span class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">Public</span>
                 </div>
@@ -167,8 +167,8 @@
             </div>
 
             <div class="text-center">
-                <div class="bg-blue-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                    <i class="bi bi-list-ul text-blue-600 text-3xl"></i>
+                <div class="bg-red-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                    <i class="bi bi-list-ul text-red-600 text-3xl"></i>
                 </div>
                 <h3 class="text-xl font-bold text-gray-900 mb-2">Meeting Agendas</h3>
                 <p class="text-gray-600">

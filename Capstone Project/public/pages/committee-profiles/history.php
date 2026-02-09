@@ -60,9 +60,11 @@ include '../../includes/header.php';
                                 <div class="flex justify-between items-start mb-2">
                                     <div>
                                         <h3 class="font-semibold text-gray-900 dark:text-white">
-                                            <?php echo htmlspecialchars($item['action']); ?></h3>
+                                            <?php echo htmlspecialchars($item['action']); ?>
+                                        </h3>
                                         <p class="text-sm text-gray-600 dark:text-gray-400">
-                                            <?php echo htmlspecialchars($item['description']); ?></p>
+                                            <?php echo htmlspecialchars($item['description']); ?>
+                                        </p>
                                     </div>
                                     <span
                                         class="text-xs text-gray-500"><?php echo date('M d, Y g:i A', strtotime($item['date'])); ?></span>
@@ -80,4 +82,8 @@ include '../../includes/header.php';
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing container-fluid and module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

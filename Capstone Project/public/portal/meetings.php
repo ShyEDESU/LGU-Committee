@@ -60,7 +60,7 @@
                             <span
                                 class="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">Upcoming</span>
                             <span
-                                class="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">Public</span>
+                                class="bg-red-100 text-red-800 text-xs font-semibold px-3 py-1 rounded-full">Public</span>
                         </div>
                         <h3 class="text-xl font-bold text-gray-900 mb-2">Finance Committee - Q4 Budget Review</h3>
                         <p class="text-gray-600 mb-4">Discussion on Q4 Budget Allocation and Revenue Enhancement
@@ -101,7 +101,7 @@
                             <span
                                 class="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">Upcoming</span>
                             <span
-                                class="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">Public</span>
+                                class="bg-red-100 text-red-800 text-xs font-semibold px-3 py-1 rounded-full">Public</span>
                         </div>
                         <h3 class="text-xl font-bold text-gray-900 mb-2">Health Committee - Healthcare Facilities Review
                         </h3>
@@ -143,7 +143,7 @@
                             <span
                                 class="bg-gray-100 text-gray-800 text-xs font-semibold px-3 py-1 rounded-full">Completed</span>
                             <span
-                                class="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">Public</span>
+                                class="bg-red-100 text-red-800 text-xs font-semibold px-3 py-1 rounded-full">Public</span>
                         </div>
                         <h3 class="text-xl font-bold text-gray-900 mb-2">Education Committee - School Infrastructure
                         </h3>

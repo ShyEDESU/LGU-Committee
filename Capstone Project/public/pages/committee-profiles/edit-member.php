@@ -72,7 +72,8 @@ include '../../includes/header.php';
 
     <?php if (isset($_SESSION['error_message'])): ?>
         <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-            <p class="text-red-700"><?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?></p>
+            <p class="text-red-700"><?php echo $_SESSION['error_message'];
+            unset($_SESSION['error_message']); ?></p>
         </div>
     <?php endif; ?>
 
@@ -99,7 +100,8 @@ include '../../includes/header.php';
                     </label>
                     <input type="text" value="<?php echo htmlspecialchars($member['name']); ?>" disabled
                         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed">
-                    <p class="text-sm text-gray-500 mt-1">Member name cannot be changed. Remove and re-add to change user.</p>
+                    <p class="text-sm text-gray-500 mt-1">Member name cannot be changed. Remove and re-add to change
+                        user.</p>
                 </div>
 
                 <!-- Position in Committee -->
@@ -109,11 +111,14 @@ include '../../includes/header.php';
                     </label>
                     <select name="position" required
                         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-                        <option value="Member" <?php echo $member['position'] === 'Member' ? 'selected' : ''; ?>>Member</option>
+                        <option value="Member" <?php echo $member['position'] === 'Member' ? 'selected' : ''; ?>>Member
+                        </option>
                         <option value="Chairperson" <?php echo $member['position'] === 'Chairperson' ? 'selected' : ''; ?>>Chairperson</option>
                         <option value="Vice-Chairperson" <?php echo $member['position'] === 'Vice-Chairperson' ? 'selected' : ''; ?>>Vice-Chairperson</option>
-                        <option value="Secretary" <?php echo $member['position'] === 'Secretary' ? 'selected' : ''; ?>>Secretary</option>
-                        <option value="Ex-Officio" <?php echo $member['position'] === 'Ex-Officio' ? 'selected' : ''; ?>>Ex-Officio</option>
+                        <option value="Secretary" <?php echo $member['position'] === 'Secretary' ? 'selected' : ''; ?>>
+                            Secretary</option>
+                        <option value="Ex-Officio" <?php echo $member['position'] === 'Ex-Officio' ? 'selected' : ''; ?>>
+                            Ex-Officio</option>
                     </select>
                 </div>
 
@@ -122,7 +127,8 @@ include '../../includes/header.php';
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Join Date
                     </label>
-                    <input type="date" name="join_date" value="<?php echo htmlspecialchars($member['join_date'] ?? date('Y-m-d')); ?>"
+                    <input type="date" name="join_date"
+                        value="<?php echo htmlspecialchars($member['join_date'] ?? date('Y-m-d')); ?>"
                         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                 </div>
 
@@ -155,4 +161,8 @@ include '../../includes/header.php';
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing container-fluid and module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

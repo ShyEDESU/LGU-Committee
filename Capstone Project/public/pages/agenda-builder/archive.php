@@ -80,7 +80,7 @@ include '../../includes/header.php';
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-600 dark:text-gray-400">This Year</p>
-                <p class="text-3xl font-bold text-blue-600">
+                <p class="text-3xl font-bold text-red-600">
                     <?php
                     $thisYear = count(array_filter($archivedAgendas, function ($a) {
                         return date('Y', strtotime($a['date'])) == date('Y');
@@ -181,7 +181,7 @@ include '../../includes/header.php';
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <a href="view.php?id=<?php echo $agenda['id']; ?>"
-                                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 mr-3">
+                                class="text-red-600 hover:text-red-900 dark:text-blue-400 mr-3">
                                 <i class="bi bi-eye mr-1"></i>View
                             </a>
                             <form method="POST" class="inline" onsubmit="return confirm('Restore this agenda?')">
@@ -204,4 +204,9 @@ include '../../includes/header.php';
     </div>
 <?php endif; ?>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

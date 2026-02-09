@@ -105,7 +105,7 @@ include '../../includes/header.php';
                         break;
                     case 'doc':
                     case 'docx':
-                        $iconClass = 'bi-file-word text-blue-600';
+                        $iconClass = 'bi-file-word text-red-600';
                         break;
                     case 'xls':
                     case 'xlsx':
@@ -138,7 +138,7 @@ include '../../includes/header.php';
                         </p>
                     </div>
                     <div class="flex space-x-2">
-                        <button class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded"
+                        <button class="p-2 text-red-600 dark:text-blue-400 hover:bg-red-100 dark:hover:bg-blue-900/20 rounded"
                             title="Download">
                             <i class="bi bi-download"></i>
                         </button>
@@ -164,4 +164,19 @@ include '../../includes/header.php';
     // In production, implement actual file upload with AJAX
 </script>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Showing <span class="font-medium">1</span> to
+        <span class="font-medium">1</span> of
+        <span class="font-medium">1</span> attachment record(s)
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Item ID: <?php echo htmlspecialchars($id); ?>
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

@@ -171,8 +171,8 @@ $attendanceLabels = array_map(fn($m) => date('M Y', strtotime($m)), $attendanceM
 
                 <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-[10px] text-blue-600 font-black uppercase tracking-wider">Velocity</span>
-                        <i class="bi bi-lightning-charge text-blue-600"></i>
+                        <span class="text-[10px] text-red-600 font-black uppercase tracking-wider">Velocity</span>
+                        <i class="bi bi-lightning-charge text-red-600"></i>
                     </div>
                     <div class="flex items-baseline gap-2">
                         <span class="text-3xl font-bold text-gray-900 dark:text-white"><?php echo $taskMetrics['avg_completion_days']; ?></span>
@@ -187,7 +187,7 @@ $attendanceLabels = array_map(fn($m) => date('M Y', strtotime($m)), $attendanceM
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
         <?php
         $kpiItems = [
-            ['Committees', $stats['committees'], 'bi-building', 'text-blue-600', 'bg-blue-50'],
+            ['Committees', $stats['committees'], 'bi-building', 'text-red-600', 'bg-red-50'],
             ['Meetings', $stats['meetings'], 'bi-calendar-check', 'text-red-600', 'bg-red-50'],
             ['Referrals', $stats['referrals'], 'bi-arrow-repeat', 'text-amber-600', 'bg-amber-50'],
             ['Active Tasks', $stats['tasks'], 'bi-check2-square', 'text-emerald-600', 'bg-emerald-50'],
@@ -317,4 +317,8 @@ $attendanceLabels = array_map(fn($m) => date('M Y', strtotime($m)), $attendanceM
     });
 </script>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

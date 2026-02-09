@@ -76,9 +76,9 @@ include '../../includes/header.php';
             <?php echo count($upcoming7); ?>
         </p>
     </div>
-    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-6">
-        <p class="text-sm text-blue-600 dark:text-blue-400">Next 14 Days</p>
-        <p class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+    <div class="bg-red-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-6">
+        <p class="text-sm text-red-600 dark:text-blue-400">Next 14 Days</p>
+        <p class="text-3xl font-bold text-red-600 dark:text-blue-400 mt-1">
             <?php echo count($upcoming14); ?>
         </p>
     </div>
@@ -216,7 +216,7 @@ usort($displayItems, function ($a, $b) {
                             <span
                                 class="px-2 py-1 text-xs font-semibold rounded-full 
                                 <?php echo ($item['status'] ?? '') === 'Done' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                                    (($item['status'] ?? '') === 'In Progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'); ?>">
+                                    (($item['status'] ?? '') === 'In Progress' ? 'bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'); ?>">
                                 <?php echo htmlspecialchars($item['status'] ?? 'To Do'); ?>
                             </span>
                         </td>
@@ -230,7 +230,7 @@ usort($displayItems, function ($a, $b) {
                         </td>
                         <td class="px-6 py-4 text-sm">
                             <a href="view.php?id=<?php echo $item['id']; ?>"
-                                class="text-blue-600 dark:text-blue-400 hover:underline">
+                                class="text-red-600 dark:text-blue-400 hover:underline">
                                 View
                             </a>
                         </td>
@@ -251,4 +251,19 @@ usort($displayItems, function ($a, $b) {
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Showing <span class="font-medium">1</span> to
+        <span class="font-medium"><?php echo count($displayItems); ?></span> of
+        <span class="font-medium"><?php echo count($displayItems); ?></span> record(s) matching filter
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Module: Deadlines
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

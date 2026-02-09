@@ -109,7 +109,7 @@ $documents = [
                                     <?php echo htmlspecialchars($doc['filename']); ?>
                                 </h3>
                                 <div class="flex items-center gap-3 mt-1 text-sm text-gray-600">
-                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                                    <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">
                                         <?php echo $doc['category']; ?>
                                     </span>
                                     <span><i class="bi bi-hdd mr-1"></i>
@@ -128,7 +128,7 @@ $documents = [
                             </div>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <button class="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded-lg transition text-sm">
+                            <button class="px-3 py-1 text-red-600 hover:bg-red-50 rounded-lg transition text-sm">
                                 <i class="bi bi-eye mr-1"></i>Preview
                             </button>
                             <button class="px-3 py-1 text-green-600 hover:bg-green-50 rounded-lg transition text-sm">
@@ -147,9 +147,9 @@ $documents = [
 
 <!-- Document Categories Info -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
-        <p class="text-sm text-blue-600 font-semibold">Original Documents</p>
-        <p class="text-2xl font-bold text-blue-900">1</p>
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+        <p class="text-sm text-red-600 font-semibold">Original Documents</p>
+        <p class="text-2xl font-bold text-red-900">1</p>
     </div>
     <div class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg">
         <p class="text-sm text-purple-600 font-semibold">Amendments</p>
@@ -165,4 +165,19 @@ $documents = [
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Showing <span class="font-medium">1</span> to
+        <span class="font-medium"><?php echo count($documents); ?></span> of
+        <span class="font-medium"><?php echo count($documents); ?></span> document(s)
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Referral ID: <?php echo htmlspecialchars($referralId); ?>
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

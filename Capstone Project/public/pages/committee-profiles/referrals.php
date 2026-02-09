@@ -118,10 +118,6 @@ include '../../includes/header.php';
                 class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
                 <i class="bi bi-folder mr-1"></i>Documents
             </a>
-            <a href="reports.php?id=<?php echo $id; ?>"
-                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
-                <i class="bi bi-file-earmark-text mr-1"></i>Reports
-            </a>
             <a href="history.php?id=<?php echo $id; ?>"
                 class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
                 <i class="bi bi-clock-history mr-1"></i>History
@@ -160,7 +156,7 @@ include '../../includes/header.php';
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-600 dark:text-gray-400">In Progress</p>
-                <p class="text-2xl font-bold text-blue-600">
+                <p class="text-2xl font-bold text-red-600">
                     <?php echo $stats['in_progress']; ?>
                 </p>
             </div>
@@ -195,7 +191,7 @@ include '../../includes/header.php';
                 Pending
             </a>
             <a href="?id=<?php echo $id; ?>&status=In Progress"
-                class="px-4 py-2 rounded-lg <?php echo $statusFilter === 'In Progress' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'; ?>">
+                class="px-4 py-2 rounded-lg <?php echo $statusFilter === 'In Progress' ? 'bg-red-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'; ?>">
                 In Progress
             </a>
             <a href="?id=<?php echo $id; ?>&status=Completed"
@@ -285,7 +281,7 @@ include '../../includes/header.php';
                             <?php
                             $statusColors = [
                                 'Pending' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-                                'In Progress' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+                                'In Progress' => 'bg-red-100 text-red-800 dark:bg-blue-900 dark:text-blue-300',
                                 'Completed' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
                             ];
                             $statusClass = $statusColors[$referral['status']] ?? 'bg-gray-100 text-gray-800';
@@ -297,7 +293,7 @@ include '../../includes/header.php';
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <a href="../referral-management/view.php?id=<?php echo $referral['id']; ?>"
-                                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 mr-3">
+                                class="text-red-600 hover:text-red-900 dark:text-blue-400 mr-3">
                                 <i class="bi bi-eye mr-1"></i>View
                             </a>
                             <a href="../referral-management/tracking.php?id=<?php echo $referral['id']; ?>"
@@ -311,10 +307,19 @@ include '../../includes/header.php';
         </table>
     </div>
 
-    <div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
-        Showing
-        <?php echo count($referrals); ?> referral(s)
+    <div
+        class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div class="text-sm text-gray-700 dark:text-gray-300">
+            Showing <span class="font-medium"><?php echo count($referrals); ?></span> referral(s) for this committee
+        </div>
+        <div class="text-sm text-gray-500 italic">
+            Committee ID: <?php echo htmlspecialchars($id); ?>
+        </div>
     </div>
 <?php endif; ?>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

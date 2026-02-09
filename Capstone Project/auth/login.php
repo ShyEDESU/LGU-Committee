@@ -60,7 +60,7 @@ if ($_SESSION['login_attempts'] >= 5) {
             theme: {
                 extend: {
                     colors: {
-                        'v-navy': '#002147',
+                        'v-navy': '#450a0a',
                         'v-red': '#D22B2B',
                         'v-gold': '#FFD700',
                     }
@@ -71,15 +71,6 @@ if ($_SESSION['login_attempts'] >= 5) {
 
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-
-    <script>
-        // Initialize theme before page load
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    </script>
 
     <style>
         /* Animation Keyframes */
@@ -217,11 +208,20 @@ if ($_SESSION['login_attempts'] >= 5) {
             }
         }
     </style>
+
+    <script>
+        // Initialize theme before page load
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
 </head>
 
-<body
-    class="bg-gradient-to-br from-red-50 via-white to-red-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 min-h-screen flex items-center justify-center p-3 md:p-4 transition-colors">
-    <div class="w-full max-w-md">
+<body class="bg-white dark:bg-slate-950 min-h-screen flex items-center justify-center p-3 md:p-4 transition-colors relative overflow-x-hidden">
+
+    <div class="w-full max-w-md relative z-10">
         <!-- Logo Section -->
         <div class="text-center mb-6 md:mb-8 animate-fade-in">
             <div class="inline-flex items-center justify-center mb-3 md:mb-4 animate-bounce-in">
@@ -231,25 +231,22 @@ if ($_SESSION['login_attempts'] >= 5) {
                         class="w-full h-full object-contain p-2">
                 </div>
             </div>
-            <h1
-                class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white animate-fade-in-up animation-delay-100">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white animate-fade-in-up animation-delay-100">
                 CMS</h1>
-            <p
-                class="text-sm md:text-base text-gray-600 dark:text-slate-400 mt-1 md:mt-2 animate-fade-in-up animation-delay-200">
+            <p class="text-sm md:text-base text-gray-600 dark:text-slate-400 mt-1 md:mt-2 animate-fade-in-up animation-delay-200">
                 Committee Management System</p>
-            <p class="text-xs md:text-sm text-red-600 font-semibold mt-1 animate-fade-in-up animation-delay-300">City
-                Government of Valenzuela</p>
-            <p class="text-xs text-gray-500 dark:text-slate-500 animate-fade-in-up animation-delay-400">Metropolitan
-                Manila</p>
+            <p class="text-xs md:text-sm text-red-600 font-semibold mt-1 animate-fade-in-up animation-delay-300">
+                City Government of Valenzuela</p>
+            <p class="text-xs text-gray-500 dark:text-slate-500 animate-fade-in-up animation-delay-400">Metropolitan Manila</p>
         </div>
 
         <!-- Login Card -->
         <div
-            class="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-xl p-5 md:p-8 animate-fade-in-up animation-delay-300 transform hover:shadow-2xl transition-all duration-300">
-            <!-- Back to Website -->
+            class="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-2xl p-5 md:p-8 animate-fade-in-up animation-delay-300 transform hover:shadow-2xl transition-all duration-300 border border-white/10">
+            <!-- Mobile Navigation & Theme Toggle -->
             <div class="mb-6 flex justify-between items-center">
-                <a href="../public/index.php"
-                    class="inline-flex items-center text-sm font-bold text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                <a href="../index.php"
+                    class="inline-flex items-center text-sm font-bold text-gray-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
                     <i class="bi bi-arrow-left mr-2"></i> Back to Home
                 </a>
 
@@ -295,8 +292,6 @@ if ($_SESSION['login_attempts'] >= 5) {
                 </div>
             <?php endif; ?>
 
-
-
             <!-- Logout Success Notification -->
             <?php if (isset($_GET['logout']) && $_GET['logout'] === 'success'): ?>
                 <div id="logoutAlert"
@@ -321,7 +316,7 @@ if ($_SESSION['login_attempts'] >= 5) {
                         <div id="logoutProgressBar" class="h-full bg-green-500 transition-all" style="width: 100%;"></div>
                     </div>
                     <p class="text-green-700 text-xs mt-2 text-center font-semibold">Closing in <span
-                            id="logoutTimer">5</span> seconds...</p>
+                            id="logoutTimerText">5</span> seconds...</p>
                 </div>
             <?php endif; ?>
 
@@ -339,24 +334,25 @@ if ($_SESSION['login_attempts'] >= 5) {
 
                 <!-- Email Field -->
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1 md:mb-2">
+                    <label for="email" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 md:mb-2">
                         <i class="bi bi-envelope mr-1"></i>Email Address
                     </label>
                     <input type="email" id="email" name="email" required placeholder="your.email@lgu.gov.ph"
-                        class="input-field w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-base">
+                        class="input-field w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-base dark:bg-slate-700 dark:text-white">
                     <span class="text-red-500 text-xs hidden mt-1" id="email-error"></span>
                 </div>
 
                 <!-- Password Field -->
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1 md:mb-2">
+                    <label for="password"
+                        class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 md:mb-2">
                         <i class="bi bi-lock mr-1"></i>Password
                     </label>
                     <div class="relative">
                         <input type="password" id="password" name="password" required placeholder="Enter your password"
-                            class="input-field w-full px-3 md:px-4 py-2.5 md:py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-base">
+                            class="input-field w-full px-3 md:px-4 py-2.5 md:py-3 pr-12 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-base dark:bg-slate-700 dark:text-white">
                         <button type="button" id="toggle-password"
-                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors">
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
                             <i class="bi bi-eye text-lg" id="eye-icon"></i>
                         </button>
                     </div>
@@ -366,7 +362,7 @@ if ($_SESSION['login_attempts'] >= 5) {
                 <!-- Forgot Password -->
                 <div class="flex items-center justify-end">
                     <a href="reset_password.php"
-                        class="text-sm text-red-600 hover:text-red-700 font-medium transition-colors">
+                        class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium transition-colors">
                         Forgot password?
                     </a>
                 </div>
@@ -383,10 +379,11 @@ if ($_SESSION['login_attempts'] >= 5) {
                     <input type="checkbox" id="termsCheckbox"
                         class="w-4 h-4 mt-1 mr-2 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-600 cursor-pointer"
                         required>
-                    <label for="termsCheckbox" class="text-gray-700 text-sm">
+                    <label for="termsCheckbox" class="text-gray-700 dark:text-slate-300 text-sm">
                         I agree to the
                         <button type="button" onclick="openTermsModal()"
-                            class="text-red-600 hover:text-red-700 font-semibold underline">Terms & Conditions</button>
+                            class="text-red-600 dark:text-red-400 hover:text-red-700 font-semibold underline">Terms &
+                            Conditions</button>
                     </label>
                 </div>
             </form>
@@ -395,31 +392,32 @@ if ($_SESSION['login_attempts'] >= 5) {
             <?php if (!$is_locked): ?>
                 <div class="relative my-5 md:my-6">
                     <div class="absolute inset-0 flex items-center">
-                        <div class="w-full border-t border-gray-300"></div>
+                        <div class="w-full border-t border-gray-300 dark:border-slate-600"></div>
                     </div>
                     <div class="relative flex justify-center text-sm">
-                        <span class="px-2 bg-white text-gray-500">Or continue with</span>
+                        <span class="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400">Or continue
+                            with</span>
                     </div>
                 </div>
 
                 <!-- Alternative Login Options -->
                 <div class="grid grid-cols-2 gap-3">
                     <button type="button" id="microsoftLoginBtn"
-                        class="flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200">
-                        <i class="bi bi-microsoft text-lg mr-2 text-blue-600"></i>
-                        <span class="text-sm font-medium text-gray-700">Microsoft</span>
+                        class="flex items-center justify-center px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 transition-all duration-200">
+                        <i class="bi bi-microsoft text-lg mr-2 text-red-600 dark:text-red-400"></i>
+                        <span class="text-sm font-medium text-gray-700 dark:text-slate-300">Microsoft</span>
                     </button>
                     <button type="button" id="googleLoginBtn"
-                        class="flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200">
-                        <i class="bi bi-google text-lg mr-2 text-red-500"></i>
-                        <span class="text-sm font-medium text-gray-700">Google</span>
+                        class="flex items-center justify-center px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 transition-all duration-200">
+                        <i class="bi bi-google text-lg mr-2 text-red-500 dark:text-red-400"></i>
+                        <span class="text-sm font-medium text-gray-700 dark:text-slate-300">Google</span>
                     </button>
                 </div>
             <?php endif; ?>
         </div>
 
         <!-- Footer Info -->
-        <div class="mt-6 md:mt-8 text-center text-xs md:text-sm text-gray-600">
+        <div class="mt-6 md:mt-8 text-center text-xs md:text-sm text-gray-600 dark:text-slate-500">
             <p>&copy; 2025 City Government of Valenzuela. All rights reserved.</p>
             <div class="mt-2 space-x-2 md:space-x-4">
                 <a href="privacy.php" class="hover:text-red-600 transition-colors">Privacy Policy</a>
@@ -433,26 +431,28 @@ if ($_SESSION['login_attempts'] >= 5) {
 
     <!-- Terms & Conditions Modal -->
     <div id="termsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col border border-white/10">
             <!-- Modal Header -->
-            <div class="flex justify-between items-center p-6 border-b border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-900">Terms & Conditions</h2>
-                <button type="button" onclick="closeTermsModal()" class="text-gray-500 hover:text-gray-700 text-2xl">
-                    <i class="fas fa-times"></i>
+            <div class="flex justify-between items-center p-6 border-b border-gray-200 dark:border-slate-700">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Terms & Conditions</h2>
+                <button type="button" onclick="closeTermsModal()"
+                    class="text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 text-2xl">
+                    <i class="bi bi-x-lg"></i>
                 </button>
             </div>
 
             <!-- Modal Body - Scrollable -->
-            <div id="termsContent" class="flex-1 overflow-y-auto p-6 text-gray-700 text-sm">
+            <div id="termsContent" class="flex-1 overflow-y-auto p-6 text-gray-700 dark:text-slate-300 text-sm">
                 <div class="space-y-4">
                     <section>
-                        <h3 class="font-bold text-lg text-gray-900 mb-2">1. Acceptance of Terms</h3>
+                        <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">1. Acceptance of Terms</h3>
                         <p>By accessing and using the Legislative Services Committee Management System, you accept and
                             agree to be bound by the terms and provision of this agreement.</p>
                     </section>
 
                     <section>
-                        <h3 class="font-bold text-lg text-gray-900 mb-2">2. Use License</h3>
+                        <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">2. Use License</h3>
                         <p>Permission is granted to temporarily download one copy of the materials (information or
                             software) on the Legislative Services Committee Management System for personal,
                             non-commercial transitory viewing only. This is the grant of a license, not a transfer of
@@ -468,76 +468,26 @@ if ($_SESSION['login_attempts'] >= 5) {
                     </section>
 
                     <section>
-                        <h3 class="font-bold text-lg text-gray-900 mb-2">3. Disclaimer</h3>
+                        <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">3. Disclaimer</h3>
                         <p>The materials on the Legislative Services Committee Management System are provided on an 'as
                             is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate all
                             other warranties including, without limitation, implied warranties or conditions of
                             merchantability, fitness for a particular purpose, or non-infringement of intellectual
                             property or other violation of rights.</p>
                     </section>
-
-                    <section>
-                        <h3 class="font-bold text-lg text-gray-900 mb-2">4. Limitations</h3>
-                        <p>In no event shall the Legislative Services Committee Management System or its suppliers be
-                            liable for any damages (including, without limitation, damages for loss of data or profit,
-                            or due to business interruption) arising out of the use or inability to use the materials on
-                            the system.</p>
-                    </section>
-
-                    <section>
-                        <h3 class="font-bold text-lg text-gray-900 mb-2">5. Accuracy of Materials</h3>
-                        <p>The materials appearing on the Legislative Services Committee Management System could include
-                            technical, typographical, or photographic errors. We do not warrant that any of the
-                            materials on the system are accurate, complete, or current. We may make changes to the
-                            materials contained on the system at any time without notice.</p>
-                    </section>
-
-                    <section>
-                        <h3 class="font-bold text-lg text-gray-900 mb-2">6. Links</h3>
-                        <p>We have not reviewed all of the sites linked to our website and are not responsible for the
-                            contents of any such linked site. The inclusion of any link does not imply endorsement by us
-                            of the site. Use of any such linked website is at the user's own risk.</p>
-                    </section>
-
-                    <section>
-                        <h3 class="font-bold text-lg text-gray-900 mb-2">7. Modifications</h3>
-                        <p>We may revise these terms and conditions for our system at any time without notice. By using
-                            this system, you are agreeing to be bound by the then current version of these terms and
-                            conditions.</p>
-                    </section>
-
-                    <section>
-                        <h3 class="font-bold text-lg text-gray-900 mb-2">8. Governing Law</h3>
-                        <p>These terms and conditions are governed by and construed in accordance with the laws of the
-                            Republic of the Philippines, and you irrevocably submit to the exclusive jurisdiction of the
-                            courts in that location.</p>
-                    </section>
-
-                    <section>
-                        <h3 class="font-bold text-lg text-gray-900 mb-2">9. Account Security</h3>
-                        <p>You are responsible for maintaining the confidentiality of your account and password and for
-                            restricting access to your computer. You agree to accept responsibility for all activities
-                            that occur under your account or password.</p>
-                    </section>
-
-                    <section>
-                        <h3 class="font-bold text-lg text-gray-900 mb-2">10. Data Privacy</h3>
-                        <p>We are committed to protecting your privacy and personal data. All information collected
-                            through this system will be processed in accordance with applicable data protection laws and
-                            our privacy policy.</p>
-                    </section>
                 </div>
             </div>
 
             <!-- Modal Footer -->
-            <div class="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+            <div
+                class="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50">
                 <button type="button" onclick="closeTermsModal()"
-                    class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 font-semibold">
+                    class="px-4 py-2 text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 font-semibold transition">
                     Close
                 </button>
                 <button type="button"
                     onclick="closeTermsModal(); document.getElementById('termsCheckbox').checked = true;"
-                    class="px-4 py-2 text-white bg-cms-red rounded-lg hover:bg-cms-dark font-semibold">
+                    class="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 font-semibold transition shadow-md">
                     I Accept
                 </button>
             </div>
@@ -545,6 +495,17 @@ if ($_SESSION['login_attempts'] >= 5) {
     </div>
 
     <script>
+        // Toggle Theme Function
+        function toggleTheme() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
         // Toggle password visibility
         document.getElementById('toggle-password')?.addEventListener('click', function () {
             const passwordField = document.getElementById('password');
@@ -621,11 +582,11 @@ if ($_SESSION['login_attempts'] >= 5) {
         <?php if (isset($_GET['logout']) && $_GET['logout'] === 'success'): ?>
             let logoutSeconds = 5;
             const logoutAlertElement = document.getElementById('logoutAlert');
-            const logoutTimerElement = document.getElementById('logoutTimer');
+            const logoutTimerTextElement = document.getElementById('logoutTimerText');
             const logoutProgressBar = document.getElementById('logoutProgressBar');
 
             function updateLogoutTimer() {
-                logoutTimerElement.textContent = logoutSeconds;
+                logoutTimerTextElement.textContent = logoutSeconds;
 
                 const progressPercent = (logoutSeconds / 5) * 100;
                 logoutProgressBar.style.width = progressPercent + '%';
@@ -669,10 +630,7 @@ if ($_SESSION['login_attempts'] >= 5) {
             const timerElement = document.getElementById('lockoutTimer');
 
             function updateLockoutTimer() {
-                const minutes = Math.ceil(remainingSeconds / 60);
-                const seconds = remainingSeconds % 60;
-
-                const formattedTime = `${String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                const formattedTime = `${String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`;
                 timerElement.textContent = formattedTime;
 
                 if (remainingSeconds > 0) {
@@ -684,10 +642,6 @@ if ($_SESSION['login_attempts'] >= 5) {
             }
 
             updateLockoutTimer();
-
-            setTimeout(() => {
-                location.reload();
-            }, <?php echo $remaining_time * 1000; ?>);
         <?php endif; ?>
 
         // Handle login form submission
@@ -756,75 +710,33 @@ if ($_SESSION['login_attempts'] >= 5) {
                 method: 'POST',
                 body: formData
             })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Successful login
-                        showAlert('Login successful! Redirecting...', 'success');
-                        loginBtnText.textContent = 'Redirecting...';
-                        loginBtnIcon.classList.remove('spinner');
-                        loginBtnIcon.classList.add('bi-check-circle');
-                        setTimeout(() => {
-                            window.location.href = '../public/dashboard.php';
-                        }, 1000);
-                    } else if (data.locked) {
-                        // Account is locked
-                        showAlert(data.message || 'Account is temporarily locked.', 'error');
-                        loginBtn.disabled = true;
-                        loginBtnText.textContent = 'Account Locked';
-                        loginBtnIcon.classList.remove('spinner');
-                        loginBtnIcon.classList.add('bi-lock-fill');
-
-                        setTimeout(() => {
-                            location.reload();
-                        }, 500);
+                        location.href = data.redirect;
                     } else {
-                        // Failed login
-                        showAlert(data.message || 'Invalid email or password.', 'error');
+                        showAlert(data.message || 'Login failed', 'error');
                         loginBtn.disabled = false;
                         loginBtnText.textContent = 'Sign In';
-                        loginBtnIcon.classList.remove('spinner');
                         loginBtnIcon.classList.add('bi-arrow-right');
-                        loginBtnIcon.innerHTML = '';
-
+                        loginBtnIcon.classList.remove('spinner');
                         form.classList.add('animate-shake');
                         setTimeout(() => form.classList.remove('animate-shake'), 500);
+
+                        if (data.is_locked) {
+                            location.reload();
+                        }
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showAlert('Network error or server issue. Please try again.', 'error');
+                    showAlert('An error occurred. Please try again later.', 'error');
                     loginBtn.disabled = false;
                     loginBtnText.textContent = 'Sign In';
-                    loginBtnIcon.classList.remove('spinner');
                     loginBtnIcon.classList.add('bi-arrow-right');
-                    loginBtnIcon.innerHTML = '';
+                    loginBtnIcon.classList.remove('spinner');
                 });
         });
-
-        // OAuth handlers
-        document.getElementById('googleLoginBtn')?.addEventListener('click', function () {
-            showAlert('Google Sign-In not yet configured. Please use email login.', 'warning');
-        });
-
-        document.getElementById('microsoftLoginBtn')?.addEventListener('click', function () {
-            showAlert('Microsoft Sign-In not yet configured. Please use email login.', 'warning');
-        });
-
-        // Auto-focus email field
-        document.getElementById('email')?.focus();
-
-        // Theme Toggle Function
-        function toggleTheme() {
-            document.documentElement.classList.toggle('dark');
-            const isDark = document.documentElement.classList.contains('dark');
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        }
     </script>
 </body>
 

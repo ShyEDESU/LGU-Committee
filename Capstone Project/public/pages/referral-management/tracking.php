@@ -32,6 +32,7 @@ $underReviewReferrals = getReferralsByStatus('Under Review');
 $inCommitteeReferrals = getReferralsByStatus('In Committee');
 $approvedReferrals = getReferralsByStatus('Approved');
 $rejectedReferrals = getReferralsByStatus('Rejected');
+$deferredReferrals = getReferralsByStatus('Deferred');
 ?>
 
 <!-- Page Header -->
@@ -71,9 +72,9 @@ $rejectedReferrals = getReferralsByStatus('Rejected');
         <p class="text-sm text-gray-600">Pending</p>
         <p class="text-2xl font-bold text-gray-900"><?php echo count($pendingReferrals); ?></p>
     </div>
-    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
-        <p class="text-sm text-blue-600">Under Review</p>
-        <p class="text-2xl font-bold text-blue-900"><?php echo count($underReviewReferrals); ?></p>
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+        <p class="text-sm text-red-600">Under Review</p>
+        <p class="text-2xl font-bold text-red-900"><?php echo count($underReviewReferrals); ?></p>
     </div>
     <div class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg">
         <p class="text-sm text-purple-600">In Committee</p>
@@ -132,11 +133,11 @@ $rejectedReferrals = getReferralsByStatus('Rejected');
 
     <!-- Under Review Column -->
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div class="bg-blue-500 text-white p-3">
+        <div class="bg-red-500 text-white p-3">
             <h3 class="font-bold flex items-center justify-between">
                 <span><i class="bi bi-eye mr-2"></i>Under Review</span>
                 <span
-                    class="bg-blue-600 px-2 py-1 rounded-full text-sm"><?php echo count($underReviewReferrals); ?></span>
+                    class="bg-red-600 px-2 py-1 rounded-full text-sm"><?php echo count($underReviewReferrals); ?></span>
             </h3>
         </div>
         <div class="p-3 space-y-2 max-h-96 overflow-y-auto">
@@ -144,12 +145,13 @@ $rejectedReferrals = getReferralsByStatus('Rejected');
                 <p class="text-gray-400 text-sm text-center py-4">No referrals under review</p>
             <?php else: ?>
                 <?php foreach ($underReviewReferrals as $ref): ?>
-                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 hover:shadow-md transition cursor-pointer"
+                    <div class="bg-red-50 p-3 rounded-lg border border-blue-200 hover:shadow-md transition cursor-pointer"
                         onclick="showStatusModal(<?php echo $ref['id']; ?>, '<?php echo htmlspecialchars($ref['title'], ENT_QUOTES); ?>', 'Under Review')">
                         <h4 class="font-semibold text-sm mb-1"><?php echo htmlspecialchars($ref['title']); ?></h4>
                         <p class="text-xs text-gray-600 mb-1"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
-                        <p class="text-[10px] text-blue-600 font-medium mb-2">
-                            <i class="bi bi-person mr-1"></i><?php echo htmlspecialchars($ref['assigned_to'] ?? 'Not Assigned'); ?>
+                        <p class="text-[10px] text-red-600 font-medium mb-2">
+                            <i
+                                class="bi bi-person mr-1"></i><?php echo htmlspecialchars($ref['assigned_to'] ?? 'Not Assigned'); ?>
                         </p>
                         <div class="flex items-center justify-between">
                             <span
@@ -188,7 +190,8 @@ $rejectedReferrals = getReferralsByStatus('Rejected');
                         <h4 class="font-semibold text-sm mb-1"><?php echo htmlspecialchars($ref['title']); ?></h4>
                         <p class="text-xs text-gray-600 mb-1"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
                         <p class="text-[10px] text-purple-600 font-medium mb-2">
-                            <i class="bi bi-person mr-1"></i><?php echo htmlspecialchars($ref['assigned_to'] ?? 'Not Assigned'); ?>
+                            <i
+                                class="bi bi-person mr-1"></i><?php echo htmlspecialchars($ref['assigned_to'] ?? 'Not Assigned'); ?>
                         </p>
                         <div class="flex items-center justify-between">
                             <span
@@ -227,7 +230,8 @@ $rejectedReferrals = getReferralsByStatus('Rejected');
                         <h4 class="font-semibold text-sm mb-1"><?php echo htmlspecialchars($ref['title']); ?></h4>
                         <p class="text-xs text-gray-600 mb-1"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
                         <p class="text-[10px] text-green-600 font-medium mb-2">
-                            <i class="bi bi-person mr-1"></i><?php echo htmlspecialchars($ref['assigned_to'] ?? 'Not Assigned'); ?>
+                            <i
+                                class="bi bi-person mr-1"></i><?php echo htmlspecialchars($ref['assigned_to'] ?? 'Not Assigned'); ?>
                         </p>
                         <div class="flex items-center justify-between">
                             <span
@@ -266,7 +270,8 @@ $rejectedReferrals = getReferralsByStatus('Rejected');
                         <h4 class="font-semibold text-sm mb-1"><?php echo htmlspecialchars($ref['title']); ?></h4>
                         <p class="text-xs text-gray-600 mb-1"><?php echo htmlspecialchars($ref['committee_name']); ?></p>
                         <p class="text-[10px] text-red-600 font-medium mb-2">
-                            <i class="bi bi-person mr-1"></i><?php echo htmlspecialchars($ref['assigned_to'] ?? 'Not Assigned'); ?>
+                            <i
+                                class="bi bi-person mr-1"></i><?php echo htmlspecialchars($ref['assigned_to'] ?? 'Not Assigned'); ?>
                         </p>
                         <div class="flex items-center justify-between">
                             <span
@@ -333,4 +338,19 @@ $rejectedReferrals = getReferralsByStatus('Rejected');
     }
 </script>
 
-<?php include '../../includes/footer.php'; ?>
+<div
+    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="text-sm text-gray-700 dark:text-gray-300">
+        Kanban Board: <span
+            class="font-medium"><?php echo count($pendingReferrals) + count($underReviewReferrals) + count($inCommitteeReferrals) + count($approvedReferrals) + count($rejectedReferrals) + count($deferredReferrals); ?></span>
+        total referrals
+    </div>
+    <div class="text-sm text-gray-500 italic">
+        Module: Referral Tracking
+    </div>
+</div>
+</div> <!-- Closing module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

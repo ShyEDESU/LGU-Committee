@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Add custom items if provided
     if (isset($_POST['items']) && is_array($_POST['items'])) {
+        $order = 1;
         foreach ($_POST['items'] as $item) {
             if (!empty($item['title'])) {
                 addAgendaItem($meetingId, [
@@ -28,7 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'description' => $item['description'] ?? '',
                     'duration' => $item['duration'] ?? 0,
                     'type' => $item['type'] ?? 'Discussion',
-                    'presenter' => $item['presenter'] ?? ''
+                    'presenter' => $item['presenter'] ?? '',
+                    'item_order' => $order++
                 ]);
             }
         }
@@ -179,7 +181,7 @@ $selectedCommittee = $_GET['committee'] ?? '';
                 <i class="bi bi-list-check mr-2"></i> Add Agenda Items
             </h2>
             <button type="button" onclick="addItemRow()"
-                class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">
+                class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm">
                 <i class="bi bi-plus-lg mr-1"></i> Add Item
             </button>
         </div>
@@ -326,4 +328,9 @@ $selectedCommittee = $_GET['committee'] ?? '';
     addItemRow();
 </script>
 
-<?php include '../../includes/footer.php'; ?>
+</div> <!-- Closing module-content-wrapper -->
+
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>
