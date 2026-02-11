@@ -9,6 +9,7 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
     exit();
 }
 
+$userId = $_SESSION['user_id'] ?? 0;
 $userName = $_SESSION['user_name'] ?? 'User';
 $userRole = $_SESSION['user_role'] ?? 'User';
 $pageTitle = 'Committee Profiles';
@@ -16,8 +17,27 @@ $pageTitle = 'Committee Profiles';
 // Include shared header
 include '../../includes/header.php';
 
-// Get committees from session and enhance with dynamic statistics
+// Get committees
 $committees = getAllCommittees();
+
+// Filter committees for non-admins (Chairmen, Vice Chairmen, and Users only see their assigned committees)
+if ($userRole !== 'Admin' && $userRole !== 'Super Admin') {
+    $committees = array_filter($committees, function ($c) use ($userId) {
+        // Leadership check
+        $isLeadership = (
+            $userId == ($c['chairperson_id'] ?? 0) ||
+            $userId == ($c['vice_chair_id'] ?? 0) ||
+            $userId == ($c['secretary_id'] ?? 0)
+        );
+
+        if ($isLeadership)
+            return true;
+
+        // Membership check (if not checked in query)
+        require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+        return isCommitteeMember($c['id'], $userId);
+    });
+}
 
 // Calculate dynamic statistics for each committee
 foreach ($committees as &$committee) {
@@ -58,11 +78,13 @@ if ($search || $typeFilter || $statusFilter) {
                 <i class="bi bi-download"></i>
                 <span>Export CSV</span>
             </button>
+            <?php if (canCreate($userId, 'committees')): ?>
             <a href="create.php"
                 class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition flex items-center space-x-2">
                 <i class="bi bi-plus-lg"></i>
                 <span>New Committee</span>
             </a>
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -487,6 +509,10 @@ if ($search || $typeFilter || $statusFilter) {
 
 <script>
     const committeesData = <?php echo json_encode($committees); ?>;
+    const currentUserId = <?php echo json_encode($_SESSION['user_id']); ?>;
+    const currentUserRole = <?php echo json_encode($_SESSION['user_role'] ?? 'User'); ?>;
+    const isChairman = currentUserRole.toLowerCase().includes('chairman');
+
     let currentCommitteeId = null;
     let allUsers = [];
 

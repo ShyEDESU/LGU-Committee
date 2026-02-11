@@ -5,6 +5,7 @@
 
 require_once __DIR__ . '/../../../../config/session_config.php';
 require_once __DIR__ . '/../../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../../app/helpers/UserHelper.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -14,7 +15,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Get all users
-$users = getAllUsers();
+$users = UserHelper_getAllUsers();
 
 echo json_encode([
     'success' => true,

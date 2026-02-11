@@ -20,11 +20,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
         'name' => trim($_POST['name'] ?? ''),
         'type' => $_POST['type'] ?? '',
-        'chair' => trim($_POST['chair'] ?? ''),
-        'vice_chair' => trim($_POST['vice_chair'] ?? ''),
+        'chairperson_id' => $_POST['chairperson_id'] ?? null,
+        'vice_chair_id' => $_POST['vice_chair_id'] ?? null,
+        'secretary_id' => $_POST['secretary_id'] ?? null,
         'jurisdiction' => trim($_POST['jurisdiction'] ?? ''),
         'description' => trim($_POST['description'] ?? ''),
-        'status' => $_POST['status'] ?? 'Active'
+        'is_active' => ($_POST['status'] ?? 'Active') === 'Active' ? 1 : 0
     ];
 
     $errors = [];
@@ -32,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Committee name is required';
     if (empty($data['type']))
         $errors[] = 'Committee type is required';
-    if (empty($data['chair']))
+    if (empty($data['chairperson_id']))
         $errors[] = 'Chairperson is required';
 
     if (empty($errors)) {
@@ -42,6 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
 }
+
+require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
+$allUsers = UserHelper_getActiveUsers();
 
 $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Edit Committee';
@@ -108,17 +112,46 @@ include '../../includes/header.php';
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium mb-2">Chairperson *</label>
-                    <input type="text" name="chair" required
-                        value="<?php echo htmlspecialchars($committee['chair']); ?>"
-                        class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700">
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Chairperson *</label>
+                    <select name="chairperson_id" required
+                        class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white">
+                        <option value="">Select Chairperson</option>
+                        <?php foreach ($allUsers as $user): ?>
+                            <option value="<?php echo $user['user_id']; ?>" <?php echo $committee['chairperson_id'] == $user['user_id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                                (<?php echo htmlspecialchars($user['position'] ?? 'No Position'); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium mb-2">Vice-Chairperson</label>
-                    <input type="text" name="vice_chair"
-                        value="<?php echo htmlspecialchars($committee['vice_chair'] ?? ''); ?>"
-                        class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700">
+                    <label
+                        class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Vice-Chairperson</label>
+                    <select name="vice_chair_id"
+                        class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white">
+                        <option value="">Select Vice-Chairperson</option>
+                        <?php foreach ($allUsers as $user): ?>
+                            <option value="<?php echo $user['user_id']; ?>" <?php echo $committee['vice_chair_id'] == $user['user_id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                                (<?php echo htmlspecialchars($user['position'] ?? 'No Position'); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Secretary</label>
+                    <select name="secretary_id"
+                        class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white">
+                        <option value="">Select Secretary</option>
+                        <?php foreach ($allUsers as $user): ?>
+                            <option value="<?php echo $user['user_id']; ?>" <?php echo $committee['secretary_id'] == $user['user_id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                                (<?php echo htmlspecialchars($user['position'] ?? 'No Position'); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
                 <div class="md:col-span-2">

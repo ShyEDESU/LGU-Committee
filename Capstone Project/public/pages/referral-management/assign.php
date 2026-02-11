@@ -58,7 +58,7 @@ $assignedReferrals = array_filter($allReferrals, function ($ref) {
     return !empty($ref['assigned_to']);
 });
 $committees = getAllCommittees();
-$users = getAllUsers();
+$users = UserHelper_getAllUsers();
 ?>
 
 <!-- Page Header -->

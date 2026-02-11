@@ -32,6 +32,40 @@ include '../../includes/header.php';
 // Get all action items from session
 $actionItems = getAllActionItems();
 
+// Filter action items for non-admins
+$userRole = $_SESSION['user_role'] ?? 'User';
+$userId = $_SESSION['user_id'];
+if ($userRole !== 'Admin' && $userRole !== 'Super Admin') {
+    require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+    $actionItems = array_filter($actionItems, function ($item) use ($userId) {
+        // Assigned to check
+        if (($item['assigned_to'] ?? '') == $userId)
+            return true;
+
+        // Committee check
+        if (isset($item['committee_id'])) {
+            $committeeId = $item['committee_id'];
+            $committee = getCommitteeById($committeeId);
+            if ($committee) {
+                // Leadership check
+                $isLeadership = (
+                    $userId == ($committee['chair_id'] ?? 0) ||
+                    $userId == ($committee['vice_chair_id'] ?? 0) ||
+                    $userId == ($committee['secretary_id'] ?? 0)
+                );
+                if ($isLeadership)
+                    return true;
+
+                // Membership check
+                if (isCommitteeMember($committeeId, $userId))
+                    return true;
+            }
+        }
+
+        return false;
+    });
+}
+
 
 // Apply filters
 $search = $_GET['search'] ?? '';
@@ -89,8 +123,10 @@ $doneItems = getActionItemsByStatus('Done');
             <h1 class="text-3xl font-bold text-gray-900">Action Items</h1>
             <p class="text-gray-600 mt-1">Track and manage committee action items</p>
         </div>
-        <a href="create.php" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"><i
-                class="bi bi-plus-lg"></i> New Action Item</a>
+        <?php if (canCreate($userId, 'action_items')): ?>
+            <a href="create.php" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"><i
+                    class="bi bi-plus-lg"></i> New Action Item</a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -213,20 +249,24 @@ $doneItems = getActionItemsByStatus('Done');
                                 title="View">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            <a href="edit.php?id=<?php echo $item['id']; ?>"
-                                class="p-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
-                                title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <form method="POST" class="inline"
-                                onsubmit="return confirm('Are you sure you want to delete this action item?');">
-                                <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
-                                <button type="submit" name="delete_item" value="1"
-                                    class="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
-                                    title="Delete">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                            <?php if (canEdit($userId, 'action_items', $item['id'])): ?>
+                                <a href="edit.php?id=<?php echo $item['id']; ?>"
+                                    class="p-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                                    title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            <?php endif; ?>
+                            <?php if (canDelete($userId, 'action_items')): ?>
+                                <form method="POST" class="inline"
+                                    onsubmit="return confirm('Are you sure you want to delete this action item?');">
+                                    <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                    <button type="submit" name="delete_item" value="1"
+                                        class="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
+                                        title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -279,11 +319,14 @@ $doneItems = getActionItemsByStatus('Done');
                                 title="View">
                                 <i class="bi bi-eye"></i>
                             </a>
+                            <?php if (canEdit($userId, 'action_items', $item['id'])): ?>
                             <a href="edit.php?id=<?php echo $item['id']; ?>"
                                 class="p-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
                                 title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            <?php endif; ?>
+                            <?php if (canDelete($userId, 'action_items')): ?>
                             <form method="POST" class="inline"
                                 onsubmit="return confirm('Are you sure you want to delete this action item?');">
                                 <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
@@ -293,6 +336,7 @@ $doneItems = getActionItemsByStatus('Done');
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -331,6 +375,7 @@ $doneItems = getActionItemsByStatus('Done');
                                 title="View">
                                 <i class="bi bi-eye"></i>
                             </a>
+                            <?php if (canDelete($userId, 'action_items')): ?>
                             <form method="POST" class="inline"
                                 onsubmit="return confirm('Are you sure you want to delete this action item?');">
                                 <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
@@ -340,6 +385,7 @@ $doneItems = getActionItemsByStatus('Done');
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

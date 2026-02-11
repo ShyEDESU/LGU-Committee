@@ -58,6 +58,11 @@ class SessionManager
                 $_SESSION['role_name'] = $user['role_name'];
                 $_SESSION['login_time'] = time();
 
+                // Frontend compatibility keys
+                $_SESSION['user_name'] = $_SESSION['full_name'];
+                $_SESSION['user_email'] = $_SESSION['email'];
+                $_SESSION['user_role'] = $_SESSION['role_name'];
+
                 // Log the login action
                 $this->logAuditAction($user['user_id'], 'LOGIN', 'Authentication', 'User logged in successfully');
 
@@ -219,6 +224,11 @@ class SessionManager
             $_SESSION['role_id'] = $user['role_id'];
             $_SESSION['role_name'] = $user['role_name'];
             $_SESSION['login_time'] = time();
+
+            // Frontend compatibility keys
+            $_SESSION['user_name'] = $_SESSION['full_name'];
+            $_SESSION['user_email'] = $_SESSION['email'];
+            $_SESSION['user_role'] = $_SESSION['role_name'];
 
             // Log the login action
             $this->logAuditAction($user['user_id'], 'OAUTH_LOGIN', 'Authentication', 'User logged in via OAuth provider');

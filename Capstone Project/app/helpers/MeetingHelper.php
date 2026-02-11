@@ -631,7 +631,7 @@ function getMeetingDocuments($meetingId)
     $stmt = $conn->prepare("SELECT d.*, CONCAT(u.first_name, ' ', u.last_name) as uploaded_by_name 
                             FROM meeting_documents d 
                             LEFT JOIN users u ON d.uploaded_by = u.user_id 
-                            WHERE d.meeting_id = ? AND d.document_type != 'minutes'");
+                            WHERE d.meeting_id = ? AND (d.document_type != 'minutes' OR (d.file_path IS NOT NULL AND d.file_path != ''))");
     $stmt->bind_param("i", $meetingId);
     $stmt->execute();
     $docs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -699,6 +699,21 @@ function addMeetingDocument($meetingId, $data, $file = null)
 function deleteMeetingDocument($docId)
 {
     global $conn;
+
+    // Get file info first
+    $stmt = $conn->prepare("SELECT file_path FROM meeting_documents WHERE document_id = ?");
+    $stmt->bind_param("i", $docId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        if (!empty($row['file_path'])) {
+            $fullPath = __DIR__ . '/../../' . $row['file_path'];
+            if (file_exists($fullPath)) {
+                @unlink($fullPath);
+            }
+        }
+    }
+
     $stmt = $conn->prepare("DELETE FROM meeting_documents WHERE document_id = ?");
     $stmt->bind_param("i", $docId);
     return $stmt->execute();
@@ -710,7 +725,7 @@ function getMeetingMinutes($meetingId)
     $stmt = $conn->prepare("SELECT d.*, CONCAT(u.first_name, ' ', u.last_name) as author 
                             FROM meeting_documents d 
                             LEFT JOIN users u ON d.uploaded_by = u.user_id 
-                            WHERE d.meeting_id = ? AND d.document_type = 'minutes' 
+                            WHERE d.meeting_id = ? AND d.document_type = 'minutes' AND (d.file_path IS NULL OR d.file_path = '')
                             ORDER BY d.created_at DESC LIMIT 1");
     $stmt->bind_param("i", $meetingId);
     $stmt->execute();

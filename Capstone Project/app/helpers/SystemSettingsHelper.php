@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/SecurityHelper.php';
 
 /**
  * Get current system settings.
@@ -60,104 +61,99 @@ function updateSystemSettings($data, $updatedBy)
     global $conn;
 
     // Check if entry exists
-    $check = $conn->query("SELECT setting_id FROM system_settings LIMIT 1");
+    $check = $conn->query("SELECT setting_id, smtp_pass FROM system_settings LIMIT 1");
     $exists = ($check && $check->num_rows > 0);
+
+    // Define all parameters in order to ensure perfect mapping
+    // Format: ['value' => mixed, 'type' => 's'|'i']
+    $params = [
+        ['v' => $data['lgu_name'], 't' => 's'],
+        ['v' => $data['lgu_address'], 't' => 's'],
+        ['v' => $data['lgu_contact'], 't' => 's'],
+        ['v' => $data['lgu_email'], 't' => 's'],
+        ['v' => $data['lgu_logo_path'], 't' => 's'],
+        ['v' => $data['theme_color'], 't' => 's'],
+        ['v' => $data['timezone'], 't' => 's'],
+        ['v' => (int) $data['auto_backup_enabled'], 't' => 'i'],
+        ['v' => $data['backup_frequency'], 't' => 's'],
+        ['v' => (int) $data['maintenance_mode'], 't' => 'i'],
+        ['v' => (int) $data['session_timeout'], 't' => 'i'],
+        ['v' => (int) $data['min_password_length'], 't' => 'i'],
+        ['v' => (int) $data['require_special_chars'], 't' => 'i'],
+        ['v' => $data['smtp_host'], 't' => 's'],
+        ['v' => (int) $data['smtp_port'], 't' => 'i'],
+        ['v' => $data['smtp_user'], 't' => 's'],
+        ['v' => $data['smtp_pass'], 't' => 's'],
+        ['v' => $data['smtp_encryption'], 't' => 's'],
+        ['v' => (int) $data['log_retention_days'], 't' => 'i'],
+        ['v' => $data['system_title'], 't' => 's'],
+        ['v' => $data['system_acronym'], 't' => 's'],
+        ['v' => $data['default_language'], 't' => 's'],
+        ['v' => $data['date_format'], 't' => 's'],
+        ['v' => $data['time_format'], 't' => 's'],
+        ['v' => (int) $updatedBy, 't' => 'i']
+    ];
 
     if ($exists) {
         $row = $check->fetch_assoc();
         $id = $row['setting_id'];
+        $currentPassInDb = $row['smtp_pass'];
 
-        $stmt = $conn->prepare("UPDATE system_settings SET 
-            lgu_name = ?, 
-            lgu_address = ?, 
-            lgu_contact = ?, 
-            lgu_email = ?, 
-            lgu_logo_path = ?,
-            timezone = ?, 
-            theme_color = ?,
-            auto_backup_enabled = ?, 
-            backup_frequency = ?, 
-            maintenance_mode = ?,
-            session_timeout = ?,
-            min_password_length = ?,
-            require_special_chars = ?,
-            smtp_host = ?,
-            smtp_port = ?,
-            smtp_user = ?,
-            smtp_pass = ?,
-            smtp_encryption = ?,
-            log_retention_days = ?,
-            system_title = ?,
-            system_acronym = ?,
-            default_language = ?,
-            date_format = ?,
-            time_format = ?,
-            updated_by = ? 
-            WHERE setting_id = ?");
+        // Proactive Encryption
+        if (!empty($data['smtp_pass'])) {
+            $decrypted = SecurityHelper::decrypt($data['smtp_pass']);
+            if ($decrypted === $data['smtp_pass']) {
+                $encrypted = SecurityHelper::encrypt($data['smtp_pass']);
+                $params[16]['v'] = $encrypted; // Update password in params array
+            }
+        }
 
-        $stmt->bind_param(
-            "sssssssisiisiiisssisssssii",
-            $data['lgu_name'],
-            $data['lgu_address'],
-            $data['lgu_contact'],
-            $data['lgu_email'],
-            $data['lgu_logo_path'],
-            $data['timezone'],
-            $data['theme_color'],
-            $data['auto_backup_enabled'],
-            $data['backup_frequency'],
-            $data['maintenance_mode'],
-            $data['session_timeout'],
-            $data['min_password_length'],
-            $data['require_special_chars'],
-            $data['smtp_host'],
-            $data['smtp_port'],
-            $data['smtp_user'],
-            $data['smtp_pass'],
-            $data['smtp_encryption'],
-            $data['log_retention_days'],
-            $data['system_title'],
-            $data['system_acronym'],
-            $data['default_language'],
-            $data['date_format'],
-            $data['time_format'],
-            $updatedBy,
-            $id
-        );
+        $sql = "UPDATE system_settings SET 
+            lgu_name = ?, lgu_address = ?, lgu_contact = ?, lgu_email = ?, lgu_logo_path = ?,
+            theme_color = ?, timezone = ?, auto_backup_enabled = ?, backup_frequency = ?, maintenance_mode = ?,
+            session_timeout = ?, min_password_length = ?, require_special_chars = ?,
+            smtp_host = ?, smtp_port = ?, smtp_user = ?, smtp_pass = ?, smtp_encryption = ?,
+            log_retention_days = ?, system_title = ?, system_acronym = ?, default_language = ?,
+            date_format = ?, time_format = ?, updated_by = ? 
+            WHERE setting_id = ?";
+
+        $stmt = $conn->prepare($sql);
+
+        // Build types string and values array
+        $types = "";
+        $values = [];
+        foreach ($params as $p) {
+            $types .= $p['t'];
+            $values[] = $p['v'];
+        }
+        $types .= "i"; // for $id
+        $values[] = $id;
+
+        $stmt->bind_param($types, ...$values);
     } else {
-        $stmt = $conn->prepare("INSERT INTO system_settings (
-            lgu_name, lgu_address, lgu_contact, lgu_email, lgu_logo_path, timezone, theme_color, auto_backup_enabled, backup_frequency, 
-            maintenance_mode, session_timeout, min_password_length, require_special_chars, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_encryption, log_retention_days, system_title, system_acronym, default_language, date_format, time_format, updated_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        // For Insert, encrypt password before creating params
+        if (!empty($data['smtp_pass'])) {
+            $data['smtp_pass'] = SecurityHelper::encrypt($data['smtp_pass']);
+            $params[16]['v'] = $data['smtp_pass'];
+        }
 
-        $stmt->bind_param(
-            "sssssssisiisiiisssisssssi",
-            $data['lgu_name'],
-            $data['lgu_address'],
-            $data['lgu_contact'],
-            $data['lgu_email'],
-            $data['lgu_logo_path'],
-            $data['timezone'],
-            $data['theme_color'],
-            $data['auto_backup_enabled'],
-            $data['backup_frequency'],
-            $data['maintenance_mode'],
-            $data['session_timeout'],
-            $data['min_password_length'],
-            $data['require_special_chars'],
-            $data['smtp_host'],
-            $data['smtp_port'],
-            $data['smtp_user'],
-            $data['smtp_pass'],
-            $data['smtp_encryption'],
-            $data['log_retention_days'],
-            $data['system_title'],
-            $data['system_acronym'],
-            $data['default_language'],
-            $data['date_format'],
-            $data['time_format'],
-            $updatedBy
-        );
+        $sql = "INSERT INTO system_settings (
+            lgu_name, lgu_address, lgu_contact, lgu_email, lgu_logo_path, theme_color, timezone, 
+            auto_backup_enabled, backup_frequency, maintenance_mode, session_timeout, min_password_length, 
+            require_special_chars, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_encryption, 
+            log_retention_days, system_title, system_acronym, default_language, date_format, time_format, updated_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        $stmt = $conn->prepare($sql);
+
+        $types = "";
+        $values = [];
+        foreach ($params as $p) {
+            $types .= $p['t'];
+            $values[] = $p['v'];
+        }
+
+        $stmt->bind_param($types, ...$values);
     }
 
     $result = $stmt->execute();

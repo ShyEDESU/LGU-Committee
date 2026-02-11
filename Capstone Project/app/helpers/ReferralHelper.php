@@ -110,6 +110,7 @@ function getReferralById($id)
         'assigned_member_id' => $row['assigned_to_user_id'],
         'deadline' => $row['deadline_date'],
         'created_at' => $row['created_at'],
+        'updated_at' => $row['updated_at'] ?? null,
         'notes' => $row['notes'],
         'is_public' => (bool) $row['is_public']
     ];

@@ -22,8 +22,34 @@ if (!$committee) {
 $stats = getCommitteeStatistics($id);
 $committee = array_merge($committee, $stats);
 
+// Access control for non-admins
+$userRole = $_SESSION['user_role'] ?? 'User';
+$userId = $_SESSION['user_id'] ?? 0;
+
+if ($userRole !== 'Admin' && $userRole !== 'Super Admin') {
+    $isLeadership = (
+        $userId == ($committee['chairperson_id'] ?? 0) ||
+        $userId == ($committee['vice_chair_id'] ?? 0) ||
+        $userId == ($committee['secretary_id'] ?? 0)
+    );
+
+    if (!$isLeadership) {
+        require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+        if (!isCommitteeMember($id, $userId)) {
+            $_SESSION['error_message'] = 'You do not have permission to view this committee';
+            header('Location: index.php');
+            exit();
+        }
+    }
+}
+
 // Handle delete
 if (isset($_POST['delete'])) {
+    if (!canDelete($userId, 'committees', $id)) {
+        $_SESSION['error_message'] = 'Unauthorized to delete this committee';
+        header('Location: index.php');
+        exit();
+    }
     deleteCommittee($id);
     $_SESSION['success_message'] = 'Committee deleted successfully';
     header('Location: index.php');
@@ -106,10 +132,12 @@ include '../../includes/header.php';
             <a href="index.php" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
                 <i class="bi bi-arrow-left mr-2"></i>Back to List
             </a>
-            <a href="edit.php?id=<?php echo $id; ?>"
-                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
-                <i class="bi bi-pencil mr-2"></i>Edit
-            </a>
+            <?php if (canEdit($userId, 'committees', $id)): ?>
+                <a href="edit.php?id=<?php echo $id; ?>"
+                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+                    <i class="bi bi-pencil mr-2"></i>Edit
+                </a>
+            <?php endif; ?>
             <button onclick="window.print()"
                 class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                 <i class="bi bi-printer mr-2"></i>Print
@@ -250,10 +278,12 @@ include '../../includes/header.php';
             <!-- Quick Actions -->
             <div class="flex justify-between items-center">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Committee Meetings</h2>
-                <a href="../committee-meetings/schedule.php?committee=<?php echo $id; ?>"
-                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
-                    <i class="bi bi-plus-circle mr-2"></i>Schedule Meeting
-                </a>
+                <?php if (canEdit($userId, 'committees', $id)): ?>
+                    <a href="../committee-meetings/schedule.php?committee=<?php echo $id; ?>"
+                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
+                        <i class="bi bi-plus-circle mr-2"></i>Schedule Meeting
+                    </a>
+                <?php endif; ?>
             </div>
 
             <!-- Upcoming Meetings -->
@@ -383,10 +413,12 @@ include '../../includes/header.php';
         <div class="space-y-6">
             <div class="flex justify-between items-center">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Meeting Agendas</h2>
-                <a href="../agenda-builder/create.php?committee=<?php echo $id; ?>"
-                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
-                    <i class="bi bi-plus-circle mr-2"></i>Create Agenda
-                </a>
+                <?php if (canEdit($userId, 'committees', $id)): ?>
+                    <a href="../agenda-builder/create.php?committee=<?php echo $id; ?>"
+                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
+                        <i class="bi bi-plus-circle mr-2"></i>Create Agenda
+                    </a>
+                <?php endif; ?>
             </div>
 
             <?php if (empty($committeeMeetings)): ?>
@@ -471,10 +503,12 @@ include '../../includes/header.php';
         <div class="space-y-6">
             <div class="flex justify-between items-center">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Committee Referrals</h2>
-                <a href="../referral-management/create.php?committee=<?php echo $id; ?>"
-                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
-                    <i class="bi bi-plus-circle mr-2"></i>New Referral
-                </a>
+                <?php if (canEdit($userId, 'committees', $id)): ?>
+                    <a href="../referral-management/create.php?committee=<?php echo $id; ?>"
+                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
+                        <i class="bi bi-plus-circle mr-2"></i>New Referral
+                    </a>
+                <?php endif; ?>
             </div>
 
             <?php
@@ -580,7 +614,13 @@ include '../../includes/header.php';
                         <div>
                             <p class="text-sm text-gray-600 dark:text-gray-400">Vice-Chairperson</p>
                             <p class="font-semibold">
-                                <?php echo htmlspecialchars($committee['vice_chair'] ?? 'N/A'); ?>
+                                <?php echo htmlspecialchars($committee['vice_chair'] ?? 'Not Assigned'); ?>
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Secretary</p>
+                            <p class="font-semibold">
+                                <?php echo htmlspecialchars($committee['secretary'] ?? 'Not Assigned'); ?>
                             </p>
                         </div>
                         <div>
@@ -968,21 +1008,26 @@ include '../../includes/header.php';
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
                     <h2 class="text-lg font-bold mb-4">Quick Actions</h2>
                     <div class="space-y-2">
-                        <a href="../committee-meetings/schedule.php?committee=<?php echo $id; ?>"
-                            class="block w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-center">
-                            <i class="bi bi-calendar-plus mr-2"></i>Schedule Meeting
-                        </a>
-                        <a href="../referral-management/create.php?committee=<?php echo $id; ?>"
-                            class="block w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-center">
-                            <i class="bi bi-inbox mr-2"></i>New Referral
-                        </a>
-                        <form method="POST" onsubmit="return confirm('Are you sure you want to delete this committee?');"
-                            class="mt-4">
-                            <button type="submit" name="delete"
-                                class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
-                                <i class="bi bi-trash mr-2"></i>Delete Committee
-                            </button>
-                        </form>
+                        <?php if (canEdit($userId, 'committees', $id)): ?>
+                            <a href="../committee-meetings/schedule.php?committee=<?php echo $id; ?>"
+                                class="block w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-center">
+                                <i class="bi bi-calendar-plus mr-2"></i>Schedule Meeting
+                            </a>
+                            <a href="../referral-management/create.php?committee=<?php echo $id; ?>"
+                                class="block w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-center">
+                                <i class="bi bi-inbox mr-2"></i>New Referral
+                            </a>
+                        <?php endif; ?>
+
+                        <?php if (canDelete($userId, 'committees', $id)): ?>
+                            <form method="POST" onsubmit="return confirm('Are you sure you want to delete this committee?');"
+                                class="mt-4">
+                                <button type="submit" name="delete"
+                                    class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+                                    <i class="bi bi-trash mr-2"></i>Delete Committee
+                                </button>
+                            </form>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

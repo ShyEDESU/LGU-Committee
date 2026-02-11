@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get all committees for dropdown
 $committees = getAllCommittees();
-$users = getAllUsers();
+$users = UserHelper_getAllUsers();
 
 $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Create Referral';

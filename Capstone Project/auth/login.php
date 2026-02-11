@@ -1,5 +1,12 @@
 <?php
 require_once __DIR__ . '/../config/session_config.php';
+require_once __DIR__ . '/../app/helpers/SystemSettingsHelper.php';
+
+// Fetch system settings for branding
+$settings = getSystemSettings();
+$themeColor = $settings['theme_color'] ?? '#dc2626';
+$systemLogo = $settings['lgu_logo_path'] ?? 'assets/images/logo.png';
+$logoPath = '../public/' . $systemLogo;
 
 // If user is already logged in, redirect to dashboard
 if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
@@ -17,21 +24,25 @@ if (!isset($_SESSION['login_attempts'])) {
 $is_locked = false;
 $remaining_time = 0;
 
-if ($_SESSION['login_attempts'] >= 5) {
-    if ($_SESSION['first_attempt_time'] === null) {
-        $_SESSION['first_attempt_time'] = time();
+$login_attempts = isset($_SESSION['login_attempts']) ? (int) $_SESSION['login_attempts'] : 0;
+$first_attempt_time = isset($_SESSION['first_attempt_time']) ? $_SESSION['first_attempt_time'] : null;
+
+if ($login_attempts >= 5) {
+    if ($first_attempt_time === null) {
+        $first_attempt_time = time();
+        $_SESSION['first_attempt_time'] = $first_attempt_time;
     }
 
-    $elapsed_time = time() - $_SESSION['first_attempt_time'];
-    $lockout_duration = 10; // 10 seconds for testing
+    $elapsed_time = time() - $first_attempt_time;
+    $lockout_duration = 300; // 5 minutes lockout
 
     if ($elapsed_time < $lockout_duration) {
         $is_locked = true;
         $remaining_time = $lockout_duration - $elapsed_time;
     } else {
-        // Reset after lockout period
         $_SESSION['login_attempts'] = 0;
         $_SESSION['first_attempt_time'] = null;
+        $is_locked = false;
     }
 }
 ?>
@@ -41,14 +52,14 @@ if ($_SESSION['login_attempts'] >= 5) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="theme-color" content="#dc2626">
+    <meta name="theme-color" content="<?php echo $themeColor; ?>">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Login - CMS | City of Valenzuela</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="../public/assets/images/logo.png">
-    <link rel="apple-touch-icon" href="../public/assets/images/logo.png">
+    <link rel="icon" type="image/png" href="<?php echo $logoPath; ?>">
+    <link rel="apple-touch-icon" href="<?php echo $logoPath; ?>">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -185,7 +196,53 @@ if ($_SESSION['login_attempts'] >= 5) {
 
         /* Custom focus styles */
         .input-field:focus {
-            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+            box-shadow: 0 0 0 3px
+                <?php echo $themeColor; ?>
+                1a;
+            /* 10% opacity */
+        }
+
+        /* Override dynamic primary colors */
+        .bg-red-600 {
+            background-color:
+                <?php echo $themeColor; ?>
+                !important;
+        }
+
+        .hover\:bg-red-700:hover {
+            background-color:
+                <?php echo $themeColor; ?>
+                cc !important;
+        }
+
+        .text-red-600 {
+            color:
+                <?php echo $themeColor; ?>
+                !important;
+        }
+
+        .dark\:text-red-400 {
+            color:
+                <?php echo $themeColor; ?>
+                !important;
+        }
+
+        .border-red-600 {
+            border-color:
+                <?php echo $themeColor; ?>
+                !important;
+        }
+
+        .focus\:ring-red-600:focus {
+            --tw-ring-color:
+                <?php echo $themeColor; ?>
+                !important;
+        }
+
+        .underline.text-red-600 {
+            color:
+                <?php echo $themeColor; ?>
+                !important;
         }
 
         /* Loading spinner */
@@ -219,7 +276,8 @@ if ($_SESSION['login_attempts'] >= 5) {
     </script>
 </head>
 
-<body class="bg-white dark:bg-slate-950 min-h-screen flex items-center justify-center p-3 md:p-4 transition-colors relative overflow-x-hidden">
+<body
+    class="bg-white dark:bg-slate-950 min-h-screen flex items-center justify-center p-3 md:p-4 transition-colors relative overflow-x-hidden">
 
     <div class="w-full max-w-md relative z-10">
         <!-- Logo Section -->
@@ -227,17 +285,19 @@ if ($_SESSION['login_attempts'] >= 5) {
             <div class="inline-flex items-center justify-center mb-3 md:mb-4 animate-bounce-in">
                 <div class="bg-white rounded-full shadow-xl flex items-center justify-center overflow-hidden transform hover:scale-105 transition-all duration-300"
                     style="width: 120px; height: 120px;">
-                    <img src="../public/assets/images/logo.png" alt="City Government of Valenzuela"
-                        class="w-full h-full object-contain p-2">
+                    <img src="<?php echo $logoPath; ?>" alt="Logo" class="w-full h-full object-contain p-2">
                 </div>
             </div>
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white animate-fade-in-up animation-delay-100">
+            <h1
+                class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white animate-fade-in-up animation-delay-100">
                 CMS</h1>
-            <p class="text-sm md:text-base text-gray-600 dark:text-slate-400 mt-1 md:mt-2 animate-fade-in-up animation-delay-200">
+            <p
+                class="text-sm md:text-base text-gray-600 dark:text-slate-400 mt-1 md:mt-2 animate-fade-in-up animation-delay-200">
                 Committee Management System</p>
             <p class="text-xs md:text-sm text-red-600 font-semibold mt-1 animate-fade-in-up animation-delay-300">
                 City Government of Valenzuela</p>
-            <p class="text-xs text-gray-500 dark:text-slate-500 animate-fade-in-up animation-delay-400">Metropolitan Manila</p>
+            <p class="text-xs text-gray-500 dark:text-slate-500 animate-fade-in-up animation-delay-400">Metropolitan
+                Manila</p>
         </div>
 
         <!-- Login Card -->
@@ -261,7 +321,8 @@ if ($_SESSION['login_attempts'] >= 5) {
 
             <div class="mb-4 md:mb-6">
                 <h2 class="text-xl md:text-2xl font-bold text-gray-800 dark:text-white">Welcome Back</h2>
-                <p class="text-sm md:text-base text-gray-600 dark:text-slate-400 mt-1">Sign in to access your account
+                <p class="text-sm md:text-base text-gray-600 dark:text-slate-400 mt-1">Sign in to access your
+                    account
                 </p>
             </div>
 
@@ -275,7 +336,8 @@ if ($_SESSION['login_attempts'] >= 5) {
                                 <i class="bi bi-shield-lock text-red-600"></i>
                                 Account Temporarily Locked
                             </h3>
-                            <p class="text-red-800 text-sm mb-3">Too many failed login attempts detected. For security, your
+                            <p class="text-red-800 text-sm mb-3">Too many failed login attempts detected. For security,
+                                your
                                 account has been locked.</p>
                             <div class="bg-white bg-opacity-50 rounded-lg p-3 border border-red-200">
                                 <p class="text-red-900 font-bold text-center text-2xl mb-1" id="lockoutTimer">
@@ -301,7 +363,8 @@ if ($_SESSION['login_attempts'] >= 5) {
                             <i class="bi bi-check-circle text-green-600 text-xl mt-1 mr-3 flex-shrink-0"></i>
                             <div class="flex-1">
                                 <h3 class="font-semibold text-green-900 mb-1">Logged Out Successfully</h3>
-                                <p class="text-green-800 text-sm">You have been successfully logged out. See you next time!
+                                <p class="text-green-800 text-sm">You have been successfully logged out. See you next
+                                    time!
                                 </p>
                             </div>
                         </div>
@@ -313,7 +376,8 @@ if ($_SESSION['login_attempts'] >= 5) {
                         </div>
                     </div>
                     <div class="mt-3 h-1 bg-green-200 rounded overflow-hidden">
-                        <div id="logoutProgressBar" class="h-full bg-green-500 transition-all" style="width: 100%;"></div>
+                        <div id="logoutProgressBar" class="h-full bg-green-500 transition-all" style="width: 100%;">
+                        </div>
                     </div>
                     <p class="text-green-700 text-xs mt-2 text-center font-semibold">Closing in <span
                             id="logoutTimerText">5</span> seconds...</p>
@@ -382,7 +446,8 @@ if ($_SESSION['login_attempts'] >= 5) {
                     <label for="termsCheckbox" class="text-gray-700 dark:text-slate-300 text-sm">
                         I agree to the
                         <button type="button" onclick="openTermsModal()"
-                            class="text-red-600 dark:text-red-400 hover:text-red-700 font-semibold underline">Terms &
+                            class="text-red-600 dark:text-red-400 hover:text-red-700 font-semibold underline">Terms
+                            &
                             Conditions</button>
                     </label>
                 </div>
@@ -447,7 +512,8 @@ if ($_SESSION['login_attempts'] >= 5) {
                 <div class="space-y-4">
                     <section>
                         <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">1. Acceptance of Terms</h3>
-                        <p>By accessing and using the Legislative Services Committee Management System, you accept and
+                        <p>By accessing and using the Legislative Services Committee Management System, you accept
+                            and
                             agree to be bound by the terms and provision of this agreement.</p>
                     </section>
 
@@ -455,22 +521,26 @@ if ($_SESSION['login_attempts'] >= 5) {
                         <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">2. Use License</h3>
                         <p>Permission is granted to temporarily download one copy of the materials (information or
                             software) on the Legislative Services Committee Management System for personal,
-                            non-commercial transitory viewing only. This is the grant of a license, not a transfer of
+                            non-commercial transitory viewing only. This is the grant of a license, not a transfer
+                            of
                             title, and under this license you may not:</p>
                         <ul class="list-disc ml-6 mt-2 space-y-1">
                             <li>Modify or copy the materials</li>
                             <li>Use the materials for any commercial purpose or for any public display</li>
                             <li>Attempt to decompile or reverse engineer any software contained on the system</li>
                             <li>Remove any copyright or other proprietary notations from the materials</li>
-                            <li>Transfer the materials to another person or "mirror" the materials on any other server
+                            <li>Transfer the materials to another person or "mirror" the materials on any other
+                                server
                             </li>
                         </ul>
                     </section>
 
                     <section>
                         <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">3. Disclaimer</h3>
-                        <p>The materials on the Legislative Services Committee Management System are provided on an 'as
-                            is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate all
+                        <p>The materials on the Legislative Services Committee Management System are provided on an
+                            'as
+                            is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate
+                            all
                             other warranties including, without limitation, implied warranties or conditions of
                             merchantability, fitness for a particular purpose, or non-infringement of intellectual
                             property or other violation of rights.</p>

@@ -26,6 +26,32 @@ include '../../includes/header.php';
 // Get all referrals from database
 $allReferrals = getAllReferrals();
 
+// Filter referrals for non-admins
+$userRole = $_SESSION['user_role'] ?? 'User';
+$userId = $_SESSION['user_id'];
+if ($userRole !== 'Admin' && $userRole !== 'Super Admin') {
+    require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+    $allReferrals = array_filter($allReferrals, function ($ref) use ($userId) {
+        $committeeId = $ref['committee_id'];
+        $committee = getCommitteeById($committeeId);
+        if (!$committee)
+            return false;
+
+        // Leadership check
+        $isLeadership = (
+            $userId == ($committee['chair_id'] ?? 0) ||
+            $userId == ($committee['vice_chair_id'] ?? 0) ||
+            $userId == ($committee['secretary_id'] ?? 0)
+        );
+
+        if ($isLeadership)
+            return true;
+
+        // Membership check
+        return isCommitteeMember($committeeId, $userId);
+    });
+}
+
 // Apply filters
 $searchTerm = $_GET['search'] ?? '';
 $filterCommittee = $_GET['committee'] ?? '';
@@ -90,8 +116,10 @@ $paginatedReferrals = array_slice($filteredReferrals, $offset, $itemsPerPage);
             <h1 class="text-3xl font-bold text-gray-900">Referral Management</h1>
             <p class="text-gray-600 mt-1">Track ordinances, resolutions, and communications</p>
         </div>
-        <a href="create.php" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"><i
-                class="bi bi-plus-lg"></i> New Referral</a>
+        <?php if (canCreate($userId, 'referrals')): ?>
+            <a href="create.php" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"><i
+                    class="bi bi-plus-lg"></i> New Referral</a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -260,20 +288,24 @@ $paginatedReferrals = array_slice($filteredReferrals, $offset, $itemsPerPage);
                                     title="View">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="edit.php?id=<?php echo $referral['id']; ?>"
-                                    class="px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
-                                    title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <form method="POST" class="inline"
-                                    onsubmit="return confirm('Are you sure you want to delete this referral? This action cannot be undone.');">
-                                    <input type="hidden" name="referral_id" value="<?php echo $referral['id']; ?>">
-                                    <button type="submit" name="delete_referral" value="1"
-                                        class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
-                                        title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
+                                <?php if (canEdit($userId, 'referrals', $referral['id'])): ?>
+                                    <a href="edit.php?id=<?php echo $referral['id']; ?>"
+                                        class="px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
+                                        title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                <?php endif; ?>
+                                <?php if (canDelete($userId, 'referrals')): ?>
+                                    <form method="POST" class="inline"
+                                        onsubmit="return confirm('Are you sure you want to delete this referral? This action cannot be undone.');">
+                                        <input type="hidden" name="referral_id" value="<?php echo $referral['id']; ?>">
+                                        <button type="submit" name="delete_referral" value="1"
+                                            class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
+                                            title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>

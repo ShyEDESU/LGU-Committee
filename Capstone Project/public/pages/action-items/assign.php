@@ -26,7 +26,7 @@ include '../../includes/header.php';
 $actionItems = getAllActionItems();
 
 require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
-$users = getAllUsers();
+$users = UserHelper_getAllUsers();
 
 // Map users for easy lookup
 $userMap = [];

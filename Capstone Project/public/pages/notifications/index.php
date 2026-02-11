@@ -18,7 +18,7 @@ require_once __DIR__ . '/../../../app/helpers/NotificationHelper.php';
 require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
 
 // Get current user data for preferences
-$user = getUserById($_SESSION['user_id']);
+$user = UserHelper_getUserById($_SESSION['user_id']);
 $prefs = json_decode($user['notification_preferences'] ?? '{}', true);
 
 // Default preferences if none set
@@ -27,8 +27,12 @@ $prefs = array_merge($defaults, $prefs);
 
 // Get all notifications for the user
 $userId = $_SESSION['user_id'];
+
+// Automatically mark all as read when entering this page
+markAllNotificationsRead($userId);
+
 $allNotifications = getUserNotifications($userId, 100); // Increased limit
-$unreadCount = getUnreadNotificationCount($userId);
+$unreadCount = 0; // Reset count locally since we just marked them read
 
 // Filter notifications based on query parameters
 $filterType = $_GET['type'] ?? 'all';
@@ -189,7 +193,7 @@ include '../../includes/header.php';
                                         <i class="bi bi-trash"></i>
                                     </button>
                                     <?php if ($notification['link'] && $notification['link'] !== '#'): ?>
-                                        <a href="<?php echo htmlspecialchars($notification['link']); ?>"
+                                        <a href="<?php echo htmlspecialchars($assetPath . $notification['link']); ?>"
                                             class="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
                                             title="View details">
                                             <i class="bi bi-arrow-right"></i>
@@ -264,28 +268,39 @@ include '../../includes/header.php';
 </div>
 
 <script>
-    function markAsRead(notificationId) {
-        // In production, make AJAX call to mark as read
-        console.log('Marking notification as read:', notificationId);
-        // Reload page to reflect changes
-        location.reload();
+    async function markAsRead(notificationId) {
+        try {
+            const response = await fetch('../../api/notifications.php?action=mark_read&id=' + notificationId);
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to mark as read');
+        }
     }
 
-    function markAllAsRead() {
+    async function markAllAsRead() {
         if (confirm('Mark all notifications as read?')) {
-            // In production, make AJAX call to mark all as read
-            console.log('Marking all notifications as read');
-            // Reload page to reflect changes
-            location.reload();
+            try {
+                const response = await fetch('../../api/notifications.php?action=mark_all_read');
+                const result = await response.json();
+                if (result.success) {
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to mark all as read');
+            }
         }
     }
 
     function deleteNotification(notificationId) {
         if (confirm('Delete this notification?')) {
-            // In production, make AJAX call to delete
+            // Delete API not currently implemented in helper, but we could add it
             console.log('Deleting notification:', notificationId);
-            // Reload page to reflect changes
-            location.reload();
+            // location.reload();
         }
     }
 

@@ -179,25 +179,54 @@ document.addEventListener('DOMContentLoaded', function () {
         profileDropdown?.classList.add('hidden');
     });
 
-    // Mark all as read placeholder
+    // Mark all as read with AJAX
     const markAllReadBtn = document.getElementById('mark-all-read-btn');
-    markAllReadBtn?.addEventListener('click', function () {
-        showToast('Notifications marked as read', 'success');
-        notificationsDropdown?.classList.add('hidden');
-        const badge = document.getElementById('notification-count');
-        if (badge) badge.style.display = 'none';
+    markAllReadBtn?.addEventListener('click', async function () {
+        try {
+            const apiPath = (window.CMS_ASSET_PATH || '') + 'api/notifications.php?action=mark_all_read';
+            const response = await fetch(apiPath);
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('All notifications marked as read', 'success');
+                notificationsDropdown?.classList.add('hidden');
+
+                // Hide badges locally
+                document.querySelectorAll('.unread-badge, #notifications-btn .absolute').forEach(el => {
+                    el.style.display = 'none';
+                });
+
+                // Refresh UI after a short delay
+                setTimeout(() => location.reload(), 500);
+            }
+        } catch (error) {
+            console.error('Error marking notifications as read:', error);
+            showToast('Failed to mark notifications as read', 'error');
+        }
     });
 
     // ==========================================
-    // 5. REAL-TIME CLOCK & DATE (Robust)
+    // 5. REAL-TIME CLOCK & DATE (Standardized)
     // ==========================================
     function updateClock() {
         const now = new Date();
 
-        const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+        // 12-hour format with seconds: HH:MM:SS AM/PM
+        const timeOptions = {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        };
         const timeStr = now.toLocaleTimeString('en-US', timeOptions);
 
-        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        // Standard date: Wed, Feb 12, 2025
+        const dateOptions = {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        };
         const dateStr = now.toLocaleDateString('en-US', dateOptions);
 
         document.querySelectorAll('.real-time-clock').forEach(el => { el.textContent = timeStr; });

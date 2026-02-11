@@ -31,7 +31,7 @@ $stats = [
     'committees' => $conn->query("SELECT COUNT(*) FROM committees WHERE is_active = 1")->fetch_row()[0],
     'meetings' => $conn->query("SELECT COUNT(*) FROM meetings WHERE status = 'Scheduled'")->fetch_row()[0],
     'documents' => ($conn->query("SELECT COUNT(*) FROM legislative_documents")->fetch_row()[0] +
-        $conn->query("SELECT COUNT(*) FROM meeting_documents WHERE document_type != 'minutes'")->fetch_row()[0]),
+        $conn->query("SELECT COUNT(*) FROM meeting_documents WHERE file_path IS NOT NULL AND file_path != ''")->fetch_row()[0]),
     'tasks' => $conn->query("SELECT COUNT(*) FROM tasks WHERE status != 'Done'")->fetch_row()[0],
     'referrals' => $conn->query("SELECT COUNT(*) FROM referrals WHERE status != 'Approved' AND status != 'Rejected'")->fetch_row()[0]
 ];
@@ -44,7 +44,7 @@ $docDistribution = [
     'Reports' => ($conn->query("SELECT COUNT(*) FROM legislative_documents WHERE document_type = 'committee_report'")->fetch_row()[0] +
         $conn->query("SELECT COUNT(*) FROM meeting_documents WHERE document_type = 'recommendation'")->fetch_row()[0]),
     'Agendas' => ($conn->query("SELECT COUNT(*) FROM meetings WHERE agenda_status != 'None'")->fetch_row()[0] +
-        $conn->query("SELECT COUNT(*) FROM meeting_documents WHERE document_type = 'agenda'")->fetch_row()[0])
+        $conn->query("SELECT COUNT(*) FROM meeting_documents WHERE document_type = 'agenda' AND file_path IS NOT NULL AND file_path != ''")->fetch_row()[0])
 ];
 
 // Fetch user tasks
@@ -62,7 +62,7 @@ if ($userTasksResult) {
 $stmt->close();
 
 // Fetch Recent Activity from audit logs
-$isPrivileged = in_array($userRole, ['Administrator', 'Super Administrator']);
+$isPrivileged = in_array($userRole, ['Admin', 'Super Admin']);
 $recentActivityQuery = "SELECT al.*, u.first_name, u.last_name 
                         FROM audit_logs al 
                         LEFT JOIN users u ON al.user_id = u.user_id";
@@ -473,7 +473,7 @@ include 'includes/header.php';
                     themeSystem: 'standard',
                     events: [
                         <?php foreach ($calendarMeetings as $m): ?>
-                                    {
+                                                {
                                 id: '<?php echo $m['id']; ?>',
                                 title: '<?php echo addslashes($m['committee_name']); ?>',
                                 start: '<?php echo $m['date']; ?>T<?php echo $m['time_start']; ?>',
@@ -494,38 +494,9 @@ include 'includes/header.php';
             }
         });
 
-        // Real-time Clock Handler
-        function updateDashboardClock() {
-            const timeElements = document.querySelectorAll('.real-time-clock');
-            const dateElements = document.querySelectorAll('.real-time-date');
-
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-            });
-
-            const dateString = now.toLocaleDateString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-            });
-
-            timeElements.forEach(el => el.textContent = timeString);
-            dateElements.forEach(el => el.textContent = dateString);
-        }
-
-        if (document.querySelector('.real-time-clock')) {
-            setInterval(updateDashboardClock, 1000);
-            updateDashboardClock();
-        }
     </script>
 
 
-    ?>
 </div> <!-- Closing space-y-8 -->
 </div> <!-- Closing module-content-wrapper (opened in header.php) -->
 

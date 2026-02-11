@@ -339,7 +339,7 @@ include '../../includes/header.php';
         Referral Status: <span class="font-medium"><?php echo htmlspecialchars($referral['status']); ?></span>
     </div>
     <div class="text-sm text-gray-500 italic">
-        Last Updated: <?php echo date('M j, Y', strtotime($referral['updated_date'] ?? $referral['created_date'])); ?>
+        Last Updated: <?php echo date('M j, Y', strtotime($referral['updated_at'] ?? $referral['created_at'])); ?>
     </div>
 </div>
 </div> <!-- Closing module-content-wrapper -->

@@ -28,6 +28,14 @@ if ($committeeId <= 0) {
     exit();
 }
 
+// Check permissions
+require_once __DIR__ . '/../../../../app/helpers/PermissionHelper.php';
+if (!canDelete($_SESSION['user_id'], 'committees', $committeeId)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'You do not have permission to delete this committee']);
+    exit();
+}
+
 // Delete committee
 $success = deleteCommittee($committeeId);
 

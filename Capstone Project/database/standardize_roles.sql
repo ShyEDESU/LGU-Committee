@@ -6,13 +6,17 @@ UPDATE `roles` SET `role_name` = 'Committee Chairman' WHERE `role_name` = 'Commi
 -- Consolidate other roles into 'User'
 -- Note: You might want to move these users manually if they have specific permissions, 
 -- but following the plan:
+-- Insert new roles if they don't exist
+INSERT IGNORE INTO `roles` (`role_name`, `description`, `permissions`) 
+VALUES ('Vice Committee Chairman', 'Deputy head of a committee', '{"manage_committee": true, "view_all": false}');
+
 INSERT IGNORE INTO `roles` (`role_name`, `description`, `permissions`) 
 VALUES ('User', 'Standard member and public access', '{"view_public": true, "vote": true}');
 
 UPDATE `users` SET `role_id` = (SELECT `role_id` FROM `roles` WHERE `role_name` = 'User')
-WHERE `role_id` IN (SELECT `role_id` FROM `roles` WHERE `role_name` IN ('Committee Secretary', 'Staff/Encoder', 'Public Viewer'));
+WHERE `role_id` IN (SELECT `role_id` FROM `roles` WHERE `role_name` IN ('Staff/Encoder', 'Public Viewer'));
 
-DELETE FROM `roles` WHERE `role_name` IN ('Committee Secretary', 'Staff/Encoder', 'Public Viewer');
+DELETE FROM `roles` WHERE `role_name` IN ('Staff/Encoder', 'Public Viewer');
 
 -- Deactivate Default Super Admin for now
 UPDATE `users` SET `is_active` = FALSE WHERE `email` = 'super.admin@legislative-services.gov';

@@ -52,7 +52,7 @@ $committees = getAllCommittees();
 $meetings = getAllMeetings();
 $referrals = getAllReferrals();
 $agendaItems = getAllAgendaItems();
-$users = getAllUsers();
+$users = UserHelper_getAllUsers();
 
 // Convert tags array to comma-separated string for display
 $tagsString = is_array($item['tags'] ?? null) ? implode(', ', $item['tags']) : '';

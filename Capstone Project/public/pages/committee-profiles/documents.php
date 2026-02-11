@@ -17,7 +17,14 @@ if (!$committee) {
 // Handle document deletion
 if (isset($_POST['delete_document'])) {
     $documentId = intval($_POST['delete_document']);
-    $success = deleteCommitteeDocument($documentId);
+    $isMeetingDoc = isset($_POST['is_meeting_doc']) && $_POST['is_meeting_doc'] == '1';
+
+    if ($isMeetingDoc) {
+        require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
+        $success = deleteMeetingDocument($documentId);
+    } else {
+        $success = deleteCommitteeDocument($documentId);
+    }
 
     if ($success) {
         $_SESSION['success_message'] = 'Document deleted successfully';
@@ -176,6 +183,9 @@ include '../../includes/header.php';
                             <?php endif; ?>
                             <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this document?')">
                                 <input type="hidden" name="delete_document" value="<?php echo $doc['id']; ?>">
+                                <?php if (!empty($doc['is_meeting_doc'])): ?>
+                                    <input type="hidden" name="is_meeting_doc" value="1">
+                                <?php endif; ?>
                                 <button type="submit"
                                     class="px-3 py-2 border border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-sm transition">
                                     <i class="bi bi-trash"></i>

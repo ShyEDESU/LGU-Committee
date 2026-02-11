@@ -40,7 +40,7 @@ $committees = getAllCommittees();
 $meetings = getAllMeetings();
 $referrals = getAllReferrals();
 $agendaItems = getAllAgendaItems();
-$users = getAllUsers();
+$users = UserHelper_getAllUsers();
 
 $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Create Action Item';

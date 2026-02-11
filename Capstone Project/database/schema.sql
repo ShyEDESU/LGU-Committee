@@ -392,10 +392,11 @@ CREATE TABLE IF NOT EXISTS `error_logs` (
 -- INSERT DEFAULT ROLES
 -- ============================================================================
 INSERT INTO `roles` (`role_name`, `description`, `permissions`) VALUES
-('Super Admin', 'Complete system access - reserves for future automation/API', JSON_OBJECT('all_modules', true, 'user_management', true, 'system_settings', true, 'user_approval', true, 'role_management', true, 'super_admin_panel', true)),
-('Admin', 'Full system access for LGU admins', JSON_OBJECT('all_modules', true, 'user_management', true, 'system_settings', true, 'user_approval', true)),
-('Committee Chairman', 'Can manage assigned committees, meetings, and agendas', JSON_OBJECT('committee_management', true, 'document_creation', true, 'meeting_scheduling', true)),
-('User', 'Committee member access - can view and participate in meetings', JSON_OBJECT('view_public_documents', true, 'view_calendar', true, 'view_ordinances', true, 'vote', true));
+('Super Admin', 'Complete system access - reserves for future automation/API', JSON_OBJECT('all_modules', true, 'user_management', true, 'system_settings', true, 'user_approval', true, 'role_management', true, 'super_admin_panel', true, 'agendas', true)),
+('Admin', 'Full system access for LGU admins', JSON_OBJECT('all_modules', true, 'user_management', true, 'system_settings', true, 'user_approval', true, 'agendas', true)),
+('Committee Chairman', 'Can manage assigned committees, meetings, and agendas', JSON_OBJECT('committee_management', true, 'document_creation', true, 'meeting_scheduling', true, 'agendas', true)),
+('Vice Committee Chairman', 'Deputy head of a committee with management privileges', JSON_OBJECT('committee_management', true, 'document_creation', true, 'meeting_scheduling', true, 'agendas', true)),
+('User', 'Committee member access - can view and participate in meetings', JSON_OBJECT('view_public_documents', true, 'view_calendar', true, 'view_ordinances', true, 'vote', true, 'agendas', true));
 
 -- ============================================================================
 -- INSERT DEFAULT ADMIN USERS

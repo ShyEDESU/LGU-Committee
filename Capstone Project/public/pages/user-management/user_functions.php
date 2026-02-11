@@ -121,7 +121,7 @@ function getUsers($search = '', $roleFilter = '', $deptFilter = '', $statusFilte
     $countStmt->close();
 
     // Get users with role name via JOIN
-    $query = "SELECT u.user_id, u.email, u.first_name, u.last_name, u.phone, 
+    $query = "SELECT u.user_id, u.email, u.email_verified, u.first_name, u.last_name, u.phone, 
                      r.role_name, u.role_id, u.department, u.position, 
                      u.is_active, u.profile_picture, u.created_at, u.last_login
               FROM users u
@@ -162,28 +162,12 @@ function getUsers($search = '', $roleFilter = '', $deptFilter = '', $statusFilte
  */
 function getUserById($userId)
 {
-    global $conn;
-
-    $query = "SELECT u.user_id, u.email, u.first_name, u.last_name, u.phone,
-                     r.role_name, u.role_id, u.department, u.position, 
-                     u.is_active, u.profile_picture, u.bio,
-                     u.created_at, u.updated_at, u.last_login
-              FROM users u
-              LEFT JOIN roles r ON u.role_id = r.role_id
-              WHERE u.user_id = ?";
-
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("i", $userId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
-    $stmt->close();
+    require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
+    $user = UserHelper_getUserById($userId);
 
     if ($user) {
-        // Convert is_active to status for UI compatibility
         $user['status'] = $user['is_active'] ? 'active' : 'inactive';
     }
-
     return $user;
 }
 
@@ -192,64 +176,14 @@ function getUserById($userId)
  */
 function createUser($data)
 {
-    global $conn;
+    require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
 
-    // Validate required fields
-    $required = ['email', 'password', 'first_name', 'last_name', 'role_name'];
-    foreach ($required as $field) {
-        if (empty($data[$field])) {
-            return ['success' => false, 'message' => "Field '$field' is required"];
-        }
+    // Map data to the format expected by UserHelper if necessary
+    if (!isset($data['role_id']) && isset($data['role_name'])) {
+        $data['role_id'] = getRoleIdByName($data['role_name']);
     }
 
-    // Check if email exists
-    if (emailExists($data['email'])) {
-        return ['success' => false, 'message' => 'Email already exists'];
-    }
-
-    // Get role_id from role_name
-    $roleId = getRoleIdByName($data['role_name']);
-    if (!$roleId) {
-        return ['success' => false, 'message' => 'Invalid role'];
-    }
-
-    // Hash password
-    $passwordHash = password_hash($data['password'], PASSWORD_DEFAULT);
-
-    // Convert status to is_active
-    $isActive = (!isset($data['status']) || $data['status'] === 'active') ? 1 : 0;
-
-    $query = "INSERT INTO users (email, password_hash, first_name, last_name, 
-                                 phone, role_id, department, position, is_active)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-    $stmt = $conn->prepare($query);
-    $phone = $data['phone'] ?? null;
-    $department = $data['department'] ?? null;
-    $position = $data['position'] ?? null;
-
-    $stmt->bind_param(
-        "sssssissi",
-        $data['email'],
-        $passwordHash,
-        $data['first_name'],
-        $data['last_name'],
-        $phone,
-        $roleId,
-        $department,
-        $position,
-        $isActive
-    );
-
-    if ($stmt->execute()) {
-        $userId = $stmt->insert_id;
-        $stmt->close();
-        return ['success' => true, 'message' => 'User created successfully', 'user_id' => $userId];
-    } else {
-        $error = $stmt->error;
-        $stmt->close();
-        return ['success' => false, 'message' => 'Failed to create user: ' . $error];
-    }
+    return UserHelper_createUser($data);
 }
 
 /**
@@ -257,104 +191,13 @@ function createUser($data)
  */
 function updateUser($userId, $data)
 {
-    global $conn;
-
-    // Get current user data
-    $currentUser = getUserById($userId);
-    if (!$currentUser) {
-        return ['success' => false, 'message' => 'User not found'];
-    }
-
-    // Check if email changed and if new email exists
-    if (!empty($data['email']) && $data['email'] !== $currentUser['email']) {
-        if (emailExists($data['email'], $userId)) {
-            return ['success' => false, 'message' => 'Email already exists'];
-        }
-    }
-
-    // Build update query
-    $fields = [];
-    $params = [];
-    $types = '';
-
-    if (isset($data['email'])) {
-        $fields[] = "email = ?";
-        $params[] = $data['email'];
-        $types .= 's';
-    }
-
-    if (isset($data['first_name'])) {
-        $fields[] = "first_name = ?";
-        $params[] = $data['first_name'];
-        $types .= 's';
-    }
-
-    if (isset($data['last_name'])) {
-        $fields[] = "last_name = ?";
-        $params[] = $data['last_name'];
-        $types .= 's';
-    }
-
-    if (isset($data['phone'])) {
-        $fields[] = "phone = ?";
-        $params[] = $data['phone'];
-        $types .= 's';
-    }
+    require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
 
     if (isset($data['role_name'])) {
-        $roleId = getRoleIdByName($data['role_name']);
-        if ($roleId) {
-            $fields[] = "role_id = ?";
-            $params[] = $roleId;
-            $types .= 'i';
-        }
+        $data['role_id'] = getRoleIdByName($data['role_name']);
     }
 
-    if (isset($data['department'])) {
-        $fields[] = "department = ?";
-        $params[] = $data['department'];
-        $types .= 's';
-    }
-
-    if (isset($data['position'])) {
-        $fields[] = "position = ?";
-        $params[] = $data['position'];
-        $types .= 's';
-    }
-
-    if (isset($data['status'])) {
-        $isActive = ($data['status'] === 'active') ? 1 : 0;
-        $fields[] = "is_active = ?";
-        $params[] = $isActive;
-        $types .= 'i';
-    }
-
-    // Update password if provided
-    if (!empty($data['password'])) {
-        $fields[] = "password_hash = ?";
-        $params[] = password_hash($data['password'], PASSWORD_DEFAULT);
-        $types .= 's';
-    }
-
-    if (empty($fields)) {
-        return ['success' => false, 'message' => 'No fields to update'];
-    }
-
-    $query = "UPDATE users SET " . implode(', ', $fields) . " WHERE user_id = ?";
-    $params[] = $userId;
-    $types .= 'i';
-
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param($types, ...$params);
-
-    if ($stmt->execute()) {
-        $stmt->close();
-        return ['success' => true, 'message' => 'User updated successfully'];
-    } else {
-        $error = $stmt->error;
-        $stmt->close();
-        return ['success' => false, 'message' => 'Failed to update user: ' . $error];
-    }
+    return UserHelper_updateUser($userId, $data);
 }
 
 /**
@@ -362,35 +205,8 @@ function updateUser($userId, $data)
  */
 function deleteUser($userId, $currentUserId)
 {
-    global $conn;
-
-    // Can't delete yourself
-    if ($userId == $currentUserId) {
-        return ['success' => false, 'message' => 'Cannot delete your own account'];
-    }
-
-    // Check if user is last admin
-    $user = getUserById($userId);
-    $roleLower = strtolower($user['role_name']);
-    if ($user && ($roleLower === 'admin' || $roleLower === 'administrator')) {
-        $adminCount = countAdmins();
-        if ($adminCount <= 1) {
-            return ['success' => false, 'message' => 'Cannot delete the last administrator'];
-        }
-    }
-
-    $query = "DELETE FROM users WHERE user_id = ?";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("i", $userId);
-
-    if ($stmt->execute()) {
-        $stmt->close();
-        return ['success' => true, 'message' => 'User deleted successfully'];
-    } else {
-        $error = $stmt->error;
-        $stmt->close();
-        return ['success' => false, 'message' => 'Failed to delete user: ' . $error];
-    }
+    require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
+    return UserHelper_deleteUser($userId);
 }
 
 /**
@@ -455,23 +271,6 @@ function getDepartments()
     return $departments;
 }
 
-/**
- * Get all roles from roles table
- */
-function getRoles()
-{
-    global $conn;
-
-    $query = "SELECT role_id, role_name FROM roles ORDER BY role_name";
-    $result = $conn->query($query);
-
-    $roles = [];
-    while ($row = $result->fetch_assoc()) {
-        $roles[] = $row;
-    }
-
-    return $roles;
-}
 
 /**
  * Get role_id by role_name
@@ -492,17 +291,45 @@ function getRoleIdByName($roleName)
 }
 
 /**
+ * Validate if email domain has valid MX records
+ */
+function isValidEmailDomain($email)
+{
+    $domain = substr(strrchr($email, "@"), 1);
+    if (empty($domain))
+        return false;
+
+    // Check for MX records (basic "real email" check)
+    // Note: checkdnsrr might be slow or fail in some environments, so we use it as a secondary check
+    if (function_exists('checkdnsrr')) {
+        return checkdnsrr($domain, 'MX') || checkdnsrr($domain, 'A');
+    }
+    return true; // Fallback if checkdnsrr is not available
+}
+
+/**
  * Validate user data
  */
 function validateUserData($data, $isUpdate = false)
 {
     $errors = [];
+    $userId = $data['user_id'] ?? null;
 
     // Email validation
     if (empty($data['email'])) {
         $errors[] = 'Email is required';
     } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Invalid email format';
+    } else {
+        // Check uniqueness
+        if (emailExists($data['email'], $userId)) {
+            $errors[] = 'This email address is already registered';
+        }
+
+        // Basic domain check for "real" email
+        if (!isValidEmailDomain($data['email'])) {
+            $errors[] = 'The email domain does not appear to be valid';
+        }
     }
 
     // Password validation (only required for create)

@@ -718,7 +718,7 @@ function getCommitteeDocuments($committeeId)
             FROM meeting_documents md
             JOIN meetings m ON md.meeting_id = m.meeting_id
             LEFT JOIN users u ON md.uploaded_by = u.user_id
-            WHERE m.committee_id = ?
+            WHERE m.committee_id = ? AND (md.document_type != 'minutes' OR (md.file_path IS NOT NULL AND md.file_path != ''))
             ORDER BY md.created_at DESC");
 
     $stmt->bind_param("i", $committeeId);
@@ -736,7 +736,8 @@ function getCommitteeDocuments($committeeId)
             'uploaded_by' => $row['uploaded_by_name'] ?? 'Unknown',
             'file_name' => $row['file_name'] ?? $row['title'],
             'file_path' => $row['file_path'] ?? null,
-            'source' => 'Meeting: ' . $row['meeting_title']
+            'source' => 'Meeting: ' . $row['meeting_title'],
+            'is_meeting_doc' => true
         ];
     }
 

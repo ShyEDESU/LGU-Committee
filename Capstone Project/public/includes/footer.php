@@ -14,6 +14,12 @@ if (!isset($footerPathPrefix)) {
         $rootPath = './';
     }
 }
+
+// Fetch system settings for branding
+require_once __DIR__ . '/../../app/helpers/SystemSettingsHelper.php';
+$settings = getSystemSettings();
+$themeColor = $settings['theme_color'] ?? '#dc2626';
+$systemLogo = $settings['lgu_logo_path'] ?? 'assets/images/logo.png';
 ?>
 
 <!-- Redesigned System Footer -->
@@ -23,11 +29,12 @@ if (!isset($footerPathPrefix)) {
             <!-- Branding & About -->
             <div class="space-y-6">
                 <div class="flex items-center space-x-4">
-                    <img src="<?php echo $footerPathPrefix; ?>assets/images/logo.png" alt="Valenzuela Logo"
+                    <img src="<?php echo $footerPathPrefix . $systemLogo; ?>" alt="Logo"
                         class="w-16 h-16 object-contain">
                     <div>
                         <h4 class="text-white font-black text-xl tracking-tight uppercase">City of Valenzuela</h4>
-                        <p class="text-red-500 text-xs font-bold uppercase tracking-widest">Legislative Office</p>
+                        <p class="text-[<?php echo $themeColor; ?>] text-xs font-bold uppercase tracking-widest"
+                            style="color: <?php echo $themeColor; ?>;">Legislative Office</p>
                     </div>
                 </div>
                 <p class="text-slate-400 text-sm leading-relaxed max-w-sm">
@@ -56,16 +63,16 @@ if (!isset($footerPathPrefix)) {
                 <h4 class="text-white font-bold text-sm mb-8 uppercase tracking-[0.2em]">Contact Information</h4>
                 <ul class="space-y-6 text-sm font-semibold">
                     <li class="flex items-start space-x-4">
-                        <i class="bi bi-geo-alt text-red-600 text-xl"></i>
+                        <i class="bi bi-geo-alt text-xl" style="color: <?php echo $themeColor; ?>;"></i>
                         <span class="text-slate-400">Valenzuela City Hall, MacArthur Highway,<br>Valenzuela City, Metro
                             Manila</span>
                     </li>
                     <li class="flex items-center space-x-4">
-                        <i class="bi bi-telephone text-red-600 text-xl"></i>
+                        <i class="bi bi-telephone text-xl" style="color: <?php echo $themeColor; ?>;"></i>
                         <span class="text-slate-400">(02) 8352-1000</span>
                     </li>
                     <li class="flex items-center space-x-4">
-                        <i class="bi bi-envelope text-red-600 text-xl"></i>
+                        <i class="bi bi-envelope text-xl" style="color: <?php echo $themeColor; ?>;"></i>
                         <span class="text-slate-400">legislative@valenzuela.gov.ph</span>
                     </li>
                 </ul>

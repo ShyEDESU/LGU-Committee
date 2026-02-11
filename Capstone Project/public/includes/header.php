@@ -9,8 +9,16 @@ $userName = $_SESSION['user_name'] ?? 'User';
 $userEmail = $_SESSION['user_email'] ?? 'user@example.com';
 $userRole = $_SESSION['user_role'] ?? 'User';
 
-// Include Notification Helper
+// Include Helpers
 require_once __DIR__ . '/../../app/helpers/NotificationHelper.php';
+require_once __DIR__ . '/../../app/helpers/PermissionHelper.php';
+require_once __DIR__ . '/../../app/helpers/UserHelper.php';
+require_once __DIR__ . '/../../app/helpers/SystemSettingsHelper.php';
+
+// Fetch system settings for branding
+$settings = getSystemSettings();
+$themeColor = $settings['theme_color'] ?? '#dc2626';
+$systemLogo = $settings['lgu_logo_path'] ?? 'assets/images/logo.png';
 
 // Get current user's unread notifications
 $currentUserId = $_SESSION['user_id'] ?? 0;
@@ -93,19 +101,20 @@ $recentNotifications = getUserNotifications($userId, 5);
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <meta name="theme-color" content="#dc2626">
+    <meta name="theme-color" content="<?php echo $themeColor; ?>">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="format-detection" content="telephone=no">
     <title><?php echo $pageTitle ?? 'CMS'; ?> | Committee Management System</title>
     <script>
         window.CMS_ROOT = '<?php echo $rootPath; ?>';
+        window.CMS_ASSET_PATH = '<?php echo $assetPath; ?>';
     </script>
 
     <meta name="description" content="Committee Management System - City Government of Valenzuela, Metropolitan Manila">
 
-    <link rel="icon" type="image/png" href="<?php echo $assetPath; ?>assets/images/logo.png">
-    <link rel="apple-touch-icon" href="<?php echo $assetPath; ?>assets/images/logo.png">
+    <link rel="icon" type="image/png" href="<?php echo $assetPath . $systemLogo; ?>">
+    <link rel="apple-touch-icon" href="<?php echo $assetPath . $systemLogo; ?>">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -113,10 +122,19 @@ $recentNotifications = getUserNotifications($userId, 5);
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 
-    <!-- Tailwind Configuration - CRITICAL for dark mode toggle -->
+    <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
-            darkMode: 'class'
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--cms-primary)',
+                        'primary-dark': 'var(--cms-primary-dark)',
+                        'primary-light': 'var(--cms-primary-light)',
+                    }
+                }
+            }
         }
     </script>
 
@@ -137,7 +155,57 @@ $recentNotifications = getUserNotifications($userId, 5);
 
     <link rel="stylesheet" href="<?php echo $assetPath; ?>assets/css/styles-updated.css">
 
-    <!-- Ensure sidebar is visible on desktop (when not collapsed) -->
+    <style>
+        :root {
+            --cms-primary:
+                <?php echo $themeColor; ?>
+            ;
+            --cms-primary-dark:
+                <?php echo $themeColor; ?>
+                dd;
+            --cms-primary-light:
+                <?php echo $themeColor; ?>
+                22;
+        }
+
+        /* Sidebar Dynamic Styling - Layout/Solid Background */
+        #mobile-sidebar,
+        #sidebar {
+            background-color: var(--cms-primary) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Active link styling matching the photo (Solid vibrant box) */
+        .bg-white\/20.shadow-lg {
+            background-color: #dc2626 !important;
+            /* Force vibrant red for active */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        /* If not in Red theme, use the white/20 fallback */
+        :root[style*="--cms-primary: #dc2626"] .bg-white\/20.shadow-lg,
+        :root[style*="--cms-primary: #991b1b"] .bg-white\/20.shadow-lg {
+            background-color: #dc2626 !important;
+        }
+
+        .hover\:bg-red-700:hover,
+        .hover\:bg-red-800:hover {
+            filter: brightness(0.9);
+            cursor: pointer;
+        }
+
+        .text-cms-red {
+            color: var(--cms-primary) !important;
+        }
+
+        .bg-cms-red {
+            background-color: var(--cms-primary) !important;
+        }
+
+        .border-cms-red {
+            border-color: var(--cms-primary) !important;
+        }
+    </style>
     <style>
         /* Hide scrollbar while maintaining scroll functionality */
         .sidebar nav::-webkit-scrollbar {
@@ -198,15 +266,14 @@ $recentNotifications = getUserNotifications($userId, 5);
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden opacity-0 pointer-events-none transition-all duration-300 ease-out">
     </div>
 
-    <!-- Mobile Sidebar -->
     <div id="mobile-sidebar"
-        class="fixed inset-y-0 left-0 transform -translate-x-full md:hidden w-72 bg-gradient-to-b from-red-800 to-red-900 text-white z-50 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden flex flex-col shadow-2xl">
+        class="fixed inset-y-0 left-0 transform -translate-x-full md:hidden w-72 text-white z-50 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden flex flex-col shadow-2xl"
+        style="background-color: var(--cms-primary);">
         <div class="p-4 border-b border-red-700/50 sidebar-header">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3 sidebar-logo">
                     <div class="bg-white rounded-full p-1.5 shadow-lg">
-                        <img src="<?php echo $assetPath; ?>assets/images/logo.png" alt="Logo"
-                            class="w-9 h-9 object-contain">
+                        <img src="<?php echo $assetPath . $systemLogo; ?>" alt="Logo" class="w-9 h-9 object-contain">
                     </div>
                     <div>
                         <h1 class="text-lg font-bold tracking-tight">CMS</h1>
@@ -222,92 +289,108 @@ $recentNotifications = getUserNotifications($userId, 5);
 
         <nav class="flex-1 py-4 px-3 overflow-y-auto">
             <a href="<?php echo $assetPath; ?>dashboard.php"
-                class="flex items-center px-3 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' ? 'bg-red-700' : ''; ?>">
-                <i class="bi bi-speedometer2 mr-2.5 text-xl"></i>
-                <span class="text-lg">Dashboard</span>
+                class="flex items-center px-4 py-3 text-white hover:bg-white/10 rounded-xl mb-1 transition-all duration-200 <?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                <i class="bi bi-speedometer2 mr-3 text-xl"></i>
+                <span class="font-semibold text-lg">Dashboard</span>
             </a>
 
-            <div class="mt-3 mb-2 px-3">
-                <p class="text-sm font-semibold text-red-300/80 uppercase tracking-wider">Core Modules</p>
+            <div class="mt-4 mb-2 px-4">
+                <p class="text-xs font-bold text-white/50 uppercase tracking-widest">Core Modules</p>
             </div>
 
-            <a href="<?php echo $assetPath; ?>pages/committee-profiles/index.php"
-                class="flex items-center px-3 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo $currentDir === 'committee-profiles' ? 'bg-red-700' : ''; ?>">
-                <i class="bi bi-building mr-2.5 text-xl"></i>
-                <span class="text-base">Committee Profiles</span>
-            </a>
-            <a href="<?php echo $assetPath; ?>pages/committee-meetings/index.php"
-                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo $currentDir === 'committee-meetings' ? 'bg-red-700' : ''; ?>">
-                <i class="bi bi-calendar-check mr-2.5 text-xl"></i>
-                <span class="text-base">Meetings</span>
-            </a>
-            <a href="<?php echo $assetPath; ?>pages/agenda-builder/index.php"
-                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo $currentDir === 'agenda-builder' ? 'bg-red-700' : ''; ?>">
-                <i class="bi bi-list-ul mr-2.5 text-xl"></i>
-                <span class="text-base">Agendas</span>
-            </a>
-            <a href="<?php echo $assetPath; ?>pages/referral-management/index.php"
-                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo $currentDir === 'referral-management' ? 'bg-red-700' : ''; ?>">
-                <i class="bi bi-inbox mr-2.5 text-xl"></i>
-                <span class="text-base">Referrals</span>
-            </a>
-            <a href="<?php echo $assetPath; ?>pages/action-items/index.php"
-                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo $currentDir === 'action-items' ? 'bg-red-700' : ''; ?>">
-                <i class="bi bi-check2-square mr-2.5 text-xl"></i>
-                <span class="text-base">Action Items</span>
-            </a>
+            <?php if (canViewModule($userId, 'committees')): ?>
+                <a href="<?php echo $assetPath; ?>pages/committee-profiles/index.php"
+                    class="flex items-center px-4 py-3 text-white hover:bg-white/10 rounded-xl mb-1 transition-all duration-200 <?php echo $currentDir === 'committee-profiles' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                    <i class="bi bi-building mr-3 text-xl"></i>
+                    <span class="font-medium">Committee Profiles</span>
+                </a>
+            <?php endif; ?>
 
-            <div class="mt-3 mb-2 px-3">
-                <p class="text-sm font-semibold text-red-300/80 uppercase tracking-wider">Analytics</p>
+            <?php if (canViewModule($userId, 'meetings')): ?>
+                <a href="<?php echo $assetPath; ?>pages/committee-meetings/index.php"
+                    class="flex items-center px-4 py-2.5 text-white hover:bg-white/10 rounded-xl mb-1 transition-all duration-200 <?php echo $currentDir === 'committee-meetings' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                    <i class="bi bi-calendar-check mr-3 text-xl"></i>
+                    <span class="font-medium">Meetings</span>
+                </a>
+            <?php endif; ?>
+
+            <?php if (canViewModule($userId, 'agendas')): ?>
+                <a href="<?php echo $assetPath; ?>pages/agenda-builder/index.php"
+                    class="flex items-center px-4 py-3 text-white hover:bg-white/10 rounded-xl mb-1 transition-all duration-200 <?php echo $currentDir === 'agenda-builder' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                    <i class="bi bi-list-ul mr-3 text-xl"></i>
+                    <span class="font-medium">Agendas</span>
+                </a>
+            <?php endif; ?>
+
+            <?php if (canViewModule($userId, 'referrals')): ?>
+                <a href="<?php echo $assetPath; ?>pages/referral-management/index.php"
+                    class="flex items-center px-4 py-2.5 text-white hover:bg-white/10 rounded-xl mb-1 transition-all duration-200 <?php echo $currentDir === 'referral-management' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                    <i class="bi bi-inbox mr-3 text-xl"></i>
+                    <span class="font-medium">Referrals</span>
+                </a>
+            <?php endif; ?>
+
+            <?php if (canViewModule($userId, 'action_items')): ?>
+                <a href="<?php echo $assetPath; ?>pages/action-items/index.php"
+                    class="flex items-center px-4 py-2.5 text-white hover:bg-white/10 rounded-xl mb-1 transition-all duration-200 <?php echo $currentDir === 'action-items' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                    <i class="bi bi-check2-square mr-3 text-xl"></i>
+                    <span class="font-medium">Action Items</span>
+                </a>
+            <?php endif; ?>
+
+            <div class="mt-4 mb-2 px-4">
+                <p class="text-xs font-bold text-white/50 uppercase tracking-widest">Analytics</p>
             </div>
 
-            <a href="<?php echo $assetPath; ?>pages/reports-analytics/index.php"
-                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo $currentDir === 'reports-analytics' ? 'bg-red-700' : ''; ?>">
-                <i class="bi bi-graph-up mr-2.5 text-xl"></i>
-                <span class="text-base">Reports & Analytics</span>
-            </a>
+            <?php if (canViewModule($userId, 'reports')): ?>
+                <a href="<?php echo $assetPath; ?>pages/reports-analytics/index.php"
+                    class="flex items-center px-4 py-2.5 text-white hover:bg-white/10 rounded-xl mb-1 transition-all duration-200 <?php echo $currentDir === 'reports-analytics' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                    <i class="bi bi-graph-up mr-3 text-xl"></i>
+                    <span class="font-medium">Reports & Analytics</span>
+                </a>
+            <?php endif; ?>
 
-            <?php if ($userRole === 'Admin' || $userRole === 'Super Admin'): ?>
-                <div class="mt-3 mb-2 px-3">
-                    <p class="text-[10px] font-semibold text-red-300/80 uppercase tracking-wider">Administration</p>
-                </div>
+            <div class="mt-4 mb-2 px-4 border-t border-white/10 pt-4">
+                <p class="text-xs font-bold text-white/50 uppercase tracking-widest">Administration</p>
+            </div>
 
-                <!-- User Management -->
+            <?php if (canViewModule($userId, 'users')): ?>
                 <a href="<?php echo $assetPath; ?>pages/user-management/index.php"
-                    class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo $currentDir === 'user-management' ? 'bg-red-700' : ''; ?>">
-                    <i class="bi bi-people-fill mr-2.5 text-xl"></i>
-                    <span class="text-base">User Management</span>
+                    class="flex items-center px-4 py-2.5 text-white hover:bg-white/10 rounded-xl mb-1 transition-all duration-200 <?php echo $currentDir === 'user-management' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                    <i class="bi bi-people-fill mr-3 text-xl"></i>
+                    <span class="font-medium">User Management</span>
                 </a>
+            <?php endif; ?>
 
-                <!-- Audit Logs -->
+            <?php if (canViewModule($userId, 'audit_logs')): ?>
                 <a href="<?php echo $assetPath; ?>pages/audit-logs/index.php"
-                    class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo $currentDir === 'audit-logs' ? 'bg-red-700' : ''; ?>">
-                    <i class="bi bi-shield-check mr-2.5 text-xl"></i>
-                    <span class="text-base">Audit Logs</span>
+                    class="flex items-center px-4 py-2.5 text-white hover:bg-white/10 rounded-xl mb-1 transition-all duration-200 <?php echo $currentDir === 'audit-logs' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                    <i class="bi bi-shield-check mr-3 text-xl"></i>
+                    <span class="font-medium">Audit Logs</span>
                 </a>
             <?php endif; ?>
 
-            <!-- Notifications -->
-            <a href="<?php echo $assetPath; ?>pages/notifications/index.php"
-                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo $currentDir === 'notifications' ? 'bg-red-700' : ''; ?>">
-                <i class="bi bi-bell mr-2.5 text-xl"></i>
-                <span class="text-base">Notifications</span>
-            </a>
-
-            <!-- My Profile -->
-            <a href="<?php echo $assetPath; ?>pages/my-profile/index.php"
-                class="flex items-center px-3 py-2 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo $currentDir === 'my-profile' ? 'bg-red-700' : ''; ?>">
-                <i class="bi bi-person-circle mr-2.5 text-xl"></i>
-                <span class="text-base">My Profile</span>
-            </a>
-
-            <?php if ($userRole === 'Admin' || $userRole === 'Super Admin'): ?>
+            <?php if (canViewModule($userId, 'settings')): ?>
                 <a href="<?php echo $assetPath; ?>pages/system-settings/index.php"
-                    class="flex items-center px-3 py-3 text-white hover:bg-red-700/70 rounded-lg mb-1 transition-all duration-200 hover:translate-x-1 <?php echo $currentDir === 'system-settings' ? 'bg-red-700' : ''; ?>">
-                    <i class="bi bi-gear mr-2.5 text-xl"></i>
-                    <span class="text-base">Settings</span>
+                    class="flex items-center px-4 py-3 text-white hover:bg-white/10 rounded-xl mb-1 transition-all duration-200 <?php echo $currentDir === 'system-settings' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                    <i class="bi bi-gear mr-3 text-xl"></i>
+                    <span class="font-medium">Settings</span>
                 </a>
             <?php endif; ?>
+
+            <a href="<?php echo $assetPath; ?>pages/notifications/index.php"
+                class="flex items-center px-4 py-2.5 text-white hover:bg-white/10 rounded-xl mb-1 transition-all duration-200 <?php echo $currentDir === 'notifications' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                <i class="bi bi-bell mr-3 text-xl"></i>
+                <span class="font-medium">Notifications</span>
+            </a>
+
+            <a href="<?php echo $assetPath; ?>pages/my-profile/index.php"
+                class="flex items-center px-4 py-2.5 text-white hover:bg-white/10 rounded-xl mb-1 transition-all duration-200 <?php echo $currentDir === 'my-profile' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                <i class="bi bi-person-circle mr-3 text-xl"></i>
+                <span class="font-medium">My Profile</span>
+            </a>
+
+            </a>
         </nav>
 
         <div class="p-3 mt-auto border-t border-red-700/40">
@@ -333,14 +416,15 @@ $recentNotifications = getUserNotifications($userId, 5);
     <div class="flex h-screen overflow-hidden">
         <!-- Desktop Sidebar -->
         <aside id="sidebar"
-            class="sidebar sidebar-expanded w-64 bg-gradient-to-b from-red-800 to-red-900 text-white flex-shrink-0 flex flex-col transition-all duration-300 ease-in-out animate-slide-in-left h-screen fixed md:relative z-30 -translate-x-full md:translate-x-0">
+            class="sidebar sidebar-expanded w-64 text-white flex-shrink-0 flex flex-col transition-all duration-300 ease-in-out animate-slide-in-left h-screen fixed md:relative z-30 -translate-x-full md:translate-x-0"
+            style="background-color: var(--cms-primary);">
             <div class="p-6 border-b border-red-700 sidebar-logo">
                 <a href="<?php echo $assetPath; ?>dashboard.php"
                     class="flex items-center space-x-3 hover:opacity-80 transition-all duration-300 transform hover:scale-105 group">
                     <div class="bg-white rounded-full shadow-md flex items-center justify-center overflow-hidden transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-6"
                         style="width: 70px; height: 70px;">
-                        <img src="<?php echo $assetPath; ?>assets/images/logo.png" alt="Logo"
-                            style="width: 100%; height: 100%;" class="object-contain">
+                        <img src="<?php echo $assetPath . $systemLogo; ?>" alt="Logo" style="width: 100%; height: 100%;"
+                            class="object-contain">
                     </div>
                     <div class="transform transition-all duration-300 group-hover:translate-x-1 sidebar-text">
                         <h1 class="text-lg font-bold">CMS</h1>
@@ -352,94 +436,117 @@ $recentNotifications = getUserNotifications($userId, 5);
             <nav class="flex-1 overflow-y-auto py-3">
                 <div class="px-3 space-y-1">
                     <a href="<?php echo $assetPath; ?>dashboard.php"
-                        class="flex items-center px-3 py-3 rounded-lg text-white transition-all duration-200 group <?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
+                        class="flex items-center px-4 py-3 rounded-xl text-white transition-all duration-200 hover:bg-white/10 group <?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' ? 'bg-white/20 shadow-lg' : ''; ?>">
                         <i class="bi bi-speedometer2 text-lg"></i>
-                        <span class="sidebar-text ml-2 text-lg">Dashboard</span>
+                        <span class="sidebar-text ml-3 text-lg font-semibold">Dashboard</span>
                     </a>
 
-                    <div class="pt-3 pb-1 sidebar-text">
-                        <p class="px-3 text-sm font-semibold text-red-300 uppercase tracking-wider">Core Modules</p>
+                    <div class="pt-5 pb-2 sidebar-text">
+                        <p class="px-4 text-xs font-bold text-white/50 uppercase tracking-widest">Core Modules</p>
                     </div>
 
-                    <a href="<?php echo $assetPath; ?>pages/committee-profiles/index.php"
-                        class="flex items-center px-3 py-3 rounded-lg text-white transition-all duration-200 group <?php echo $currentDir === 'committee-profiles' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
-                        <i class="bi bi-people text-lg"></i>
-                        <span
-                            class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Committee
-                            Profiles</span>
-                    </a>
-                    <a href="<?php echo $assetPath; ?>pages/committee-meetings/index.php"
-                        class="flex items-center px-3 py-2 rounded-lg text-white transition-all duration-200 group <?php echo $currentDir === 'committee-meetings' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
-                        <i class="bi bi-calendar-event text-lg"></i>
-                        <span
-                            class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Meetings</span>
-                    </a>
-                    <a href="<?php echo $assetPath; ?>pages/agenda-builder/index.php"
-                        class="flex items-center px-3 py-2 rounded-lg text-white transition-all duration-200 group <?php echo $currentDir === 'agenda-builder' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
-                        <i class="bi bi-list-check text-lg"></i>
-                        <span
-                            class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Agendas</span>
-                    </a>
-                    <a href="<?php echo $assetPath; ?>pages/referral-management/index.php"
-                        class="flex items-center px-3 py-2 rounded-lg text-white transition-all duration-200 group <?php echo $currentDir === 'referral-management' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
-                        <i class="bi bi-arrow-left-right text-lg"></i>
-                        <span
-                            class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Referrals</span>
-                    </a>
-                    <a href="<?php echo $assetPath; ?>pages/action-items/index.php"
-                        class="flex items-center px-3 py-2 rounded-lg text-white transition-all duration-200 group <?php echo $currentDir === 'action-items' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
-                        <i class="bi bi-check2-square text-lg"></i>
-                        <span class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Action
-                            Items</span>
-                    </a>
-
-                    <div class="pt-3 pb-1 sidebar-text">
-                        <p class="px-3 text-sm font-semibold text-red-300 uppercase tracking-wider">Analytics</p>
-                    </div>
-
-                    <a href="<?php echo $assetPath; ?>pages/reports-analytics/index.php"
-                        class="flex items-center px-3 py-2 rounded-lg text-white transition-all duration-200 group <?php echo $currentDir === 'reports-analytics' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
-                        <i class="bi bi-graph-up text-lg"></i>
-                        <span class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Reports
-                            &
-                            Analytics</span>
-                    </a>
-
-                    <?php if ($userRole === 'Admin' || $userRole === 'Super Admin'): ?>
-                        <div class="pt-3 pb-1 sidebar-text">
-                            <p class="px-3 text-[10px] font-semibold text-red-300 uppercase tracking-wider">Administration
-                            </p>
-                        </div>
-
-                        <a href="<?php echo $assetPath; ?>pages/user-management/index.php"
-                            class="flex items-center px-3 py-2 rounded-lg text-white transition-all duration-200 group <?php echo $currentDir === 'user-management' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
+                    <?php if (canViewModule($userId, 'committees')): ?>
+                        <a href="<?php echo $assetPath; ?>pages/committee-profiles/index.php"
+                            class="flex items-center px-4 py-3 rounded-xl text-white transition-all duration-200 hover:bg-white/10 group <?php echo $currentDir === 'committee-profiles' ? 'bg-white/20 shadow-lg' : ''; ?>">
                             <i class="bi bi-people text-lg"></i>
-                            <span class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">User
+                            <span
+                                class="sidebar-text ml-3 font-medium group-hover:translate-x-1 transition-transform">Committee
+                                Profiles</span>
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if (canViewModule($userId, 'meetings')): ?>
+                        <a href="<?php echo $assetPath; ?>pages/committee-meetings/index.php"
+                            class="flex items-center px-4 py-2.5 rounded-xl text-white transition-all duration-200 hover:bg-white/10 group <?php echo $currentDir === 'committee-meetings' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                            <i class="bi bi-calendar-event text-lg"></i>
+                            <span
+                                class="sidebar-text ml-3 font-medium group-hover:translate-x-1 transition-transform">Meetings</span>
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if (canViewModule($userId, 'agendas')): ?>
+                        <a href="<?php echo $assetPath; ?>pages/agenda-builder/index.php"
+                            class="flex items-center px-4 py-2.5 rounded-xl text-white transition-all duration-200 hover:bg-white/10 group <?php echo $currentDir === 'agenda-builder' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                            <i class="bi bi-list-check text-lg"></i>
+                            <span
+                                class="sidebar-text ml-3 font-medium group-hover:translate-x-1 transition-transform">Agendas</span>
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if (canViewModule($userId, 'referrals')): ?>
+                        <a href="<?php echo $assetPath; ?>pages/referral-management/index.php"
+                            class="flex items-center px-4 py-2.5 rounded-xl text-white transition-all duration-200 hover:bg-white/10 group <?php echo $currentDir === 'referral-management' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                            <i class="bi bi-arrow-left-right text-lg"></i>
+                            <span
+                                class="sidebar-text ml-3 font-medium group-hover:translate-x-1 transition-transform">Referrals</span>
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if (canViewModule($userId, 'action_items')): ?>
+                        <a href="<?php echo $assetPath; ?>pages/action-items/index.php"
+                            class="flex items-center px-4 py-2.5 rounded-xl text-white transition-all duration-200 hover:bg-white/10 group <?php echo $currentDir === 'action-items' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                            <i class="bi bi-check2-square text-lg"></i>
+                            <span
+                                class="sidebar-text ml-3 font-medium group-hover:translate-x-1 transition-transform">Action
+                                Items</span>
+                        </a>
+                    <?php endif; ?>
+
+                    <div class="pt-5 pb-2 sidebar-text">
+                        <p class="px-4 text-xs font-bold text-white/50 uppercase tracking-widest">Analytics</p>
+                    </div>
+
+                    <?php if (canViewModule($userId, 'reports')): ?>
+                        <a href="<?php echo $assetPath; ?>pages/reports-analytics/index.php"
+                            class="flex items-center px-4 py-2.5 rounded-xl text-white transition-all duration-200 hover:bg-white/10 group <?php echo $currentDir === 'reports-analytics' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                            <i class="bi bi-graph-up text-lg"></i>
+                            <span
+                                class="sidebar-text ml-3 font-medium group-hover:translate-x-1 transition-transform">Reports
+                                &
+                                Analytics</span>
+                        </a>
+                    <?php endif; ?>
+
+                    <div class="pt-5 pb-2 sidebar-text border-t border-white/10 mt-4">
+                        <p class="px-4 text-xs font-bold text-white/50 uppercase tracking-widest">System Settings</p>
+                    </div>
+
+                    <?php if (canViewModule($userId, 'users')): ?>
+                        <a href="<?php echo $assetPath; ?>pages/user-management/index.php"
+                            class="flex items-center px-4 py-2.5 rounded-xl text-white transition-all duration-200 hover:bg-white/10 group <?php echo $currentDir === 'user-management' ? 'bg-white/20 shadow-lg' : ''; ?>">
+                            <i class="bi bi-people text-lg"></i>
+                            <span class="sidebar-text ml-3 font-medium group-hover:translate-x-1 transition-transform">User
                                 Management</span>
                         </a>
+                    <?php endif; ?>
+
+                    <?php if (canViewModule($userId, 'audit_logs')): ?>
                         <a href="<?php echo $assetPath; ?>pages/audit-logs/index.php"
-                            class="flex items-center px-3 py-2 rounded-lg text-white transition-all duration-200 group <?php echo $currentDir === 'audit-logs' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
+                            class="flex items-center px-4 py-2.5 rounded-xl text-white transition-all duration-200 hover:bg-white/10 group <?php echo $currentDir === 'audit-logs' ? 'bg-white/20 shadow-lg' : ''; ?>">
                             <i class="bi bi-shield-check text-lg"></i>
-                            <span class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Audit
+                            <span class="sidebar-text ml-3 font-medium group-hover:translate-x-1 transition-transform">Audit
                                 Logs</span>
                         </a>
+                    <?php endif; ?>
+
+                    <?php if (canViewModule($userId, 'settings')): ?>
                         <a href="<?php echo $assetPath; ?>pages/system-settings/index.php"
-                            class="flex items-center px-3 py-2 rounded-lg text-white transition-all duration-200 group <?php echo $currentDir === 'system-settings' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
+                            class="flex items-center px-4 py-2.5 rounded-xl text-white transition-all duration-200 hover:bg-white/10 group <?php echo $currentDir === 'system-settings' ? 'bg-white/20 shadow-lg' : ''; ?>">
                             <i class="bi bi-gear text-lg"></i>
                             <span
-                                class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Settings</span>
+                                class="sidebar-text ml-3 font-medium group-hover:translate-x-1 transition-transform">Settings</span>
                         </a>
                     <?php endif; ?>
                     <a href="<?php echo $assetPath; ?>pages/notifications/index.php"
-                        class="flex items-center px-3 py-2 rounded-lg text-white transition-all duration-200 group <?php echo $currentDir === 'notifications' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
+                        class="flex items-center px-4 py-2.5 rounded-xl text-white transition-all duration-200 hover:bg-white/10 group <?php echo $currentDir === 'notifications' ? 'bg-white/20 shadow-lg' : ''; ?>">
                         <i class="bi bi-bell text-lg"></i>
                         <span
-                            class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">Notifications</span>
+                            class="sidebar-text ml-3 font-medium group-hover:translate-x-1 transition-transform">Notifications</span>
                     </a>
                     <a href="<?php echo $assetPath; ?>pages/my-profile/index.php"
-                        class="flex items-center px-3 py-2 rounded-lg text-white transition-all duration-200 group <?php echo $currentDir === 'my-profile' ? 'bg-red-700' : 'hover:bg-red-700/50'; ?>">
+                        class="flex items-center px-4 py-2.5 rounded-xl text-white transition-all duration-200 hover:bg-white/10 group <?php echo $currentDir === 'my-profile' ? 'bg-white/20 shadow-lg' : ''; ?>">
                         <i class="bi bi-person-circle text-lg"></i>
-                        <span class="sidebar-text ml-2 text-base group-hover:translate-x-1 transition-transform">My
+                        <span class="sidebar-text ml-3 font-medium group-hover:translate-x-1 transition-transform">My
                             Profile</span>
                     </a>
                 </div>
@@ -485,7 +592,7 @@ $recentNotifications = getUserNotifications($userId, 5);
 
                             <!-- Logo (Mobile) -->
                             <div class="mobile-only flex items-center ml-2">
-                                <img src="<?php echo $assetPath; ?>assets/images/logo.png" alt="CMS"
+                                <img src="<?php echo $assetPath . $systemLogo; ?>" alt="CMS"
                                     class="w-10 h-10 object-contain">
                             </div>
                         </div>
@@ -559,39 +666,16 @@ $recentNotifications = getUserNotifications($userId, 5);
                                         <?php else: ?>
                                             <?php foreach ($recentNotifications as $notif): ?>
                                                 <?php
-                                                $typeIcon = 'bi-info-circle';
-                                                $typeBg = 'bg-red-100 dark:bg-blue-900/30';
-                                                $typeText = 'text-red-600 dark:text-blue-400';
+                                                $typeIcon = $notif['icon'] ?? 'bi-info-circle';
+                                                $color = $notif['color'] ?? 'red';
 
-                                                switch ($notif['notification_type']) {
-                                                    case 'alert':
-                                                        $typeIcon = 'bi-exclamation-triangle';
-                                                        $typeBg = 'bg-red-100 dark:bg-red-900/30';
-                                                        $typeText = 'text-red-600 dark:text-red-400';
-                                                        break;
-                                                    case 'reminder':
-                                                        $typeIcon = 'bi-calendar-event';
-                                                        $typeBg = 'bg-yellow-100 dark:bg-yellow-900/30';
-                                                        $typeText = 'text-yellow-600 dark:text-yellow-400';
-                                                        break;
-                                                    case 'task_assigned':
-                                                        $typeIcon = 'bi-check2-square';
-                                                        $typeBg = 'bg-green-100 dark:bg-green-900/30';
-                                                        $typeText = 'text-green-600 dark:text-green-400';
-                                                        break;
-                                                }
+                                                // Map colors to Tailwind classes
+                                                $typeBg = "bg-{$color}-100 dark:bg-{$color}-900/30";
+                                                $typeText = "text-{$color}-600 dark:text-{$color}-400";
 
-                                                $timeDiff = time() - strtotime($notif['created_at']);
-                                                if ($timeDiff < 60)
-                                                    $timeStr = "Just now";
-                                                elseif ($timeDiff < 3600)
-                                                    $timeStr = floor($timeDiff / 60) . " mins ago";
-                                                elseif ($timeDiff < 86400)
-                                                    $timeStr = floor($timeDiff / 3600) . " hours ago";
-                                                else
-                                                    $timeStr = date('M j, Y', strtotime($notif['created_at']));
+                                                $timeStr = timeAgo($notif['created_at']);
                                                 ?>
-                                                <a href="<?php echo $notif['action_link'] ?? '#'; ?>"
+                                                <a href="<?php echo $assetPath . ($notif['link'] ?? '#'); ?>"
                                                     class="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700 cursor-pointer transition <?php echo $notif['is_read'] ? 'opacity-75' : ''; ?>">
                                                     <div class="flex items-start space-x-3">
                                                         <div class="<?php echo $typeBg; ?> rounded-full p-2 flex-shrink-0">
@@ -635,7 +719,7 @@ $recentNotifications = getUserNotifications($userId, 5);
                                 <button id="profile-btn"
                                     class="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
                                     <div
-                                        class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center border-2 border-red-500 shadow-sm">
+                                        class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center border-2 border-primary shadow-sm">
                                         <img src="<?php echo htmlspecialchars($displayPath); ?>" alt="Profile"
                                             class="w-full h-full object-cover">
                                     </div>

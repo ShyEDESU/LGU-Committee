@@ -6,6 +6,9 @@
 
 require_once __DIR__ . '/../../config/database.php';
 
+// Set timezone to Asia/Manila for accurate notifications
+date_default_timezone_set('Asia/Manila');
+
 /**
  * Creates a new notification for a specific user.
  * 

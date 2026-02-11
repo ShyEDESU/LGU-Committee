@@ -58,6 +58,32 @@ foreach ($meetings as $meeting) {
     }
 }
 
+// Filter agendas for non-admins
+$userRole = $_SESSION['user_role'] ?? 'User';
+$userId = $_SESSION['user_id'];
+if ($userRole !== 'Admin' && $userRole !== 'Super Admin') {
+    require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+    $agendas = array_filter($agendas, function ($a) use ($userId) {
+        $committeeId = $a['committee_id'];
+        $committee = getCommitteeById($committeeId);
+        if (!$committee)
+            return false;
+
+        // Leadership check
+        $isLeadership = (
+            $userId == ($committee['chair_id'] ?? 0) ||
+            $userId == ($committee['vice_chair_id'] ?? 0) ||
+            $userId == ($committee['secretary_id'] ?? 0)
+        );
+
+        if ($isLeadership)
+            return true;
+
+        // Membership check
+        return isCommitteeMember($committeeId, $userId);
+    });
+}
+
 // Filters
 $search = $_GET['search'] ?? '';
 $committeeFilter = $_GET['committee'] ?? '';
@@ -316,21 +342,25 @@ $paginatedAgendas = array_slice($agendas, $offset, $itemsPerPage);
                                         title="View Agenda">
                                         <i class="bi bi-eye mr-1.5"></i> View
                                     </a>
-                                    <a href="items.php?meeting_id=<?php echo $agenda['meeting_id']; ?>"
-                                        class="inline-flex items-center px-3 py-1.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition"
-                                        title="Manage Items">
-                                        <i class="bi bi-pencil mr-1.5"></i> Edit
-                                    </a>
-                                    <form method="POST" class="inline"
-                                        onsubmit="return confirm('Are you sure you want to delete this agenda and all its items?');">
-                                        <input type="hidden" name="delete_agenda" value="1">
-                                        <input type="hidden" name="agenda_id" value="<?php echo $agenda['id']; ?>">
-                                        <button type="submit"
-                                            class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold"
-                                            title="Delete Agenda">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                    <?php if (canEdit($userId, 'committees', $agenda['committee_id'])): ?>
+                                        <a href="items.php?meeting_id=<?php echo $agenda['meeting_id']; ?>"
+                                            class="inline-flex items-center px-3 py-1.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition"
+                                            title="Manage Items">
+                                            <i class="bi bi-pencil mr-1.5"></i> Edit
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if (canDelete($userId, 'meetings')): ?>
+                                        <form method="POST" class="inline"
+                                            onsubmit="return confirm('Are you sure you want to delete this agenda and all its items?');">
+                                            <input type="hidden" name="delete_agenda" value="1">
+                                            <input type="hidden" name="agenda_id" value="<?php echo $agenda['id']; ?>">
+                                            <button type="submit"
+                                                class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold"
+                                                title="Delete Agenda">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

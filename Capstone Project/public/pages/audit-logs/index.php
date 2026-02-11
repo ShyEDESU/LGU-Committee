@@ -9,9 +9,11 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
     exit();
 }
 
-// Check if user has permission to view audit logs (Admin only)
-$userRole = $_SESSION['user_role'] ?? 'User';
-if ($userRole !== 'Admin' && $userRole !== 'Super Admin') {
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
+
+// Check if user has permission to view audit logs
+$userId = $_SESSION['user_id'];
+if (!canViewModule($userId, 'audit_logs')) {
     header('Location: ../../../dashboard.php');
     exit();
 }

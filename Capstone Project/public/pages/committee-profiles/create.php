@@ -26,18 +26,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Committee name is required';
     if (empty($data['type']))
         $errors[] = 'Committee type is required';
-    if (empty($data['chair']))
+    if (empty($data['chairperson_id']))
         $errors[] = 'Chairperson is required';
     if (empty($data['jurisdiction']))
         $errors[] = 'Jurisdiction is required';
 
     if (empty($errors)) {
-        $newId = createCommittee($data);
+        // Convert array to the format expected by createCommittee (mapping chair to chairperson_id etc)
+        $createData = [
+            'name' => $data['name'],
+            'type' => $data['type'],
+            'description' => $data['description'],
+            'jurisdiction' => $data['jurisdiction'],
+            'chairperson_id' => $data['chairperson_id'],
+            'vice_chair_id' => $data['vice_chair_id'],
+            'secretary_id' => $_POST['secretary_id'] ?? null,
+            'is_active' => $data['status'] === 'Active' ? 1 : 0
+        ];
+
+        $newId = createCommittee($createData);
         $_SESSION['success_message'] = 'Committee created successfully!';
         header('Location: view.php?id=' . $newId);
         exit();
     }
 }
+
+require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
+$allUsers = UserHelper_getActiveUsers();
+
+$currentUserId = $_SESSION['user_id'];
+$userRole = $_SESSION['user_role'] ?? 'User';
+$isChairman = (stripos($userRole, 'Chairman') !== false);
 
 $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Create Committee';
@@ -63,7 +82,8 @@ include '../../includes/header.php';
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Create New Committee</h1>
             <p class="text-gray-600 dark:text-gray-400 mt-1">Add a new committee to the system</p>
         </div>
-        <a href="index.php" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
+        <a href="index.php" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
+            title="Back to List">
             <i class="bi bi-arrow-left mr-2"></i>Back to List
         </a>
     </div>
@@ -134,10 +154,24 @@ include '../../includes/header.php';
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Chairperson <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" name="chair" required
-                        value="<?php echo htmlspecialchars($_POST['chair'] ?? ''); ?>"
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white"
-                        placeholder="e.g., Hon. Maria Santos">
+                    <select name="chairperson_id" required
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white">
+                        <option value="">Select Chairperson</option>
+                        <?php foreach ($allUsers as $user): ?>
+                            <?php
+                            $selected = '';
+                            if (isset($_POST['chairperson_id'])) {
+                                $selected = ($_POST['chairperson_id'] == $user['user_id']) ? 'selected' : '';
+                            } elseif ($isChairman && $user['user_id'] == $currentUserId) {
+                                $selected = 'selected';
+                            }
+                            ?>
+                            <option value="<?php echo $user['user_id']; ?>" <?php echo $selected; ?>>
+                                <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                                (<?php echo htmlspecialchars($user['position'] ?? 'No Position'); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
                 <!-- Vice-Chairperson -->
@@ -145,10 +179,33 @@ include '../../includes/header.php';
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Vice-Chairperson
                     </label>
-                    <input type="text" name="vice_chair"
-                        value="<?php echo htmlspecialchars($_POST['vice_chair'] ?? ''); ?>"
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white"
-                        placeholder="e.g., Hon. Roberto Cruz">
+                    <select name="vice_chair_id"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white">
+                        <option value="">Select Vice-Chairperson</option>
+                        <?php foreach ($allUsers as $user): ?>
+                            <option value="<?php echo $user['user_id']; ?>" <?php echo (isset($_POST['vice_chair_id']) && $_POST['vice_chair_id'] == $user['user_id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                                (<?php echo htmlspecialchars($user['position'] ?? 'No Position'); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- Secretary -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Secretary
+                    </label>
+                    <select name="secretary_id"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white">
+                        <option value="">Select Secretary</option>
+                        <?php foreach ($allUsers as $user): ?>
+                            <option value="<?php echo $user['user_id']; ?>" <?php echo (isset($_POST['secretary_id']) && $_POST['secretary_id'] == $user['user_id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                                (<?php echo htmlspecialchars($user['position'] ?? 'No Position'); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
                 <!-- Jurisdiction -->
@@ -175,10 +232,12 @@ include '../../includes/header.php';
             <!-- Form Actions -->
             <div class="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <a href="index.php"
-                    class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                    title="Cancel">
                     Cancel
                 </a>
-                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition">
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition"
+                    title="Create Committee">
                     <i class="bi bi-check-circle mr-2"></i>Create Committee
                 </button>
             </div>

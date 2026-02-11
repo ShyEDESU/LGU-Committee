@@ -16,6 +16,10 @@ define('DB_PASS', '');
 define('DB_NAME', 'legislative_cms');
 define('DB_PORT', 3306);
 
+// System-wide security key for reversible encryption (AES-256)
+// IMPORTANT: Do not change this key once data has been encrypted.
+define('SECURITY_KEY', 'v9y$B&E)H@McQfTjWnZr4u7x!A%C*F-JaNdRgUkXp2s5v8y/B?E(G+KbPeShVmYq');
+
 // Create mysqli connection
 $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
 

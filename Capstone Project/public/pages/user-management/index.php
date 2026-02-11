@@ -9,16 +9,13 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
     exit();
 }
 
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
+require_once __DIR__ . '/../../../app/helpers/UserHelper.php';
+
+// Check if user has permission to view users
 $userId = $_SESSION['user_id'];
-$pageTitle = 'User Management';
-
-// Check if user is admin
-$userRoleLower = strtolower($_SESSION['user_role'] ?? 'User');
-$isAdmin = ($userRoleLower === 'admin' || $userRoleLower === 'administrator' || $userRoleLower === 'super admin' || $userRoleLower === 'super administrator');
-
-// Redirect non-admins
-if (!$isAdmin) {
-    header('Location: ../my-profile/index.php');
+if (!canViewModule($userId, 'users')) {
+    header('Location: ../../../dashboard.php');
     exit();
 }
 
@@ -33,7 +30,7 @@ $users = $result['users'];
 $totalPages = $result['totalPages'];
 
 // Get filter options
-$roles = getRoles();
+$roles = UserHelper_getRoles();
 $departments = getDepartments();
 
 // Calculate stats
@@ -254,7 +251,18 @@ include '../../includes/header.php';
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">
-                                <?php echo htmlspecialchars($user['email']); ?>
+                                <div class="flex flex-col">
+                                    <span><?php echo htmlspecialchars($user['email']); ?></span>
+                                    <?php if (isset($user['email_verified']) && $user['email_verified']): ?>
+                                        <span class="text-[10px] text-green-600 dark:text-green-400 font-bold flex items-center gap-1">
+                                            <i class="bi bi-patch-check-fill"></i> Verified
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="text-[10px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1">
+                                            <i class="bi bi-exclamation-circle-fill"></i> Pending Verification
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="px-3 py-1 text-xs font-semibold rounded-full 
@@ -266,9 +274,12 @@ include '../../includes/header.php';
                                 <?php echo htmlspecialchars($user['department'] ?? 'N/A'); ?>
                             </td>
                             <td class="px-6 py-4">
+                                <?php 
+                                $isActive = (bool)($user['is_active'] ?? false);
+                                ?>
                                 <span class="px-3 py-1 text-xs font-semibold rounded-full 
-                                    <?php echo $user['status'] === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'; ?>">
-                                    <?php echo ucfirst($user['status']); ?>
+                                    <?php echo $isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'; ?>">
+                                    <?php echo $isActive ? 'Active' : 'Inactive'; ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm space-x-2">
