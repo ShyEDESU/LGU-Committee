@@ -17,27 +17,14 @@ $pageTitle = 'Committee Profiles';
 // Include shared header
 include '../../includes/header.php';
 
-// Get committees
-$committees = getAllCommittees();
+// Filter and search
+$search = $_GET['search'] ?? '';
+$typeFilter = $_GET['type'] ?? '';
+$statusFilter = $_GET['status'] ?? '';
 
-// Filter committees for non-admins (Chairmen, Vice Chairmen, and Users only see their assigned committees)
-if ($userRole !== 'Admin' && $userRole !== 'Super Admin') {
-    $committees = array_filter($committees, function ($c) use ($userId) {
-        // Leadership check
-        $isLeadership = (
-            $userId == ($c['chairperson_id'] ?? 0) ||
-            $userId == ($c['vice_chair_id'] ?? 0) ||
-            $userId == ($c['secretary_id'] ?? 0)
-        );
-
-        if ($isLeadership)
-            return true;
-
-        // Membership check (if not checked in query)
-        require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
-        return isCommitteeMember($c['id'], $userId);
-    });
-}
+// Get committees - include archived if requested or if viewing all
+$includeArchived = ($statusFilter === 'Archived' || $statusFilter === '');
+$committees = getUserCommittees($userId, $includeArchived);
 
 // Calculate dynamic statistics for each committee
 foreach ($committees as &$committee) {
@@ -47,17 +34,14 @@ foreach ($committees as &$committee) {
 }
 unset($committee); // Break reference
 
-// Filter and search
-$search = $_GET['search'] ?? '';
-$typeFilter = $_GET['type'] ?? '';
-$statusFilter = $_GET['status'] ?? '';
-
 if ($search || $typeFilter || $statusFilter) {
     $committees = array_filter($committees, function ($committee) use ($search, $typeFilter, $statusFilter) {
         $matchesSearch = empty($search) ||
             stripos($committee['name'], $search) !== false ||
             stripos($committee['chair'], $search) !== false;
         $matchesType = empty($typeFilter) || $committee['type'] === $typeFilter;
+
+        // Match status (Active vs Archived)
         $matchesStatus = empty($statusFilter) || $committee['status'] === $statusFilter;
 
         return $matchesSearch && $matchesType && $matchesStatus;
@@ -78,12 +62,12 @@ if ($search || $typeFilter || $statusFilter) {
                 <i class="bi bi-download"></i>
                 <span>Export CSV</span>
             </button>
-            <?php if (canCreate($userId, 'committees')): ?>
-            <a href="create.php"
-                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition flex items-center space-x-2">
-                <i class="bi bi-plus-lg"></i>
-                <span>New Committee</span>
-            </a>
+            <?php if ($userRole === 'Admin' || $userRole === 'Super Admin'): ?>
+                <a href="create.php"
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition flex items-center space-x-2">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>New Committee</span>
+                </a>
             <?php endif; ?>
         </div>
     </div>
@@ -126,8 +110,9 @@ if ($search || $typeFilter || $statusFilter) {
             <select name="status"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600">
                 <option value="">All Status</option>
-                <option value="Active" <?php echo $statusFilter === 'Active' ? 'selected' : ''; ?>>Active</option>
-                <option value="Inactive" <?php echo $statusFilter === 'Inactive' ? 'selected' : ''; ?>>Inactive</option>
+                <option value="Active" <?php echo $statusFilter === 'Active' ? 'selected' : ''; ?>>Active Only</option>
+                <option value="Archived" <?php echo $statusFilter === 'Archived' ? 'selected' : ''; ?>>Archived Only
+                </option>
             </select>
         </div>
         <div class="md:col-span-4 flex justify-end space-x-2">
@@ -202,12 +187,18 @@ if ($search || $typeFilter || $statusFilter) {
     foreach ($committees as $committee):
         ?>
         <div
-            class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden animate-fade-in-up animation-delay-<?php echo $delay; ?>">
+            class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden animate-fade-in-up animation-delay-<?php echo $delay; ?> <?php echo !$committee['is_active'] ? 'opacity-75' : ''; ?>">
             <div class="p-6">
                 <div class="flex items-start justify-between mb-4">
                     <div class="flex-1">
                         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">
                             <?php echo htmlspecialchars($committee['name']); ?>
+                            <?php if (!$committee['is_active']): ?>
+                                <span
+                                    class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                    <i class="bi bi-archive mr-1"></i> Archived
+                                </span>
+                            <?php endif; ?>
                         </h3>
                         <div class="flex flex-wrap gap-2">
                             <span class="px-2 py-1 text-xs font-semibold rounded-full 
@@ -217,7 +208,7 @@ if ($search || $typeFilter || $statusFilter) {
                                 <?php echo $committee['type']; ?>
                             </span>
                             <span
-                                class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                class="px-2 py-1 text-xs font-semibold rounded-full <?php echo $committee['is_active'] ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'; ?>">
                                 <?php echo $committee['status']; ?>
                             </span>
                         </div>

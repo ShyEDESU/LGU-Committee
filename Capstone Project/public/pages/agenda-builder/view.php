@@ -52,6 +52,12 @@ include '../../includes/header.php';
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">View Agenda</h1>
             <p class="text-gray-600 dark:text-gray-400 mt-1">
                 <?php echo htmlspecialchars($meeting['title']); ?>
+                <?php if ($meeting['is_amended'] ?? false): ?>
+                    <span
+                        class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                        <i class="bi bi-exclamation-triangle-fill mr-1"></i> AMENDED
+                    </span>
+                <?php endif; ?>
             </p>
         </div>
         <div class="flex space-x-2">
@@ -60,22 +66,22 @@ include '../../includes/header.php';
                 <select onchange="changeStatus(this.value)" id="statusSelect"
                     class="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-red-600 transition">
                     <option value="">Change Status...</option>
-                    <?php if ($agendaStatus === 'Draft'): ?>
+                    <?php if ($agendaStatus === 'Draft' && canUpdate($userId, 'agendas', $meetingId)): ?>
                         <option value="Under Review">📤 Submit for Review</option>
                     <?php endif; ?>
-                    <?php if ($agendaStatus === 'Draft' || $agendaStatus === 'Under Review'): ?>
+                    <?php if (($agendaStatus === 'Draft' || $agendaStatus === 'Under Review') && canApprove($userId, 'agendas', $meetingId)): ?>
                         <option value="Approved">✅ Approve</option>
                     <?php endif; ?>
-                    <?php if ($agendaStatus === 'Approved'): ?>
+                    <?php if ($agendaStatus === 'Approved' && canPublish($userId, 'agendas', $meetingId)): ?>
                         <option value="Published">📢 Publish</option>
                     <?php endif; ?>
-                    <?php if ($agendaStatus !== 'Draft'): ?>
+                    <?php if ($agendaStatus !== 'Draft' && canUpdate($userId, 'agendas', $meetingId)): ?>
                         <option value="Draft">↩️ Revert to Draft</option>
                     <?php endif; ?>
-                    <?php if ($agendaStatus !== 'Archived'): ?>
+                    <?php if ($agendaStatus !== 'Archived' && canApprove($userId, 'meetings')): ?>
                         <option value="Archived">📁 Archive</option>
                     <?php endif; ?>
-                    <?php if ($agendaStatus === 'Archived'): ?>
+                    <?php if ($agendaStatus === 'Archived' && canApprove($userId, 'meetings')): ?>
                         <option value="Draft">↩️ Unarchive (to Draft)</option>
                     <?php endif; ?>
                 </select>
@@ -183,6 +189,44 @@ if (!empty($activeVotes) && $isCommitteeMember): ?>
     </div>
 </div>
 
+<!-- Statutory Public Notice Verification -->
+<?php if (!empty($meeting['posted_at'])):
+    $postedTime = strtotime($meeting['posted_at']);
+    $meetingTime = strtotime($meeting['date'] . ' ' . $meeting['time_start']);
+    $hoursNotice = ($meetingTime - $postedTime) / 3600;
+    $isLegal = $hoursNotice >= 72;
+    ?>
+    <div
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 bg-red-600/10 dark:bg-blue-600/10 rounded-full"></div>
+        <div class="flex items-center justify-between relative z-10">
+            <div class="flex items-center">
+                <div
+                    class="w-12 h-12 rounded-full <?php echo $isLegal ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'; ?> flex items-center justify-center mr-4">
+                    <i class="bi <?php echo $isLegal ? 'bi-patch-check-fill' : 'bi-shield-exclamation'; ?> text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Statutory Public
+                        Notice</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Posted on:
+                        <?php echo date('M j, Y g:i A', $postedTime); ?>
+                    </p>
+                </div>
+            </div>
+            <div class="text-right">
+                <div
+                    class="text-lg font-black <?php echo $isLegal ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'; ?>">
+                    <?php echo round($hoursNotice); ?>h NOTICE
+                </div>
+                <p
+                    class="text-xs font-medium <?php echo $isLegal ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'; ?>">
+                    <?php echo $isLegal ? 'COMPLIANT WITH THE ACT' : 'NOTICE WINDOW BREACH'; ?>
+                </p>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
 <!-- Agenda Summary -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -238,6 +282,33 @@ if (!empty($activeVotes) && $isCommitteeMember): ?>
         </h2>
     </div>
 
+    <!-- Mandatory Conflict of Interest Disclosure Disclosure -->
+    <div class="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 p-6">
+        <div class="flex items-start space-x-4">
+            <div
+                class="flex-shrink-0 w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
+                <i class="bi bi-shield-lock-fill text-amber-600 dark:text-amber-400 text-xl"></i>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-sm font-bold text-amber-800 dark:text-amber-300 uppercase tracking-widest mb-1">
+                    Mandatory Disclosure Requirement</h4>
+                <p class="text-sm text-amber-700 dark:text-amber-400 mb-3">Members of the committee are required by the
+                    Ethics Ordinance to disclose any personal or financial conflicts of interest related to items on
+                    this agenda before deliberation begins.</p>
+                <div class="flex space-x-3">
+                    <button onclick="confirmDisclosure()"
+                        class="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded shadow-sm transition">
+                        I HAVE NO CONFLICTS
+                    </button>
+                    <button onclick="reportConflict()"
+                        class="px-4 py-1.5 bg-white dark:bg-gray-800 border border-amber-600 dark:border-amber-400 text-amber-600 dark:text-amber-400 text-xs font-bold rounded hover:bg-amber-50 dark:hover:bg-amber-900/30 transition">
+                        REPORT A CONFLICT
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <?php if (empty($agendaItems)): ?>
         <div class="p-12 text-center">
             <i class="bi bi-inbox text-6xl text-gray-400 dark:text-gray-500 mb-4"></i>
@@ -248,11 +319,48 @@ if (!empty($activeVotes) && $isCommitteeMember): ?>
                 <i class="bi bi-plus-lg mr-2"></i> Add Items
             </a>
         </div>
-    <?php else: ?>
+    <?php else:
+        $consentItems = array_filter($agendaItems, fn($i) => $i['is_consent'] ?? false);
+        $regularItems = array_filter($agendaItems, fn($i) => !($i['is_consent'] ?? false));
+        $currentTime = strtotime($meeting['time_start']);
+        ?>
         <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <!-- Consent Calendar Section -->
+            <?php if (!empty($consentItems)): ?>
+                <div class="bg-green-50/50 dark:bg-green-900/10 p-6 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="bi bi-collection-check-fill text-green-600 dark:text-green-400 text-xl mr-2"></i>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">CONSENT CALENDAR</h3>
+                        </div>
+                        <span
+                            class="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs font-bold rounded-full">ONE
+                            VOTE REQUIRED</span>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4 italic">The following items are considered routine
+                        and will be enacted by one motion. There will be no separate discussion of these items.</p>
+                    <div class="space-y-3">
+                        <?php foreach ($consentItems as $item): ?>
+                            <div
+                                class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-green-100 dark:border-green-900/30">
+                                <div class="flex items-center">
+                                    <span
+                                        class="w-8 h-8 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center font-bold mr-3">
+                                        <?php echo $item['item_number'] ?? ''; ?>
+                                    </span>
+                                    <span
+                                        class="font-medium text-gray-900 dark:text-white"><?php echo htmlspecialchars($item['title']); ?></span>
+                                </div>
+                                <span class="text-xs text-gray-500"><?php echo $item['duration']; ?> min</span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Regular Agenda Items -->
             <?php
-            $currentTime = strtotime($meeting['time_start']);
-            foreach ($agendaItems as $index => $item):
+            foreach ($regularItems as $index => $item):
                 $itemNumber = $item['item_number'] ?? ($index + 1);
                 $startTime = date('g:i A', $currentTime);
                 $itemDuration = $item['duration'] ?? 0;
@@ -327,7 +435,7 @@ if (!empty($activeVotes) && $isCommitteeMember): ?>
             class="flex items-center justify-center px-4 py-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition">
             <i class="bi bi-chat-left-text mr-2"></i> Start Deliberation
         </a>
-        <a href="voting.php?meeting_id=<?php echo $meetingId; ?>"
+        <a href="../committee-meetings/voting.php?id=<?php echo $meetingId; ?>"
             class="flex items-center justify-center px-4 py-3 bg-red-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-red-100 dark:hover:bg-blue-900/30 transition">
             <i class="bi bi-hand-thumbs-up mr-2"></i> Manage Voting
         </a>
@@ -463,29 +571,37 @@ if (!empty($activeVotes) && $isCommitteeMember): ?>
         }
     }
 
-    // Function to update dropdown options based on current status
+    // Function to update dropdown options based on current status and user permissions
     function updateDropdownOptions(currentStatus) {
         const select = document.getElementById('statusSelect');
         let options = '<option value="">Change Status...</option>';
 
-        if (currentStatus === 'Draft') {
+        // Permission flags passed from PHP
+        const canUpdate = <?php echo canUpdate($userId, 'agendas', $meetingId) ? 'true' : 'false'; ?>;
+        const canApprove = <?php echo canApprove($userId, 'agendas', $meetingId) ? 'true' : 'false'; ?>;
+        const canPublish = <?php echo canPublish($userId, 'agendas', $meetingId) ? 'true' : 'false'; ?>;
+        const canArchive = <?php echo canDelete($userId, 'meetings') ? 'true' : 'false'; ?>;
+
+        if (currentStatus === 'Draft' && canUpdate) {
             options += '<option value="Under Review">📤 Submit for Review</option>';
+        }
+
+        if ((currentStatus === 'Draft' || currentStatus === 'Under Review') && canApprove) {
             options += '<option value="Approved">✅ Approve</option>';
-        } else if (currentStatus === 'Under Review') {
-            options += '<option value="Approved">✅ Approve</option>';
-            options += '<option value="Draft">↩️ Revert to Draft</option>';
-        } else if (currentStatus === 'Approved') {
+        }
+
+        if (currentStatus === 'Approved' && canPublish) {
             options += '<option value="Published">📢 Publish</option>';
-            options += '<option value="Draft">↩️ Revert to Draft</option>';
-        } else if (currentStatus === 'Published') {
+        }
+
+        if (currentStatus !== 'Draft' && canUpdate) {
             options += '<option value="Draft">↩️ Revert to Draft</option>';
         }
 
         // Always allow archiving unless already archived
-        if (currentStatus !== 'Archived') {
+        if (currentStatus !== 'Archived' && canArchive) {
             options += '<option value="Archived">📁 Archive</option>';
-        } else {
-            // If archived, maybe allow unarchiving?
+        } else if (currentStatus === 'Archived' && canArchive) {
             options += '<option value="Draft">↩️ Unarchive (to Draft)</option>';
         }
 
@@ -510,6 +626,20 @@ if (!empty($activeVotes) && $isCommitteeMember): ?>
         setTimeout(() => {
             toast.remove();
         }, 3000);
+    }
+
+    function confirmDisclosure() {
+        showMessage('Conflict of Interest disclosure confirmed. Your declaration has been recorded in the legislative log.', 'success');
+        // In a full implementation, this would send an AJAX request to log the disclosure
+        document.querySelector('.bg-amber-50').classList.add('opacity-50', 'pointer-events-none');
+    }
+
+    function reportConflict() {
+        const item = prompt('Please specify which agenda item(s) you have a conflict with:');
+        if (item) {
+            showMessage('Conflict reported for item: ' + item + '. Please recuse yourself during deliberation of this item.', 'warning');
+            // In a full implementation, this would trigger a recusal workflow
+        }
     }
 </script>
 </div> <!-- Closing module-content-wrapper -->

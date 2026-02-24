@@ -7,6 +7,7 @@ ini_set('display_startup_errors', '0');
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -33,6 +34,12 @@ if (!$meeting) {
 
 // Handle save minutes
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_minutes'])) {
+    if ($meeting['status'] === 'Scheduled') {
+        $_SESSION['error_message'] = 'Minutes cannot be recorded for a meeting that has not formally commenced.';
+        header('Location: minutes.php?id=' . $meetingId);
+        exit();
+    }
+
     $data = [
         'content' => $_POST['content'] ?? '',
         'decisions' => isset($_POST['decisions']) ? array_filter($_POST['decisions']) : [],
@@ -48,8 +55,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_minutes'])) {
 
 // Handle approve minutes
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_minutes'])) {
+    if (!canApprove($_SESSION['user_id'], 'meetings', $meetingId)) {
+        $_SESSION['error_message'] = 'Unauthorized: Only the Chairperson or Committee Leadership can formally approve minutes.';
+        header('Location: minutes.php?id=' . $meetingId);
+        exit();
+    }
     approveMinutes($meetingId);
-    $_SESSION['success_message'] = 'Minutes approved successfully';
+    $_SESSION['success_message'] = 'Minutes have been formally approved and locked as a permanent legislative record.';
     header('Location: minutes.php?id=' . $meetingId);
     exit();
 }
@@ -87,7 +99,7 @@ include '../../includes/header.php';
                 class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
                 <i class="bi bi-arrow-left mr-2"></i>Back to Meeting
             </a>
-            <?php if ($minutes && $minutes['status'] === 'Draft'): ?>
+            <?php if ($minutes && $minutes['status'] === 'Draft' && canApprove($_SESSION['user_id'], 'meetings', $meetingId)): ?>
                 <form method="POST" class="inline">
                     <input type="hidden" name="approve_minutes" value="1">
                     <button type="submit"
@@ -120,6 +132,10 @@ include '../../includes/header.php';
                 class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
                 Documents
             </a>
+            <a href="voting.php?id=<?php echo $meetingId; ?>"
+                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                Voting
+            </a>
         </nav>
     </div>
 </div>
@@ -139,10 +155,33 @@ include '../../includes/header.php';
     </div>
 <?php endif; ?>
 
-<form method="POST">
-    <input type="hidden" name="save_minutes" value="1">
-    
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="mb-6">
+    <?php if ($meeting['status'] === 'Scheduled'): ?>
+        <div class="bg-gray-50 dark:bg-gray-800 border-l-4 border-gray-400 p-4 mb-4">
+            <div class="flex items-center">
+                <i class="bi bi-lock-fill text-gray-400 text-xl mr-3"></i>
+                <div>
+                    <h4 class="font-bold text-gray-900 dark:text-white">Temporal Recording Lockdown</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Recording of proceedings is disabled until the session formally commences. You can review the agenda items below in the meantime.</p>
+                </div>
+            </div>
+        </div>
+    <?php elseif ($minutes && $minutes['status'] === 'Approved'): ?>
+        <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mb-4">
+            <div class="flex items-center">
+                <i class="bi bi-shield-check text-blue-600 text-xl mr-3"></i>
+                <div>
+                    <h4 class="font-bold text-blue-900 dark:text-blue-300">Permanent Record (Locked)</h4>
+                    <p class="text-sm text-blue-700 dark:text-blue-400">These minutes have been formally approved and attested. They are now preserved as an official legislative record and cannot be modified.</p>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <form method="POST">
+        <input type="hidden" name="save_minutes" value="1">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Main Content -->
         <div class="lg:col-span-2 space-y-6">
             <!-- Meeting Minutes -->
@@ -154,7 +193,7 @@ include '../../includes/header.php';
                         Minutes Content
                     </label>
                     <textarea name="content" rows="15" 
-                        <?php echo ($minutes && $minutes['status'] === 'Approved') ? 'readonly' : ''; ?>
+                        <?php echo ($meeting['status'] === 'Scheduled' || ($minutes && $minutes['status'] === 'Approved')) ? 'readonly' : ''; ?>
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white"
                         placeholder="Enter detailed meeting minutes here..."><?php echo htmlspecialchars($minutes['content'] ?? ''); ?></textarea>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -175,7 +214,7 @@ include '../../includes/header.php';
                         <div class="mb-3 flex gap-2">
                             <input type="text" name="decisions[]" 
                                 value="<?php echo htmlspecialchars($decision); ?>"
-                                <?php echo ($minutes && $minutes['status'] === 'Approved') ? 'readonly' : ''; ?>
+                                <?php echo ($meeting['status'] === 'Scheduled' || ($minutes && $minutes['status'] === 'Approved')) ? 'readonly' : ''; ?>
                                 class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white"
                                 placeholder="Decision or resolution #<?php echo $index + 1; ?>">
                             <?php if (!$minutes || $minutes['status'] !== 'Approved'): ?>
@@ -208,7 +247,7 @@ include '../../includes/header.php';
                         <div class="mb-3 flex gap-2">
                             <input type="text" name="action_items[]" 
                                 value="<?php echo htmlspecialchars($actionItem); ?>"
-                                <?php echo ($minutes && $minutes['status'] === 'Approved') ? 'readonly' : ''; ?>
+                                <?php echo ($meeting['status'] === 'Scheduled' || ($minutes && $minutes['status'] === 'Approved')) ? 'readonly' : ''; ?>
                                 class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white"
                                 placeholder="Action item #<?php echo $index + 1; ?>">
                             <?php if (!$minutes || $minutes['status'] !== 'Approved'): ?>
@@ -332,7 +371,7 @@ include '../../includes/header.php';
         </div>
     </div>
 
-    <?php if (!$minutes || $minutes['status'] !== 'Approved'): ?>
+    <?php if ($meeting['status'] !== 'Scheduled' && (!$minutes || $minutes['status'] !== 'Approved')): ?>
         <div class="mt-6 flex justify-end gap-2">
             <a href="view.php?id=<?php echo $meetingId; ?>"
                 class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
@@ -345,6 +384,7 @@ include '../../includes/header.php';
         </div>
     <?php endif; ?>
 </form>
+</div>
 
 <script>
 function addDecision() {

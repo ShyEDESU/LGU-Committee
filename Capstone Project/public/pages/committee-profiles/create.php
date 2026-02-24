@@ -8,15 +8,25 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
     exit();
 }
 
+// Professional Lockdown: Only Admins can create committees
+$userRole = $_SESSION['user_role'] ?? 'User';
+if ($userRole !== 'Admin' && $userRole !== 'Super Admin') {
+    $_SESSION['error_message'] = 'Unauthorized Access: Committee establishment is a Governance action reserved for Administrators.';
+    header('Location: index.php');
+    exit();
+}
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
         'name' => trim($_POST['name'] ?? ''),
         'type' => $_POST['type'] ?? '',
-        'chair' => trim($_POST['chair'] ?? ''),
-        'vice_chair' => trim($_POST['vice_chair'] ?? ''),
+        'chairperson_id' => !empty($_POST['chairperson_id']) ? $_POST['chairperson_id'] : null,
+        'vice_chair_id' => !empty($_POST['vice_chair_id']) ? $_POST['vice_chair_id'] : null,
+        'secretary_id' => !empty($_POST['secretary_id']) ? $_POST['secretary_id'] : null,
         'jurisdiction' => trim($_POST['jurisdiction'] ?? ''),
         'description' => trim($_POST['description'] ?? ''),
+        'creation_authority' => trim($_POST['creation_authority'] ?? ''),
         'status' => $_POST['status'] ?? 'Active'
     ];
 
@@ -28,8 +38,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Committee type is required';
     if (empty($data['chairperson_id']))
         $errors[] = 'Chairperson is required';
+    if (empty($data['secretary_id']))
+        $errors[] = 'Secretary is required';
     if (empty($data['jurisdiction']))
         $errors[] = 'Jurisdiction is required';
+    if (empty($data['creation_authority']))
+        $errors[] = 'Legal Basis (Resolution/Ordinance #) is required';
 
     if (empty($errors)) {
         // Convert array to the format expected by createCommittee (mapping chair to chairperson_id etc)
@@ -40,7 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'jurisdiction' => $data['jurisdiction'],
             'chairperson_id' => $data['chairperson_id'],
             'vice_chair_id' => $data['vice_chair_id'],
-            'secretary_id' => $_POST['secretary_id'] ?? null,
+            'secretary_id' => $data['secretary_id'],
+            'creation_authority' => $data['creation_authority'],
             'is_active' => $data['status'] === 'Active' ? 1 : 0
         ];
 
@@ -56,7 +71,23 @@ $allUsers = UserHelper_getActiveUsers();
 
 $currentUserId = $_SESSION['user_id'];
 $userRole = $_SESSION['user_role'] ?? 'User';
-$isChairman = (stripos($userRole, 'Chairman') !== false);
+$isChairman = (stripos($userRole, 'Chairman') !== false && stripos($userRole, 'Vice') === false);
+
+// Filter users by specific roles
+$eligibleChairs = array_filter($allUsers, function ($u) {
+    return (int) $u['role_id'] === 3; // Committee Chairman
+});
+
+$eligibleViceChairs = array_filter($allUsers, function ($u) {
+    return (int) $u['role_id'] === 4; // Vice Committee Chairman
+});
+
+$eligibleSecretaries = array_filter($allUsers, function ($u) {
+    return (int) $u['role_id'] === 5 || (int) $u['role_id'] === 6; // User or Committee Secretary
+});
+
+// Fetch approved resolutions for the "Legal Basis" link
+$approvedResolutions = getApprovedResolutions();
 
 $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Create Committee';
@@ -136,6 +167,43 @@ include '../../includes/header.php';
                     </select>
                 </div>
 
+                <!-- Legal Basis (Creation Authority) -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Legal Basis (Resolution / Ordinance #) <span class="text-red-500">*</span>
+                    </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <input type="text" name="creation_authority" id="creation_authority" required
+                                value="<?php echo htmlspecialchars($_POST['creation_authority'] ?? ''); ?>"
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white"
+                                placeholder="e.g., SP Resolution No. 2026-101">
+                        </div>
+                        <div>
+                            <select id="resolution_selector" onchange="autoFillLegalBasis(this)"
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white">
+                                <option value="">Link to Existing Resolution (Optional)</option>
+                                <?php foreach ($approvedResolutions as $reso): ?>
+                                    <option value="<?php echo htmlspecialchars($reso['document_number']); ?>">
+                                        <?php echo htmlspecialchars($reso['document_number'] . ': ' . $reso['title']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-gray-500 mt-1">Citing the official document that established this
+                        committee is mandatory. You can type it manually or select an approved resolution from the
+                        system.</p>
+                </div>
+
+                <script>
+                    function autoFillLegalBasis(select) {
+                        if (select.value) {
+                            document.getElementById('creation_authority').value = select.value;
+                        }
+                    }
+                </script>
+
                 <!-- Status -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -154,10 +222,10 @@ include '../../includes/header.php';
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Chairperson <span class="text-red-500">*</span>
                     </label>
-                    <select name="chairperson_id" required
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white">
+                    <select name="chairperson_id" required <?php echo $isChairman ? 'disabled' : ''; ?>
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white <?php echo $isChairman ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''; ?>">
                         <option value="">Select Chairperson</option>
-                        <?php foreach ($allUsers as $user): ?>
+                        <?php foreach ($eligibleChairs as $user): ?>
                             <?php
                             $selected = '';
                             if (isset($_POST['chairperson_id'])) {
@@ -172,6 +240,11 @@ include '../../includes/header.php';
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <?php if ($isChairman): ?>
+                        <input type="hidden" name="chairperson_id" value="<?php echo $currentUserId; ?>">
+                        <p class="text-[10px] text-gray-500 mt-1"><i class="bi bi-info-circle mr-1"></i>You are
+                            auto-selected as the chairperson.</p>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Vice-Chairperson -->
@@ -182,7 +255,7 @@ include '../../includes/header.php';
                     <select name="vice_chair_id"
                         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white">
                         <option value="">Select Vice-Chairperson</option>
-                        <?php foreach ($allUsers as $user): ?>
+                        <?php foreach ($eligibleViceChairs as $user): ?>
                             <option value="<?php echo $user['user_id']; ?>" <?php echo (isset($_POST['vice_chair_id']) && $_POST['vice_chair_id'] == $user['user_id']) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
                                 (<?php echo htmlspecialchars($user['position'] ?? 'No Position'); ?>)
@@ -194,12 +267,12 @@ include '../../includes/header.php';
                 <!-- Secretary -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Secretary
+                        Secretary <span class="text-red-500">*</span>
                     </label>
                     <select name="secretary_id"
                         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white">
                         <option value="">Select Secretary</option>
-                        <?php foreach ($allUsers as $user): ?>
+                        <?php foreach ($eligibleSecretaries as $user): ?>
                             <option value="<?php echo $user['user_id']; ?>" <?php echo (isset($_POST['secretary_id']) && $_POST['secretary_id'] == $user['user_id']) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
                                 (<?php echo htmlspecialchars($user['position'] ?? 'No Position'); ?>)

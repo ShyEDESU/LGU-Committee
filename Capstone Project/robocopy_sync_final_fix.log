@@ -1,0 +1,23 @@
+
+-------------------------------------------------------------------------------
+   ROBOCOPY     ::     Robust File Copy for Windows                              
+-------------------------------------------------------------------------------
+
+  Started : Tuesday, February 24, 2026 9:01:31 AM
+   Source : d:\Desktop\2nd Year\Capstone Project\
+     Dest : d:\htdocs\Capstone Project\
+
+    Files : *.*
+	    
+ Exc Dirs : .git
+	    .gemini
+	    .agent
+	    
+  Options : *.* /FFT /S /E /DCOPY:DA /COPY:DAT /Z /NP /XO /R:3 /W:5 
+
+------------------------------------------------------------------------------
+
+	                  36	d:\Desktop\2nd Year\Capstone Project\
+	  *EXTRA File 		      14	unique_d_htdocs.txt
+	    Changed   		    5589	robocopy_sync_final.log
+	    New File  		       0	robocopy_sync_final_fix.log

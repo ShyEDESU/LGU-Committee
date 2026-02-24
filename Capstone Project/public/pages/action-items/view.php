@@ -19,10 +19,10 @@ if (!$item) {
     exit();
 }
 
-// Handle delete
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_item'])) {
-    if (deleteActionItem($itemId)) {
-        header('Location: index.php?deleted=1');
+// Handle removal
+if (isset($_POST['remove_item'])) {
+    if (removeActionItem($itemId)) {
+        header('Location: index.php?removed=1');
         exit();
     }
 }
@@ -150,6 +150,39 @@ include '../../includes/header.php';
             </p>
         </div>
 
+        <!-- Removal Confirmation Modal -->
+        <div id="removeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-white dark:bg-gray-800 rounded-xl max-w-sm w-full p-6 shadow-2xl mx-4">
+                <div class="text-center">
+                    <i class="bi bi-exclamation-circle text-red-500 text-5xl mb-4"></i>
+                    <h3 class="text-xl font-bold mb-2">Remove Action Item?</h3>
+                    <p class="text-gray-600 mb-6">This will remove the item from active tracking.</p>
+                    <div class="flex space-x-3">
+                        <button onclick="closeRemoveModal()"
+                            class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                            Cancel
+                        </button>
+                        <form method="POST" class="flex-1">
+                            <input type="hidden" name="remove_item" value="1">
+                            <button type="submit"
+                                class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                                Remove
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function confirmRemove() {
+                document.getElementById('removeModal').classList.remove('hidden');
+            }
+            function closeRemoveModal() {
+                document.getElementById('removeModal').classList.add('hidden');
+            }
+        </script>
+
         <!-- Time Tracking -->
         <?php if (!empty($item['estimated_hours']) || !empty($item['actual_hours'])): ?>
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -208,6 +241,12 @@ include '../../includes/header.php';
                             <i class="bi bi-check-circle mr-2"></i>Mark Complete
                         </button>
                     </form>
+                <?php endif; ?>
+                <?php if (canApprove($userId, 'action_items')): ?>
+                    <button onclick="confirmRemove()"
+                        class="px-4 py-2 border border-red-600 text-red-600 hover:bg-red-50 rounded-lg transition">
+                        <i class="bi bi-x-circle mr-2"></i>Remove Item
+                    </button>
                 <?php endif; ?>
             </div>
         </div>

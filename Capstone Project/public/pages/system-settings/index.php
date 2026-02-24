@@ -86,17 +86,23 @@ include '../../includes/header.php';
                             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-600">
                     </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">LGU Address</label>
-                    <textarea id="lgu_address" rows="2"
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-600"><?php echo htmlspecialchars($settings['lgu_address']); ?></textarea>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contact
-                        Number</label>
-                    <input type="text" id="lgu_contact"
-                        value="<?php echo htmlspecialchars($settings['lgu_contact']); ?>"
-                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-600">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">System Base
+                            URL</label>
+                        <input type="url" id="base_url" placeholder="http://domain.com/Capstone%20Project"
+                            value="<?php echo htmlspecialchars($settings['base_url'] ?? ''); ?>"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-600">
+                        <p class="text-[10px] text-gray-500 mt-1 italic"><i class="bi bi-info-circle-fill"></i> Used for
+                            verification links in emails.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contact
+                            Number</label>
+                        <input type="text" id="lgu_contact"
+                            value="<?php echo htmlspecialchars($settings['lgu_contact']); ?>"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-600">
+                    </div>
                 </div>
             </div>
         </div>
@@ -469,6 +475,7 @@ include '../../includes/header.php';
         const data = {
             lgu_name: document.getElementById('lgu_name').value,
             lgu_email: document.getElementById('lgu_email').value,
+            base_url: document.getElementById('base_url').value,
             lgu_address: document.getElementById('lgu_address').value,
             lgu_contact: document.getElementById('lgu_contact').value,
             backup_frequency: document.getElementById('backup_frequency').value,

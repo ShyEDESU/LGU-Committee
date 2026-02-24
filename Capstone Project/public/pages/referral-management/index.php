@@ -10,12 +10,12 @@ if (!isset($_SESSION['user_id'])) {
 
 $userName = $_SESSION['user_name'] ?? 'User';
 
-// Handle delete
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_referral'])) {
+// Handle archive
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['archive_referral'])) {
     $referralId = $_POST['referral_id'];
-    if (deleteReferral($referralId)) {
-        $_SESSION['success_message'] = 'Referral deleted successfully';
-        header('Location: index.php?deleted=1');
+    if (archiveReferral($referralId)) {
+        $_SESSION['success_message'] = 'Referral has been successfully archived in the legislative records.';
+        header('Location: index.php?archived=1');
         exit();
     }
 }
@@ -295,14 +295,14 @@ $paginatedReferrals = array_slice($filteredReferrals, $offset, $itemsPerPage);
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                 <?php endif; ?>
-                                <?php if (canDelete($userId, 'referrals')): ?>
+                                <?php if (canApprove($userId, 'referrals')): ?>
                                     <form method="POST" class="inline"
-                                        onsubmit="return confirm('Are you sure you want to delete this referral? This action cannot be undone.');">
+                                        onsubmit="return confirm('Archive this referral? It will be preserved in legislative records but removed from active consideration.');">
                                         <input type="hidden" name="referral_id" value="<?php echo $referral['id']; ?>">
-                                        <button type="submit" name="delete_referral" value="1"
-                                            class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
-                                            title="Delete">
-                                            <i class="bi bi-trash"></i>
+                                        <button type="submit" name="archive_referral" value="1"
+                                            class="px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm"
+                                            title="Archive Referral">
+                                            <i class="bi bi-archive"></i>
                                         </button>
                                     </form>
                                 <?php endif; ?>

@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../config/database.php';
 function UserHelper_getAllUsers()
 {
     global $conn;
-    $sql = "SELECT u.*, r.role_name 
+    $sql = "SELECT u.*, r.role_name, CONCAT(u.first_name, ' ', u.last_name) as full_name 
             FROM users u 
             LEFT JOIN roles r ON u.role_id = r.role_id 
             ORDER BY u.first_name ASC";

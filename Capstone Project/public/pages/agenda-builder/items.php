@@ -3,11 +3,14 @@ require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
     exit();
 }
+
+$userId = $_SESSION['user_id'];
 
 // Get meeting ID from URL and validate BEFORE including header
 $meetingId = (int)($_GET['meeting_id'] ?? 0);
@@ -15,6 +18,12 @@ $meeting = getMeetingById($meetingId);
 
 if (!$meeting) {
     header('Location: index.php');
+    exit();
+}
+
+if (!canUpdate($userId, 'agendas', $meetingId)) {
+    $_SESSION['error_message'] = 'Unauthorized to build this agenda. Content creation is restricted to the Committee Secretariat and Leadership.';
+    header('Location: view.php?id=' . $meetingId);
     exit();
 }
 
@@ -28,7 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'duration' => $_POST['duration'] ?? 15,
             'type' => $_POST['type'] ?? 'Discussion',
             'presenter' => $_POST['presenter'] ?? '',
-            'referral_id' => $_POST['referral_id'] ?? null
+            'referral_id' => $_POST['referral_id'] ?? null,
+            'is_consent' => isset($_POST['is_consent']) ? 1 : 0
         ]);
         header('Location: items.php?meeting_id=' . $meetingId . '&added=1');
         exit();
@@ -39,15 +49,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'title' => $_POST['title'],
             'description' => $_POST['description'] ?? '',
             'duration' => $_POST['duration'] ?? 15,
-            'presenter' => $_POST['presenter'] ?? ''
+            'presenter' => $_POST['presenter'] ?? '',
+            'is_consent' => isset($_POST['is_consent']) ? 1 : 0
         ]);
         header('Location: items.php?meeting_id=' . $meetingId . '&updated=1');
         exit();
-    } elseif (isset($_POST['delete_item'])) {
-        // Delete item
+    } elseif (isset($_POST['archive_item'])) {
+        // Professional Archiving: Soft-delete individual item
         $itemId = $_POST['item_id'];
-        deleteAgendaItem($itemId);
-        header('Location: items.php?meeting_id=' . $meetingId . '&deleted=1');
+        archiveAgendaItem($itemId);
+        header('Location: items.php?meeting_id=' . $meetingId . '&archived=1');
         exit();
     } elseif (isset($_POST['reorder_items'])) {
         // Handle reordering via AJAX
@@ -96,8 +107,12 @@ if ($editingItemId) {
 <div class="mb-6">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Manage Agenda Items</h1>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Secretary Workspace: Agenda Builder</h1>
             <p class="text-gray-600 dark:text-gray-400 mt-1">
+                <i class="bi bi-info-circle text-blue-600 mr-1"></i>
+                Drafting & Content Compilation: By Order of the Committee Chairperson
+            </p>
+        </div>
                 <?php echo htmlspecialchars($meeting['title']); ?>
             </p>
         </div>
@@ -127,11 +142,11 @@ if ($editingItemId) {
     </div>
 <?php endif; ?>
 
-<?php if (isset($_GET['deleted'])): ?>
+<?php if (isset($_GET['archived'])): ?>
     <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 mb-6">
         <div class="flex items-center">
-            <i class="bi bi-check-circle text-red-700 dark:text-red-300 text-xl mr-3"></i>
-            <p class="text-red-700 dark:text-red-300 font-medium">Agenda item deleted successfully!</p>
+            <i class="bi bi-archive text-red-700 dark:text-red-300 text-xl mr-3"></i>
+            <p class="text-red-700 dark:text-red-300 font-medium">Agenda item has been archived in the legislative record.</p>
         </div>
     </div>
 <?php endif; ?>
@@ -236,8 +251,13 @@ if ($editingItemId) {
                                             </span>
                                         </div>
                                         <div class="flex-1">
-                                            <h4 class="font-semibold text-gray-900 dark:text-white">
+                                            <h4 class="font-semibold text-gray-900 dark:text-white flex items-center">
                                                 <?php echo htmlspecialchars($item['title']); ?>
+                                                <?php if ($item['is_consent'] ?? false): ?>
+                                                    <span class="ml-2 px-2 py-0.5 text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full">
+                                                        CONSENT
+                                                    </span>
+                                                <?php endif; ?>
                                             </h4>
                                             <?php if (!empty($item['description'])): ?>
                                                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
@@ -261,13 +281,13 @@ if ($editingItemId) {
                                                 title="Edit Item">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <form method="POST" class="inline" onsubmit="return confirm('Delete this item?');">
-                                                <input type="hidden" name="delete_item" value="1">
+                                            <form method="POST" class="inline" onsubmit="return confirm('Archive this item? It will be preserved in records but removed from the active agenda.');">
+                                                <input type="hidden" name="archive_item" value="1">
                                                  <input type="hidden" name="item_id" value="<?php echo htmlspecialchars($item['id'] ?? $item['item_id'] ?? ''); ?>">
                                                 <button type="submit"
                                                     class="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
-                                                    title="Delete Item">
-                                                    <i class="bi bi-trash"></i>
+                                                    title="Archive Item">
+                                                    <i class="bi bi-archive"></i>
                                                 </button>
                                             </form>
                                         </div>
@@ -360,6 +380,16 @@ if ($editingItemId) {
                         </select>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Link this agenda item to a specific
                             referral for discussion</p>
+                    </div>
+
+                    <div class="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <input type="checkbox" name="is_consent" id="is_consent" 
+                            <?php echo ($editingItem && ($editingItem['is_consent'] ?? false)) ? 'checked' : ''; ?>
+                            class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-600">
+                        <label for="is_consent" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Mark as Consent Item
+                        </label>
+                        <i class="bi bi-info-circle text-gray-400 ml-1 cursor-help" title="Consent items are routine matters grouped for a single vote without discussion."></i>
                     </div>
 
                     <div class="md:col-span-2">

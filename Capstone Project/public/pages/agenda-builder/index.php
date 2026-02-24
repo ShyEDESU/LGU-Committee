@@ -4,24 +4,37 @@ require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
+
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
     exit();
 }
 
-// Handle delete action
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_agenda'])) {
+$userId = $_SESSION['user_id'];
+
+// Handle archive action
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['archive_agenda'])) {
     $agendaId = $_POST['agenda_id'];
-    // Delete all agenda items for this meeting
-    $items = getAgendaByMeeting($agendaId);
-    foreach ($items as $item) {
-        deleteAgendaItem($item['id'] ?? $item['item_id']);
+
+    // Security: Only those with Approval/Admin authority can move a record to permanent archive
+    if (!canApprove($userId, 'agendas', $agendaId)) {
+        $_SESSION['error_message'] = 'Unauthorized: Only Committee Leadership or Administrators can archive official agendas.';
+        header('Location: index.php');
+        exit();
     }
 
-    // Update meeting status
-    changeMeetingAgendaStatus($agendaId, 'None');
+    // Soft-delete all agenda items for this meeting
+    $items = getAgendaByMeeting($agendaId);
+    foreach ($items as $item) {
+        archiveAgendaItem($item['id'] ?? $item['item_id']);
+    }
 
-    header('Location: index.php?deleted=1');
+    // Update meeting status to Archived
+    changeMeetingAgendaStatus($agendaId, 'Archived');
+
+    $_SESSION['success_message'] = 'Agenda has been successfully archived in the legislative records.';
+    header('Location: index.php?archived=1');
     exit();
 }
 
@@ -30,58 +43,35 @@ $pageTitle = 'Agendas & Deliberation';
 include '../../includes/header.php';
 
 // Get all meetings with agendas
-$meetings = getAllMeetings();
-$committees = getAllCommittees();
+$userId = $_SESSION['user_id'];
+$meetings = getUserMeetings($userId);
+$committees = getUserCommittees($userId);
 
 // Build agendas array from meetings with agenda items
 $agendas = [];
 foreach ($meetings as $meeting) {
-    $items = getAgendaByMeeting($meeting['id']);
-    if (!empty($items)) {
-        $totalDuration = 0;
-        foreach ($items as $item) {
-            $totalDuration += ($item['duration'] ?? 0);
+    if ($meeting['agenda_status'] !== 'None') {
+        $items = getAgendaByMeeting($meeting['id']);
+        if (!empty($items)) {
+            $totalDuration = 0;
+            foreach ($items as $item) {
+                $totalDuration += ($item['duration'] ?? 0);
+            }
+            $agendas[] = [
+                'id' => $meeting['id'],
+                'meeting_id' => $meeting['id'],
+                'meeting' => $meeting['title'],
+                'committee' => $meeting['committee_name'],
+                'committee_id' => $meeting['committee_id'],
+                'date' => $meeting['date'],
+                'items' => $items,
+                'item_count' => count($items),
+                'duration' => $totalDuration,
+                'status' => $meeting['agenda_status'] ?? 'Draft',
+                'meeting_status' => $meeting['status']
+            ];
         }
-        $agendas[] = [
-            'id' => $meeting['id'],
-            'meeting_id' => $meeting['id'], // Explicit meeting_id for items link
-            'meeting' => $meeting['title'],
-            'committee' => $meeting['committee_name'],
-            'committee_id' => $meeting['committee_id'],
-            'date' => $meeting['date'],
-            'items' => $items, // Store actual items array, not count
-            'item_count' => count($items),
-            'duration' => $totalDuration,
-            'status' => $meeting['agenda_status'] ?? 'Draft',
-            'meeting_status' => $meeting['status']
-        ];
     }
-}
-
-// Filter agendas for non-admins
-$userRole = $_SESSION['user_role'] ?? 'User';
-$userId = $_SESSION['user_id'];
-if ($userRole !== 'Admin' && $userRole !== 'Super Admin') {
-    require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
-    $agendas = array_filter($agendas, function ($a) use ($userId) {
-        $committeeId = $a['committee_id'];
-        $committee = getCommitteeById($committeeId);
-        if (!$committee)
-            return false;
-
-        // Leadership check
-        $isLeadership = (
-            $userId == ($committee['chair_id'] ?? 0) ||
-            $userId == ($committee['vice_chair_id'] ?? 0) ||
-            $userId == ($committee['secretary_id'] ?? 0)
-        );
-
-        if ($isLeadership)
-            return true;
-
-        // Membership check
-        return isCommitteeMember($committeeId, $userId);
-    });
 }
 
 // Filters
@@ -187,6 +177,7 @@ $paginatedAgendas = array_slice($agendas, $offset, $itemsPerPage);
                 <option value="Approved" <?php echo $statusFilter === 'Approved' ? 'selected' : ''; ?>>Approved</option>
                 <option value="Published" <?php echo $statusFilter === 'Published' ? 'selected' : ''; ?>>Published
                 </option>
+                <option value="Archived" <?php echo $statusFilter === 'Archived' ? 'selected' : ''; ?>>Archived</option>
             </select>
         </div>
         <div class="md:col-span-4 flex justify-end space-x-2">
@@ -342,22 +333,22 @@ $paginatedAgendas = array_slice($agendas, $offset, $itemsPerPage);
                                         title="View Agenda">
                                         <i class="bi bi-eye mr-1.5"></i> View
                                     </a>
-                                    <?php if (canEdit($userId, 'committees', $agenda['committee_id'])): ?>
+                                    <?php if (canUpdate($userId, 'agendas', $agenda['meeting_id'])): ?>
                                         <a href="items.php?meeting_id=<?php echo $agenda['meeting_id']; ?>"
                                             class="inline-flex items-center px-3 py-1.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition"
                                             title="Manage Items">
                                             <i class="bi bi-pencil mr-1.5"></i> Edit
                                         </a>
                                     <?php endif; ?>
-                                    <?php if (canDelete($userId, 'meetings')): ?>
+                                    <?php if (canApprove($userId, 'agendas', $agenda['meeting_id'])): ?>
                                         <form method="POST" class="inline"
-                                            onsubmit="return confirm('Are you sure you want to delete this agenda and all its items?');">
-                                            <input type="hidden" name="delete_agenda" value="1">
+                                            onsubmit="return confirm('Are you sure you want to archive this agenda? It will be preserved in the legislative records but removed from active deliberation.');">
+                                            <input type="hidden" name="archive_agenda" value="1">
                                             <input type="hidden" name="agenda_id" value="<?php echo $agenda['id']; ?>">
                                             <button type="submit"
                                                 class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold"
-                                                title="Delete Agenda">
-                                                <i class="bi bi-trash"></i>
+                                                title="Archive Agenda">
+                                                <i class="bi bi-archive"></i>
                                             </button>
                                         </form>
                                     <?php endif; ?>

@@ -29,13 +29,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_template'])) {
     exit();
 }
 
-// Handle template deletion
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_template'])) {
+// Handle template removal
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_template'])) {
     $templateId = $_POST['template_id'];
-    if (deleteAgendaTemplate($templateId)) {
-        $_SESSION['success_message'] = 'Template deleted successfully';
+    if (removeAgendaTemplate($templateId)) {
+        $_SESSION['success_message'] = 'Agenda template has been removed successfully.';
     } else {
-        $_SESSION['error_message'] = 'Failed to delete template';
+        $_SESSION['error_message'] = 'Failed to remove template';
     }
     header('Location: templates.php');
     exit();
@@ -154,12 +154,12 @@ $templates = getAllAgendaTemplates();
                         class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-center rounded-lg transition text-sm font-semibold">
                         <i class="bi bi-eye mr-1"></i> View
                     </button>
-                    <form method="POST" class="inline" onsubmit="return confirm('Delete this template?');">
-                        <input type="hidden" name="delete_template" value="1">
+                    <form method="POST" class="inline" onsubmit="return confirm('Remove this template?');">
+                        <input type="hidden" name="remove_template" value="1">
                         <input type="hidden" name="template_id" value="<?php echo $template['template_id']; ?>">
-                        <button type="submit"
+                        <button type="submit" title="Remove Template"
                             class="px-4 py-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg transition">
-                            <i class="bi bi-trash"></i>
+                            <i class="bi bi-x-circle"></i>
                         </button>
                     </form>
                 </div>

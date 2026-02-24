@@ -8,6 +8,7 @@
 
 require_once(__DIR__ . '/../../config/database.php');
 require_once(__DIR__ . '/../middleware/SessionManager.php');
+require_once(__DIR__ . '/../helpers/MailHelper.php');
 
 class AuthController
 {
@@ -47,53 +48,114 @@ class AuthController
         }
 
         // Initialize login attempts tracking if not set
-        if (!isset($_SESSION['login_attempts'])) {
-            $_SESSION['login_attempts'] = 0;
-            $_SESSION['first_attempt_time'] = null;
+        if (!isset($_SESSION['login_attempts']) || !isset($_SESSION['lockout_count']) || !isset($_SESSION['failed_in_cycle'])) {
+            $_SESSION['login_attempts'] = $_SESSION['login_attempts'] ?? 0;
+            $_SESSION['failed_in_cycle'] = $_SESSION['failed_in_cycle'] ?? 0;
+            $_SESSION['lockout_count'] = $_SESSION['lockout_count'] ?? 0;
+            $_SESSION['last_attempt_time'] = $_SESSION['last_attempt_time'] ?? null;
         }
 
-        // Check if account is currently locked
-        if ($_SESSION['login_attempts'] >= 5) {
-            if ($_SESSION['first_attempt_time'] === null) {
-                $_SESSION['first_attempt_time'] = time();
-            }
-
-            $elapsed_time = time() - $_SESSION['first_attempt_time'];
-            $lockout_duration = 10; // 10 seconds for testing
+        // Check for progressive lockout
+        if (isset($_SESSION['failed_in_cycle']) && $_SESSION['failed_in_cycle'] >= 3) {
+            $last_attempt = $_SESSION['last_attempt_time'] ?? time();
+            $elapsed_time = time() - $last_attempt;
+            $lockout_duration = $this->getLockoutDuration($_SESSION['lockout_count'] ?? 0);
 
             if ($elapsed_time < $lockout_duration) {
-                // Still locked
+                $remaining = $lockout_duration - $elapsed_time;
                 return [
                     'success' => false,
-                    'message' => 'Account is temporarily locked due to too many failed login attempts. Please try again later.',
-                    'locked' => true
+                    'message' => "Too many failed attempts. Please try again in $remaining seconds.",
+                    'is_locked' => true,
+                    'remaining_time' => $remaining
                 ];
             } else {
-                // Lockout period expired, reset attempts
-                $_SESSION['login_attempts'] = 0;
-                $_SESSION['first_attempt_time'] = null;
+                // Lockout period has passed - Reset cycle attempts
+                $_SESSION['failed_in_cycle'] = 0;
             }
         }
 
-        // Authenticate
-        if ($this->sessionManager->authenticate($email, $password)) {
-            // Reset attempts on successful login
-            $_SESSION['login_attempts'] = 0;
-            $_SESSION['first_attempt_time'] = null;
+        // Bypass OTP for Admin account (case-insensitive check)
+        if (strtolower($email) === 'lgu@admin.com') {
+            if ($this->sessionManager->authenticate($email, $password)) {
+                // Reset attempts on success
+                $_SESSION['login_attempts'] = 0;
+                $_SESSION['failed_in_cycle'] = 0;
+                $_SESSION['lockout_count'] = 0;
+                $_SESSION['last_attempt_time'] = null;
+                return [
+                    'success' => true,
+                    'message' => 'Login successful',
+                    'redirect' => '../public/dashboard.php'
+                ];
+            }
+        } else {
+            // Standard User - Verify credentials first
+            $user = $this->sessionManager->verifyCredentials($email, $password);
+            if ($user) {
+                // Reset attempts on successful internal credential check
+                $_SESSION['login_attempts'] = 0;
+                $_SESSION['failed_in_cycle'] = 0;
+                $_SESSION['lockout_count'] = 0;
+                $_SESSION['last_attempt_time'] = null;
 
-            return [
-                'success' => true,
-                'message' => 'Login successful',
-                'redirect' => '../public/dashboard.php'
-            ];
+                // Generate 6-digit OTP
+                $otp = sprintf("%06d", mt_rand(0, 999999));
+                $expiry = date('Y-m-d H:i:s', strtotime('+5 minutes'));
+
+                // Save OTP to database
+                $query = "UPDATE users SET otp_code = ?, otp_expiry = ? WHERE user_id = ?";
+                $stmt = $this->conn->prepare($query);
+                $stmt->bind_param("ssi", $otp, $expiry, $user['user_id']);
+
+                if ($stmt->execute()) {
+                    // Send OTP Email
+                    if (sendOTPEmail($user['email'], $user['first_name'], $otp)) {
+                        // Use SessionManager to set pre-auth state
+                        $this->sessionManager->setPreAuthSession($user);
+                        $_SESSION['otp_email_masked'] = $this->maskEmail($user['email']);
+
+                        return [
+                            'success' => true,
+                            'requires_otp' => true,
+                            'message' => 'A verification code has been sent to your email.',
+                            'masked_email' => $_SESSION['otp_email_masked']
+                        ];
+                    } else {
+                        return [
+                            'success' => false,
+                            'message' => 'Failed to send verification code. Please try again.'
+                        ];
+                    }
+                }
+            }
         }
 
-        // Increment failed attempts
+        // Increment failed attempts and track time
         $_SESSION['login_attempts']++;
+        $_SESSION['failed_in_cycle']++;
+        $_SESSION['last_attempt_time'] = time();
+
+        $is_now_locked = ($_SESSION['failed_in_cycle'] >= 3);
+
+        // If we just hit the 3rd fail in this cycle, increment lockout_count
+        if ($is_now_locked) {
+            $_SESSION['lockout_count'] = ($_SESSION['lockout_count'] ?? 0) + 1;
+        }
+
+        $lockout_next = $this->getLockoutDuration($_SESSION['lockout_count'] ?? 0);
+
+        $msg = 'Invalid email or password.';
+        if ($is_now_locked) {
+            $msg .= " Account locked for $lockout_next seconds.";
+        }
 
         return [
             'success' => false,
-            'message' => 'Invalid email or password'
+            'message' => $msg,
+            'attempts' => $_SESSION['login_attempts'] ?? 0,
+            'is_locked' => $is_now_locked,
+            'remaining_time' => $is_now_locked ? $lockout_next : 0
         ];
     }
 
@@ -186,6 +248,136 @@ class AuthController
     }
 
     /**
+     * Verify OTP and finalize login
+     */
+    public function verifyOTP($otp)
+    {
+        if (!isset($_SESSION['is_otp_pending']) || !isset($_SESSION['otp_user_id'])) {
+            return [
+                'success' => false,
+                'message' => 'Session expired. Please try logging in again.'
+            ];
+        }
+
+        $user_id = $_SESSION['otp_user_id'];
+        $otp = trim($otp);
+
+        $query = "SELECT otp_code, otp_expiry FROM users WHERE user_id = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows === 1) {
+            $user = $result->fetch_assoc();
+
+            // Check if OTP matches and is not expired
+            if ($user['otp_code'] === $otp && strtotime($user['otp_expiry']) > time()) {
+                // Clear OTP from DB
+                $clear_query = "UPDATE users SET otp_code = NULL, otp_expiry = NULL WHERE user_id = ?";
+                $clear_stmt = $this->conn->prepare($clear_query);
+                // Finalize login using SessionManager
+                if ($this->sessionManager->completeAuthentication($user_id)) {
+                    $_SESSION['login_attempts'] = 0;
+                    $_SESSION['failed_in_cycle'] = 0;
+                    $_SESSION['lockout_count'] = 0;
+                    $_SESSION['last_attempt_time'] = null;
+
+                    return [
+                        'success' => true,
+                        'message' => 'Verification successful',
+                        'redirect' => '../public/dashboard.php'
+                    ];
+                }
+            }
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Invalid or expired verification code'
+        ];
+    }
+
+    /**
+     * Resend OTP code
+     */
+    public function resendOTP()
+    {
+        if (!isset($_SESSION['is_otp_pending']) || !isset($_SESSION['otp_user_id'])) {
+            return [
+                'success' => false,
+                'message' => 'Session expired'
+            ];
+        }
+
+        $user_id = $_SESSION['otp_user_id'];
+
+        $query = "SELECT first_name, email FROM users WHERE user_id = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows === 1) {
+            $user = $result->fetch_assoc();
+            $otp = sprintf("%06d", mt_rand(0, 999999));
+            $expiry = date('Y-m-d H:i:s', strtotime('+5 minutes'));
+
+            $update_query = "UPDATE users SET otp_code = ?, otp_expiry = ? WHERE user_id = ?";
+            $update_stmt = $this->conn->prepare($update_query);
+            $update_stmt->bind_param("ssi", $otp, $expiry, $user_id);
+
+            if ($update_stmt->execute()) {
+                if (sendOTPEmail($user['email'], $user['first_name'], $otp)) {
+                    return [
+                        'success' => true,
+                        'message' => 'A new code has been sent to your email.'
+                    ];
+                }
+            }
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Failed to resend code'
+        ];
+    }
+
+    /**
+     * Get progressive lockout duration in seconds
+     */
+    private function getLockoutDuration($lockouts)
+    {
+        if ($lockouts <= 0)
+            return 0;
+
+        switch ($lockouts) {
+            case 1:
+                return 10;   // 10 seconds
+            case 2:
+                return 30;   // 30 seconds
+            case 3:
+                return 300;  // 5 minutes
+            case 4:
+                return 900;  // 15 minutes
+            default:
+                return 1800; // 30 minutes
+        }
+    }
+
+    /**
+     * Mask email for display (e.g., u***@example.com)
+     */
+    private function maskEmail($email)
+    {
+        $parts = explode("@", $email);
+        $name = $parts[0];
+        $domain = $parts[1];
+        $masked_name = substr($name, 0, 1) . str_repeat("*", max(0, strlen($name) - 2)) . substr($name, -1);
+        return $masked_name . "@" . $domain;
+    }
+
+    /**
      * Log audit action
      */
     private function logAuditAction($user_id, $action, $module, $description)
@@ -210,6 +402,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = isset($_POST['email']) ? $_POST['email'] : '';
         $password = isset($_POST['password']) ? $_POST['password'] : '';
         $response = $authController->login($email, $password);
+        echo json_encode($response);
+    } elseif ($action === 'verify_otp') {
+        $otp = isset($_POST['otp']) ? $_POST['otp'] : '';
+        $response = $authController->verifyOTP($otp);
+        echo json_encode($response);
+    } elseif ($action === 'resend_otp') {
+        $response = $authController->resendOTP();
         echo json_encode($response);
     } elseif ($action === 'logout') {
         $response = $authController->logout();

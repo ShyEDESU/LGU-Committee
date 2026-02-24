@@ -4,14 +4,26 @@ require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
+
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
     exit();
 }
 
+$userId = $_SESSION['user_id'];
+
 // Handle restore
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_agenda'])) {
     $meetingId = $_POST['meeting_id'];
+
+    // Security: Validate jurisdiction and update authority before restoration
+    if (!canUpdate($userId, 'agendas', $meetingId)) {
+        $_SESSION['error_message'] = 'Security Violation: Jurisdictional breach or insufficient authority to restore record.';
+        header('Location: archive.php');
+        exit();
+    }
+
     $meeting = getMeetingById($meetingId);
     if ($meeting) {
         updateMeeting($meetingId, ['agenda_status' => 'Draft']);
@@ -21,15 +33,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_agenda'])) {
     }
 }
 
-// Get all archived agendas
-$allMeetings = getAllMeetings();
+// Get all meetings filtered by user jurisdiction
+$allMeetings = getUserMeetings($userId);
+
+// Filter for Archived status
 $archivedAgendas = array_filter($allMeetings, function ($m) {
     return ($m['agenda_status'] ?? 'Draft') === 'Archived';
 });
 
 // Sort by date (newest first)
 usort($archivedAgendas, function ($a, $b) {
-    return strtotime($b['date']) - strtotime($a['date']);
+    return strtotime($b['meeting_date'] ?? $b['date']) - strtotime($a['meeting_date'] ?? $a['date']);
 });
 
 $userName = $_SESSION['user_name'] ?? 'User';

@@ -41,6 +41,7 @@ $data = [
     'lgu_address' => $input['lgu_address'] ?? $currentSettings['lgu_address'],
     'lgu_contact' => $input['lgu_contact'] ?? $currentSettings['lgu_contact'],
     'lgu_email' => $input['lgu_email'] ?? $currentSettings['lgu_email'],
+    'base_url' => $input['base_url'] ?? $currentSettings['base_url'],
     'timezone' => $input['timezone'] ?? $currentSettings['timezone'],
     'theme_color' => $input['theme_color'] ?? $currentSettings['theme_color'],
     'lgu_logo_path' => $input['lgu_logo_path'] ?? $currentSettings['lgu_logo_path'],

@@ -13,9 +13,15 @@ $userName = $_SESSION['user_name'] ?? 'User';
 $userRole = $_SESSION['user_role'] ?? 'User';
 $userId = $_SESSION['user_id'];
 
-// Fetch upcoming meetings (next 30 days)
+// Fetch Helpers
 require_once __DIR__ . '/../app/helpers/MeetingHelper.php';
-$upcomingMeetings = getAllMeetings([
+require_once __DIR__ . '/../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../app/helpers/DataHelper.php';
+
+// Fetch role-aware data
+$userCommittees = getUserCommittees($userId);
+$calendarMeetings = getUserMeetings($userId);
+$upcomingMeetings = getUserMeetings($userId, [
     'status' => 'Scheduled',
     'limit' => 5
 ]);
@@ -23,28 +29,36 @@ $upcomingMeetings = getAllMeetings([
 // Set Page Title for header.php
 $pageTitle = 'Dashboard';
 
-// Fetch all meetings for the calendar
-$calendarMeetings = getAllMeetings();
-
 // Fetch counts for stats cards
 $stats = [
-    'committees' => $conn->query("SELECT COUNT(*) FROM committees WHERE is_active = 1")->fetch_row()[0],
-    'meetings' => $conn->query("SELECT COUNT(*) FROM meetings WHERE status = 'Scheduled'")->fetch_row()[0],
-    'documents' => ($conn->query("SELECT COUNT(*) FROM legislative_documents")->fetch_row()[0] +
-        $conn->query("SELECT COUNT(*) FROM meeting_documents WHERE file_path IS NOT NULL AND file_path != ''")->fetch_row()[0]),
-    'tasks' => $conn->query("SELECT COUNT(*) FROM tasks WHERE status != 'Done'")->fetch_row()[0],
-    'referrals' => $conn->query("SELECT COUNT(*) FROM referrals WHERE status != 'Approved' AND status != 'Rejected'")->fetch_row()[0]
+    'committees' => count($userCommittees),
+    'meetings' => count(array_filter($calendarMeetings, function ($m) {
+        return $m['status'] === 'Scheduled';
+    })),
+    'documents' => (
+        $conn->query("SELECT COUNT(*) FROM legislative_documents" . ($userRole !== 'Admin' && $userRole !== 'Super Admin' ? " WHERE created_by = $userId" : ""))->fetch_row()[0] +
+        $conn->query("SELECT COUNT(*) FROM meeting_documents WHERE file_path IS NOT NULL AND file_path != ''" . ($userRole !== 'Admin' && $userRole !== 'Super Admin' ? " AND uploaded_by = $userId" : ""))->fetch_row()[0]
+    ),
+    'tasks' => $conn->query("SELECT COUNT(*) FROM tasks WHERE status != 'Done'" . ($userRole !== 'Admin' && $userRole !== 'Super Admin' ? " AND (assigned_to = $userId OR created_by = $userId)" : ""))->fetch_row()[0],
+    'referrals' => $conn->query("SELECT COUNT(*) FROM referrals WHERE status != 'Approved' AND status != 'Rejected'" . ($userRole !== 'Admin' && $userRole !== 'Super Admin' ? " AND (assigned_to_user_id = $userId OR created_by = $userId)" : ""))->fetch_row()[0]
 ];
 
 // Fetch data for the doughnut chart (Document Distribution)
 $docDistribution = [
-    'Ordinances' => $conn->query("SELECT COUNT(*) FROM legislative_documents WHERE document_type = 'ordinance'")->fetch_row()[0],
-    'Resolutions' => ($conn->query("SELECT COUNT(*) FROM legislative_documents WHERE document_type = 'resolution'")->fetch_row()[0] +
-        $conn->query("SELECT COUNT(*) FROM meeting_documents WHERE document_type = 'resolution'")->fetch_row()[0]),
-    'Reports' => ($conn->query("SELECT COUNT(*) FROM legislative_documents WHERE document_type = 'committee_report'")->fetch_row()[0] +
-        $conn->query("SELECT COUNT(*) FROM meeting_documents WHERE document_type = 'recommendation'")->fetch_row()[0]),
-    'Agendas' => ($conn->query("SELECT COUNT(*) FROM meetings WHERE agenda_status != 'None'")->fetch_row()[0] +
-        $conn->query("SELECT COUNT(*) FROM meeting_documents WHERE document_type = 'agenda' AND file_path IS NOT NULL AND file_path != ''")->fetch_row()[0])
+    'Ordinances' => $conn->query("SELECT COUNT(*) FROM legislative_documents WHERE document_type = 'ordinance'" . ($userRole !== 'Admin' && $userRole !== 'Super Admin' ? " AND created_by = $userId" : ""))->fetch_row()[0],
+    'Resolutions' => (
+        $conn->query("SELECT COUNT(*) FROM legislative_documents WHERE document_type = 'resolution'" . ($userRole !== 'Admin' && $userRole !== 'Super Admin' ? " AND created_by = $userId" : ""))->fetch_row()[0] +
+        $conn->query("SELECT COUNT(*) FROM meeting_documents WHERE document_type = 'resolution'" . ($userRole !== 'Admin' && $userRole !== 'Super Admin' ? " AND uploaded_by = $userId" : ""))->fetch_row()[0]
+    ),
+    'Reports' => (
+        $conn->query("SELECT COUNT(*) FROM legislative_documents WHERE document_type = 'committee_report'" . ($userRole !== 'Admin' && $userRole !== 'Super Admin' ? " AND created_by = $userId" : ""))->fetch_row()[0] +
+        $conn->query("SELECT COUNT(*) FROM meeting_documents WHERE document_type = 'recommendation'" . ($userRole !== 'Admin' && $userRole !== 'Super Admin' ? " AND uploaded_by = $userId" : ""))->fetch_row()[0]
+    ),
+    'Agendas' => (
+        count(array_filter($calendarMeetings, function ($m) {
+            return ($m['agenda_status'] ?? 'None') !== 'None'; })) +
+        $conn->query("SELECT COUNT(*) FROM meeting_documents WHERE document_type = 'agenda' AND file_path IS NOT NULL AND file_path != ''" . ($userRole !== 'Admin' && $userRole !== 'Super Admin' ? " AND uploaded_by = $userId" : ""))->fetch_row()[0]
+    )
 ];
 
 // Fetch user tasks
@@ -123,7 +137,7 @@ include 'includes/header.php';
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <!-- Committees -->
         <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
+            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300 animate-fade-in-up">
             <div
                 class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
                 <i
@@ -144,7 +158,7 @@ include 'includes/header.php';
 
         <!-- Meetings -->
         <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
+            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300 animate-fade-in-up animation-delay-100">
             <div
                 class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
                 <i
@@ -165,7 +179,7 @@ include 'includes/header.php';
 
         <!-- Documents -->
         <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
+            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300 animate-fade-in-up animation-delay-200">
             <div
                 class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
                 <i
@@ -186,7 +200,7 @@ include 'includes/header.php';
 
         <!-- Task Items -->
         <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
+            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300 animate-fade-in-up animation-delay-300">
             <div
                 class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
                 <i
@@ -207,7 +221,7 @@ include 'includes/header.php';
 
         <!-- Referrals -->
         <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
+            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300 animate-fade-in-up animation-delay-400">
             <div
                 class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
                 <i
@@ -294,12 +308,14 @@ include 'includes/header.php';
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-0">
         <!-- Recent Activity Feed -->
         <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8 animate-fade-in-up">
             <div class="flex items-center justify-between mb-8">
                 <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">Recent
                     Activity</h3>
-                <a href="pages/audit-logs/index.php"
-                    class="text-[10px] font-black text-red-600 uppercase tracking-widest hover:underline">View All</a>
+                <?php if ($isPrivileged): ?>
+                    <a href="pages/audit-logs/index.php"
+                        class="text-[10px] font-black text-red-600 uppercase tracking-widest hover:underline">View All</a>
+                <?php endif; ?>
             </div>
             <div class="space-y-6">
                 <?php if (empty($recentActivities)): ?>
@@ -348,7 +364,7 @@ include 'includes/header.php';
 
         <!-- My Pending Tasks Feed -->
         <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8 animate-fade-in-up animation-delay-200">
             <div class="flex items-center justify-between mb-8">
                 <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">My
                     Pending Tasks</h3>
@@ -380,7 +396,7 @@ include 'includes/header.php';
 
         <!-- Upcoming Meetings Feed -->
         <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8 animate-fade-in-up animation-delay-400">
             <div class="flex items-center justify-between mb-8">
                 <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">Upcoming
                     Meetings</h3>
@@ -473,7 +489,7 @@ include 'includes/header.php';
                     themeSystem: 'standard',
                     events: [
                         <?php foreach ($calendarMeetings as $m): ?>
-                                                {
+                                                                        {
                                 id: '<?php echo $m['id']; ?>',
                                 title: '<?php echo addslashes($m['committee_name']); ?>',
                                 start: '<?php echo $m['date']; ?>T<?php echo $m['time_start']; ?>',

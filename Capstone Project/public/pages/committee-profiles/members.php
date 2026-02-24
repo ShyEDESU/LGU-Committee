@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -23,6 +24,16 @@ if (isset($_POST['delete_member'])) {
     // Get the user_id from the member record
     foreach ($members as $m) {
         if ($m['member_id'] == $memberIdToDelete) {
+            // Self-removal restriction for leadership
+            $currentUserId = $_SESSION['user_id'];
+            if ($m['user_id'] == $currentUserId) {
+                if ($m['role'] === 'Chairperson' || $m['role'] === 'Vice-Chairperson') {
+                    $_SESSION['error_message'] = "As " . $m['role'] . ", you cannot remove yourself from the committee.";
+                    header('Location: members.php?id=' . $id);
+                    exit();
+                }
+            }
+
             $success = removeCommitteeMember($id, $m['user_id']);
             if ($success) {
                 $_SESSION['success_message'] = 'Member removed successfully';
@@ -33,6 +44,29 @@ if (isset($_POST['delete_member'])) {
             exit();
         }
     }
+}
+
+// Handle member approval
+if (isset($_POST['approve_member'])) {
+    $memberIdToApprove = intval($_POST['approve_member']);
+
+    // Authorization check: Only Chair, Vice-Chair, or Admin can approve
+    $currentUserId = $_SESSION['user_id'] ?? 0;
+    $currentUserRole = $_SESSION['user_role'] ?? 'User';
+    $isChair = ($currentUserId == ($committee['chairperson_id'] ?? 0) || $currentUserId == ($committee['vice_chair_id'] ?? 0));
+    $isAdmin = ($currentUserRole === 'Admin' || $currentUserRole === 'Super Admin');
+
+    if ($isChair || $isAdmin) {
+        if (approveCommitteeMember($id, $memberIdToApprove)) {
+            $_SESSION['success_message'] = 'Membership appointment finalized and approved.';
+        } else {
+            $_SESSION['error_message'] = 'Failed to approve member.';
+        }
+    } else {
+        $_SESSION['error_message'] = 'Unauthorized: Only the Chairman or Admin can finalize appointments.';
+    }
+    header('Location: members.php?id=' . $id);
+    exit();
 }
 
 $userName = $_SESSION['user_name'] ?? 'User';
@@ -122,6 +156,7 @@ include '../../includes/header.php';
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                 </thead>
@@ -144,19 +179,51 @@ include '../../includes/header.php';
                             </td>
                             <td class="px-6 py-4"><?php echo htmlspecialchars($member['position'] ?? 'N/A'); ?></td>
                             <td class="px-6 py-4"><?php echo htmlspecialchars($member['department'] ?? 'N/A'); ?></td>
+                            <td class="px-6 py-4">
+                                <?php if ($member['membership_status'] === 'Pending'): ?>
+                                    <span
+                                        class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold animate-pulse">
+                                        <i class="bi bi-clock-history mr-1"></i>Pending Approval
+                                    </span>
+                                <?php else: ?>
+                                    <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">
+                                        <i class="bi bi-check-circle-fill mr-1"></i>Approved
+                                    </span>
+                                <?php endif; ?>
+                            </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex justify-end gap-2">
+                                    <?php
+                                    $isChair = ($userId == ($committee['chairperson_id'] ?? 0) || $userId == ($committee['vice_chair_id'] ?? 0));
+                                    $isAdmin = ($userRole === 'Admin' || $userRole === 'Super Admin');
+
+                                    if ($member['membership_status'] === 'Pending' && ($isChair || $isAdmin)): ?>
+                                        <form method="POST" class="inline"
+                                            onsubmit="return confirm('Professional Finalization: Formalize this committee appointment?');">
+                                            <input type="hidden" name="approve_member" value="<?php echo $member['member_id']; ?>">
+                                            <button type="submit" class="text-green-600 hover:text-green-700 mr-2"
+                                                title="Approve Appointment">
+                                                <i class="bi bi-person-check-fill"></i>
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+
                                     <a href="edit-member.php?committee_id=<?php echo $id; ?>&member_id=<?php echo $member['member_id']; ?>"
                                         class="text-red-600 hover:text-red-700" title="Edit Member">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
-                                    <form method="POST" class="inline"
-                                        onsubmit="return confirm('Remove this member from the committee?');">
-                                        <input type="hidden" name="delete_member" value="<?php echo $member['member_id']; ?>">
-                                        <button type="submit" class="text-red-600 hover:text-red-700" title="Delete Member">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                    <?php
+                                    $isSelfLeadership = ($member['user_id'] == $_SESSION['user_id'] && ($member['role'] === 'Chairperson' || $member['role'] === 'Vice-Chairperson'));
+                                    if (!$isSelfLeadership):
+                                        ?>
+                                        <form method="POST" class="inline"
+                                            onsubmit="return confirm('Remove this member from the committee?');">
+                                            <input type="hidden" name="delete_member" value="<?php echo $member['member_id']; ?>">
+                                            <button type="submit" class="text-red-600 hover:text-red-700" title="Delete Member">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

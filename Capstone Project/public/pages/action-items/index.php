@@ -7,11 +7,11 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// Handle delete via POST
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_item'])) {
+// Handle removal via POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_item'])) {
     $itemId = $_POST['item_id'];
-    if (deleteActionItem($itemId)) {
-        header('Location: index.php?deleted=1');
+    if (removeActionItem($itemId)) {
+        header('Location: index.php?removed=1');
         exit();
     }
 }
@@ -109,10 +109,10 @@ $doneItems = getActionItemsByStatus('Done');
     </div>
 <?php endif; ?>
 
-<?php if (isset($_GET['deleted'])): ?>
+<?php if (isset($_GET['removed'])): ?>
     <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 mb-6">
         <p class="text-red-800 dark:text-red-300">
-            <i class="bi bi-check-circle mr-2"></i>Action item deleted successfully!
+            <i class="bi bi-check-circle mr-2"></i>Action item removed successfully!
         </p>
     </div>
 <?php endif; ?>
@@ -256,14 +256,13 @@ $doneItems = getActionItemsByStatus('Done');
                                     <i class="bi bi-pencil"></i>
                                 </a>
                             <?php endif; ?>
-                            <?php if (canDelete($userId, 'action_items')): ?>
-                                <form method="POST" class="inline"
-                                    onsubmit="return confirm('Are you sure you want to delete this action item?');">
+                            <?php if (canApprove($userId, 'action_items')): ?>
+                                <form method="POST" class="inline" onsubmit="return confirm('Remove this action item?');">
                                     <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
-                                    <button type="submit" name="delete_item" value="1"
+                                    <button type="submit" name="remove_item" value="1"
                                         class="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
-                                        title="Delete">
-                                        <i class="bi bi-trash"></i>
+                                        title="Remove">
+                                        <i class="bi bi-x-circle"></i>
                                     </button>
                                 </form>
                             <?php endif; ?>
@@ -320,22 +319,22 @@ $doneItems = getActionItemsByStatus('Done');
                                 <i class="bi bi-eye"></i>
                             </a>
                             <?php if (canEdit($userId, 'action_items', $item['id'])): ?>
-                            <a href="edit.php?id=<?php echo $item['id']; ?>"
-                                class="p-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
-                                title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>
+                                <a href="edit.php?id=<?php echo $item['id']; ?>"
+                                    class="p-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                                    title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
                             <?php endif; ?>
                             <?php if (canDelete($userId, 'action_items')): ?>
-                            <form method="POST" class="inline"
-                                onsubmit="return confirm('Are you sure you want to delete this action item?');">
-                                <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
-                                <button type="submit" name="delete_item" value="1"
-                                    class="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
-                                    title="Delete">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                                <form method="POST" class="inline"
+                                    onsubmit="return confirm('Are you sure you want to delete this action item?');">
+                                    <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                    <button type="submit" name="delete_item" value="1"
+                                        class="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
+                                        title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -376,15 +375,15 @@ $doneItems = getActionItemsByStatus('Done');
                                 <i class="bi bi-eye"></i>
                             </a>
                             <?php if (canDelete($userId, 'action_items')): ?>
-                            <form method="POST" class="inline"
-                                onsubmit="return confirm('Are you sure you want to delete this action item?');">
-                                <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
-                                <button type="submit" name="delete_item" value="1"
-                                    class="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
-                                    title="Delete">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                                <form method="POST" class="inline"
+                                    onsubmit="return confirm('Are you sure you want to delete this action item?');">
+                                    <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                    <button type="submit" name="delete_item" value="1"
+                                        class="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
+                                        title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                             <?php endif; ?>
                         </div>
                     </div>

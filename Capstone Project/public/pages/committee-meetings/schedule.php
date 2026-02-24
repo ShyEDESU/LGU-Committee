@@ -7,9 +7,17 @@ require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
+    exit();
+}
+
+$userId = $_SESSION['user_id'];
+if (!canCreate($userId, 'meetings')) {
+    $_SESSION['error_message'] = 'You do not have administrative authority to formally call a meeting. Please contact your Committee Chairperson.';
+    header('Location: index.php');
     exit();
 }
 
@@ -44,6 +52,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($data['venue']))
         $errors[] = 'Venue is required';
 
+    // Professional Temporal Validation
+    $today = date('Y-m-d');
+    if ($data['date'] < $today) {
+        $errors[] = 'Cannot schedule a meeting for a past date. Please select a future date.';
+    }
+
+    if (!empty($data['time_end']) && $data['time_end'] <= $data['time_start']) {
+        $errors[] = 'Meeting end time must be after the start time.';
+    }
+
     if (empty($errors)) {
         $newId = createMeeting($data);
         if ($newId) {
@@ -56,8 +74,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get committees for dropdown
-$committees = getAllCommittees();
+// Get committees for dropdown (restricted for non-admins)
+$user = UserHelper_getUserById($userId);
+if ($user && ($user['role_name'] === 'Super Admin' || $user['role_name'] === 'Admin')) {
+    $committees = getAllCommittees();
+} else {
+    // Only show committees where user is Chairperson, Vice Chairperson, or Secretary
+    $allCommittees = getAllCommittees();
+    $committees = array_filter($allCommittees, function ($c) use ($userId) {
+        return (
+            ($c['chairperson_id'] ?? 0) == $userId ||
+            ($c['vice_chair_id'] ?? 0) == $userId ||
+            ($c['secretary_id'] ?? 0) == $userId
+        );
+    });
+}
 $preselectedCommittee = $_GET['committee'] ?? '';
 
 $userName = $_SESSION['user_name'] ?? 'User';
@@ -77,7 +108,10 @@ include '../../includes/header.php';
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Schedule New Meeting</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">Create a new committee meeting</p>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                <i class="bi bi-patch-check-fill text-red-600 mr-1"></i>
+                <strong>Formal Call to Meeting:</strong> By Order of the Committee Chairperson
+            </p>
         </div>
         <a href="index.php" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
             <i class="bi bi-x-lg mr-2"></i>Cancel
@@ -145,7 +179,8 @@ include '../../includes/header.php';
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Date <span class="text-red-500">*</span>
                 </label>
-                <input type="date" name="date" required value="<?php echo htmlspecialchars($_POST['date'] ?? ''); ?>"
+                <input type="date" name="date" required min="<?php echo date('Y-m-d'); ?>"
+                    value="<?php echo htmlspecialchars($_POST['date'] ?? ''); ?>"
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
             </div>
 

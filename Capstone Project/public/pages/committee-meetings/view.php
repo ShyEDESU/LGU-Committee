@@ -7,6 +7,7 @@ ini_set('display_startup_errors', '0');
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -22,16 +23,26 @@ if (!$meeting) {
     exit();
 }
 
-// Handle delete
-if (isset($_POST['delete'])) {
-    deleteMeeting($id);
-    $_SESSION['success_message'] = 'Meeting deleted successfully';
-    header('Location: index.php');
+// Handle archive
+if (isset($_POST['archive_meeting'])) {
+    if (!canApprove($_SESSION['user_id'], 'meetings', $id)) {
+        $_SESSION['error_message'] = 'Unauthorized: You do not have the authority to archive this meeting.';
+        header("Location: view.php?id=$id");
+        exit();
+    }
+    archiveMeeting($id);
+    $_SESSION['success_message'] = 'Meeting has been successfully cancelled and archived in the legislative records.';
+    header('Location: index.php?archived=1');
     exit();
 }
 
 // Handle Status Change
 if (isset($_POST['update_status'])) {
+    if (!canApprove($_SESSION['user_id'], 'meetings', $id)) {
+        $_SESSION['error_message'] = 'Unauthorized: Only Committee Leadership can adjust the governance status of a meeting.';
+        header("Location: view.php?id=$id");
+        exit();
+    }
     $newStatus = $_POST['update_status'];
     if (changeMeetingStatus($id, $newStatus)) {
         $_SESSION['success_message'] = "Meeting status updated to $newStatus!";
@@ -198,32 +209,53 @@ include '../../includes/header.php';
                 class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
                 <i class="bi bi-calendar-plus mr-2"></i>Add to Calendar
             </a>
-            <?php if ($meeting['status'] === 'Completed'): ?>
-                <a href="generate-minutes.php?id=<?php echo $id; ?>" target="_blank"
-                    class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition">
-                    <i class="bi bi-file-earmark-pdf mr-2"></i>Generate Draft Minutes
+
+            <?php if (canUpdate($userId, 'meetings', $id)): ?>
+                <a href="edit.php?id=<?php echo $id; ?>"
+                    class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg transition hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <i class="bi bi-pencil mr-2"></i>Edit
                 </a>
             <?php endif; ?>
-            <?php if (in_array($meeting['status'], ['Scheduled', 'Ongoing'])): ?>
-                <form method="POST" class="inline">
-                    <button type="submit" name="update_status" value="Completed"
-                        class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg transition mr-1">
-                        <i class="bi bi-check-all mr-2"></i>Complete Meeting
-                    </button>
-                </form>
-            <?php elseif ($meeting['status'] === 'Completed'): ?>
-                <form method="POST" class="inline">
-                    <button type="submit" name="update_status" value="Ongoing"
-                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition mr-1">
-                        <i class="bi bi-arrow-counterclockwise mr-2"></i>Reopen Meeting
-                    </button>
-                </form>
-            <?php endif; ?>
 
-            <a href="edit.php?id=<?php echo $id; ?>"
-                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
-                <i class="bi bi-pencil mr-2"></i>Edit
-            </a>
+            <?php if (canApprove($userId, 'meetings', $id)): ?>
+                <!-- Governance Status Control -->
+                <div class="inline-block relative">
+                    <button onclick="document.getElementById('governanceDropdown').classList.toggle('hidden')"
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition flex items-center">
+                        <i class="bi bi-shield-check mr-2"></i>Governance Logic <i
+                            class="bi bi-chevron-down ml-2 text-xs"></i>
+                    </button>
+                    <div id="governanceDropdown"
+                        class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                        <form method="POST">
+                            <?php if ($meeting['status'] !== 'Ongoing'): ?>
+                                <button type="submit" name="update_status" value="Ongoing"
+                                    class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700">
+                                    <i class="bi bi-play-fill text-green-600 mr-2"></i>Commence Session
+                                </button>
+                            <?php endif; ?>
+
+                            <?php if ($meeting['status'] !== 'Completed'): ?>
+                                <button type="submit" name="update_status" value="Completed"
+                                    class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700">
+                                    <i class="bi bi-check-all text-blue-600 mr-2"></i>Adjourn Meeting
+                                </button>
+                            <?php else: ?>
+                                <button type="submit" name="update_status" value="Ongoing"
+                                    class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700">
+                                    <i class="bi bi-arrow-counterclockwise text-red-600 mr-2"></i>Reopen Meeting
+                                </button>
+                            <?php endif; ?>
+
+                            <button type="submit" name="archive_meeting" value="1"
+                                onclick="return confirm('Are you sure you want to cancel and archive this meeting?')"
+                                class="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                <i class="bi bi-archive mr-2"></i>Cancel/Archive
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -315,16 +347,32 @@ include '../../includes/header.php';
                     <i class="bi bi-info-circle mr-1"></i>Details
                 </a>
                 <a href="attendance.php?id=<?php echo $id; ?>"
-                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition flex items-center">
                     <i class="bi bi-person-check mr-1"></i>Attendance
+                    <?php if ($meeting['status'] === 'Scheduled'): ?>
+                        <span
+                            class="ml-2 px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-500 rounded border border-gray-200 uppercase tracking-tighter">
+                            <i class="bi bi-lock-fill mr-1"></i>Awaiting
+                        </span>
+                    <?php endif; ?>
                 </a>
                 <a href="minutes.php?id=<?php echo $id; ?>"
-                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition flex items-center">
                     <i class="bi bi-file-earmark-text mr-1"></i>Minutes
+                    <?php if ($meeting['status'] === 'Scheduled'): ?>
+                        <span
+                            class="ml-2 px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-500 rounded border border-gray-200 uppercase tracking-tighter">
+                            <i class="bi bi-lock-fill mr-1"></i>Awaiting
+                        </span>
+                    <?php endif; ?>
                 </a>
                 <a href="documents.php?id=<?php echo $id; ?>"
-                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition flex items-center">
                     <i class="bi bi-folder mr-1"></i>Documents
+                </a>
+                <a href="voting.php?id=<?php echo $id; ?>"
+                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition flex items-center">
+                    <i class="bi bi-hand-thumbs-up mr-1"></i>Voting
                 </a>
             </nav>
         </div>
@@ -366,12 +414,27 @@ include '../../includes/header.php';
                     </div>
                     <div>
                         <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Status</p>
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold
-                            <?php echo $meeting['status'] === 'Scheduled' ? 'bg-red-100 text-red-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                                ($meeting['status'] === 'Completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'); ?>">
-                            <i class="bi bi-circle-fill mr-2 text-xs"></i>
-                            <?php echo htmlspecialchars($meeting['status']); ?>
+                        <?php
+                        $statusClasses = [
+                            'Scheduled' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+                            'Ongoing' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+                            'Completed' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+                            'Cancelled' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                        ];
+                        $statusLabels = [
+                            'Scheduled' => 'CALLED',
+                            'Ongoing' => 'DELIBERATING',
+                            'Completed' => 'ADJOURNED',
+                            'Cancelled' => 'ARCHIVED'
+                        ];
+                        $s = $meeting['status'] ?? 'Scheduled';
+                        $class = $statusClasses[$s] ?? $statusClasses['Scheduled'];
+                        $label = $statusLabels[$s] ?? strtoupper($s);
+                        ?>
+                        <span
+                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider <?php echo $class; ?>">
+                            <i class="bi bi-circle-fill mr-2 text-[10px]"></i>
+                            <?php echo $label; ?>
                         </span>
                     </div>
                 </div>
@@ -433,9 +496,17 @@ include '../../includes/header.php';
                                         </p>
                                     <?php endif; ?>
                                 </div>
-                                <span class="flex-shrink-0 text-sm text-gray-500 dark:text-gray-400 ml-3">
-                                    <?php echo $item['duration']; ?> min
-                                </span>
+                                <div class="flex flex-col items-end flex-shrink-0 ml-3">
+                                    <span class="text-sm text-gray-500 dark:text-gray-400">
+                                        <?php echo $item['duration']; ?> min
+                                    </span>
+                                    <?php if ($meeting['status'] === 'Ongoing' && canUpdate($userId, 'meetings', $id)): ?>
+                                        <a href="voting.php?id=<?php echo $id; ?>&agenda_item_id=<?php echo $item['id']; ?>"
+                                            class="mt-2 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded transition flex items-center">
+                                            <i class="bi bi-hand-thumbs-up-fill mr-1"></i>CALL VOTE
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         <?php endforeach; ?>
 
@@ -520,13 +591,17 @@ include '../../includes/header.php';
                         </div>
                     </div>
 
-                    <form method="POST" onsubmit="return confirm('Are you sure you want to delete this meeting?');"
-                        class="mt-4">
-                        <button type="submit" name="delete"
-                            class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition flex items-center justify-center">
-                            <i class="bi bi-trash mr-2"></i>Delete Meeting
-                        </button>
-                    </form>
+                    <?php if (canApprove($userId, 'meetings', $id)): ?>
+                        <form method="POST"
+                            onsubmit="return confirm('Are you sure you want to archive this meeting for legislative records?');"
+                            class="mt-4">
+                            <input type="hidden" name="archive_meeting" value="1">
+                            <button type="submit"
+                                class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition flex items-center justify-center">
+                                <i class="bi bi-archive mr-2"></i>Cancel/Archive Meeting
+                            </button>
+                        </form>
+                    <?php endif; ?>
                 </div>
             </div>
 

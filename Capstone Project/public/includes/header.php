@@ -119,6 +119,8 @@ $recentNotifications = getUserNotifications($userId, 5);
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="<?php echo $assetPath; ?>assets/css/system-styles.css">
+    <link rel="stylesheet" href="<?php echo $assetPath; ?>assets/css/animations.css">
+    <link rel="stylesheet" href="<?php echo $assetPath; ?>assets/css/styles-updated.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 
@@ -261,6 +263,39 @@ $recentNotifications = getUserNotifications($userId, 5);
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-900 font-sans antialiased">
+    <!-- Module Loading Overlay -->
+    <div id="moduleLoadingOverlay"
+        class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center pointer-events-auto">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 md:p-12 text-center">
+            <div class="flex justify-center mb-6">
+                <div class="relative w-16 h-16">
+                    <div class="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-slate-600"></div>
+                    <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-[var(--cms-primary)] border-r-[var(--cms-primary)]"
+                        id="smoothSpinner" style="animation: smoothSpin 2s linear infinite; will-change: transform;">
+                    </div>
+                </div>
+            </div>
+            <h3 class="text-lg md:text-xl font-semibold text-gray-900 dark:text-white mb-2">Loading Module</h3>
+            <p class="text-sm md:text-base text-gray-600 dark:text-slate-400">Please wait while we load the content...
+            </p>
+        </div>
+    </div>
+    <style>
+        @keyframes smoothSpin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #smoothSpinner {
+            transform-origin: center;
+            -webkit-transform-origin: center;
+        }
+    </style>
     <!-- Mobile Sidebar Overlay -->
     <div id="sidebar-overlay"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden opacity-0 pointer-events-none transition-all duration-300 ease-out">
@@ -578,7 +613,7 @@ $recentNotifications = getUserNotifications($userId, 5);
                         <div class="flex items-center">
                             <!-- Desktop Sidebar Toggle - Always visible on md+ screens -->
                             <button id="sidebar-toggle"
-                                class="desktop-toggle flex items-center justify-center w-10 h-10 rounded-lg text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-red-600 dark:hover:text-red-400 focus:outline-none transition-all duration-200 border border-gray-200 dark:border-gray-600"
+                                class="sidebar-toggle desktop-toggle flex items-center justify-center w-10 h-10 rounded-lg text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-red-600 dark:hover:text-red-400 focus:outline-none transition-all duration-200 border border-gray-200 dark:border-gray-600"
                                 title="Toggle Sidebar">
                                 <i class="bi bi-layout-sidebar-inset text-xl sidebar-icon"></i>
                                 <i class="bi bi-arrow-right text-xl arrow-icon hidden"></i>
@@ -771,7 +806,7 @@ $recentNotifications = getUserNotifications($userId, 5);
                                         <?php endif; ?>
                                     </div>
                                     <div class="border-t border-gray-200 py-2">
-                                        <a href="javascript:void(0);" onclick="logout();"
+                                        <a href="javascript:void(0);" onclick="showLogoutModal();"
                                             class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer">
                                             <i class="bi bi-box-arrow-right mr-2"></i>Logout
                                         </a>

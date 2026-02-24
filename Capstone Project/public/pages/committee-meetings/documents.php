@@ -7,6 +7,7 @@ ini_set('display_startup_errors', '1');
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -33,6 +34,11 @@ if (!$meeting) {
 
 // Handle document upload
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_document'])) {
+    if (!canUpdate($_SESSION['user_id'], 'meetings', $meetingId)) {
+        $_SESSION['error_message'] = 'Unauthorized: Only Committee Leadership or the Secretary can manage documents.';
+        header('Location: documents.php?id=' . $meetingId);
+        exit();
+    }
     $data = [
         'name' => $_POST['name'],
         'category' => $_POST['category'],
@@ -51,11 +57,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_document'])) {
     exit();
 }
 
-// Handle document delete
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_document'])) {
+// Handle document removal
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_document'])) {
+    if (!canUpdate($_SESSION['user_id'], 'meetings', $meetingId)) {
+        $_SESSION['error_message'] = 'Unauthorized: Only Committee Leadership or the Secretary can remove documents.';
+        header('Location: documents.php?id=' . $meetingId);
+        exit();
+    }
     $docId = $_POST['document_id'];
-    deleteMeetingDocument($docId);
-    $_SESSION['success_message'] = 'Document deleted successfully';
+    removeMeetingDocument($docId);
+    $_SESSION['success_message'] = 'Document has been removed from the meeting records.';
     header('Location: documents.php?id=' . $meetingId);
     exit();
 }
@@ -139,6 +150,10 @@ include '../../includes/header.php';
             <a href="documents.php?id=<?php echo $meetingId; ?>"
                 class="border-red-500 text-red-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
                 Documents
+            </a>
+            <a href="voting.php?id=<?php echo $meetingId; ?>"
+                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                Voting
             </a>
         </nav>
     </div>
@@ -236,11 +251,14 @@ include '../../includes/header.php';
                                                 class="text-red-600 hover:text-red-900 dark:text-blue-400">
                                                 <i class="bi bi-download mr-1"></i>Download
                                             </button>
-                                            <form method="POST" class="inline" onsubmit="return confirm('Delete this document?')">
-                                                <input type="hidden" name="delete_document" value="1">
-                                                <input type="hidden" name="document_id" value="<?php echo $doc['id']; ?>">
-                                                <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400">
-                                                    <i class="bi bi-trash mr-1"></i>Delete
+                                            <form method="POST" class="inline"
+                                                onsubmit="return confirm('Remove this document from the records?');">
+                                                <input type="hidden" name="document_id" value="<?php echo $doc['document_id']; ?>">
+                                                <input type="hidden" name="remove_document" value="1">
+                                                <button type="submit"
+                                                    class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold"
+                                                    title="Remove from records">
+                                                    <i class="bi bi-x-circle"></i>
                                                 </button>
                                             </form>
                                         </div>

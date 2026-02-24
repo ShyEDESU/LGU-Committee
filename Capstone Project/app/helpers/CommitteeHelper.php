@@ -7,13 +7,58 @@
 // Require database connection
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/AuditHelper.php';
+require_once __DIR__ . '/UserHelper.php';
+require_once __DIR__ . '/NotificationHelper.php';
+
+/**
+ * Synchronize committee lead roles (Chairperson, Vice-Chairperson, Secretary) with the member list
+ * Internal helper function to ensure data consistency
+ */
+function syncCommitteeLeadRoles($committeeId, $data)
+{
+    global $conn;
+
+    $leads = [
+        'chairperson_id' => 'Chairperson',
+        'vice_chair_id' => 'Vice-Chairperson',
+        'secretary_id' => 'Secretary'
+    ];
+
+    foreach ($leads as $key => $position) {
+        $userId = !empty($data[$key]) ? intval($data[$key]) : null;
+
+        if ($userId) {
+            // Demote anyone else currently holding this position to 'Member'
+            $demoteStmt = $conn->prepare("UPDATE committee_members 
+                SET position = 'Member' 
+                WHERE committee_id = ? AND position = ? AND user_id != ? AND is_active = 1");
+            $demoteStmt->bind_param("isi", $committeeId, $position, $userId);
+            $demoteStmt->execute();
+
+            // Add or update the new role holder
+            addCommitteeMember($committeeId, $userId, $position);
+        } else {
+            // If the role is explicitly removed (set to null), 
+            // find anyone with this position and demote them to 'Member'
+            $demoteAllStmt = $conn->prepare("UPDATE committee_members 
+                SET position = 'Member' 
+                WHERE committee_id = ? AND position = ? AND is_active = 1");
+            $demoteAllStmt->bind_param("is", $committeeId, $position);
+            $demoteAllStmt->execute();
+        }
+    }
+
+    return true;
+}
 
 /**
  * Get all committees from database
  */
-function getAllCommittees()
+function getAllCommittees($includeArchived = false)
 {
     global $conn;
+
+    $whereClause = $includeArchived ? "" : "WHERE c.is_active = 1";
 
     $sql = "SELECT 
                 c.*,
@@ -24,12 +69,61 @@ function getAllCommittees()
             LEFT JOIN users u1 ON c.chairperson_id = u1.user_id
             LEFT JOIN users u2 ON c.vice_chair_id = u2.user_id
             LEFT JOIN users u3 ON c.secretary_id = u3.user_id
-            ORDER BY c.committee_name ASC";
+            $whereClause
+            ORDER BY c.is_active DESC, c.committee_name ASC";
 
     $result = $conn->query($sql);
 
     if (!$result) {
         error_log("Error fetching committees: " . $conn->error);
+        return [];
+    }
+
+    $committees = [];
+    while ($row = $result->fetch_assoc()) {
+        $committees[] = [
+            'id' => $row['committee_id'],
+            'name' => $row['committee_name'],
+            'type' => $row['committee_type'],
+            'description' => $row['description'],
+            'jurisdiction' => $row['jurisdiction'],
+            'chair' => $row['chair_name'] ?? 'Not Assigned',
+            'chairperson_id' => $row['chairperson_id'],
+            'vice_chair' => $row['vice_chair_name'] ?? 'Not Assigned',
+            'vice_chair_id' => $row['vice_chair_id'],
+            'secretary' => $row['secretary_name'] ?? 'Not Assigned',
+            'secretary_id' => $row['secretary_id'],
+            'status' => $row['is_active'] ? 'Active' : 'Archived',
+            'is_active' => $row['is_active'],
+            'created_at' => $row['created_at'],
+            'updated_at' => $row['updated_at']
+        ];
+    }
+
+    return $committees;
+}
+
+/**
+ * Get committees that a specific user is allowed to see
+ */
+function getUserCommittees($userId, $includeArchived = false)
+{
+    global $conn;
+
+    // Get user role
+    $user = UserHelper_getUserById($userId);
+    $roleName = $user['role_name'] ?? 'User';
+
+    // Admins see everything
+    if ($roleName === 'Super Admin' || $roleName === 'Admin') {
+        return getAllCommittees($includeArchived);
+    }
+
+    // For others, return all committees so they can "view" them (transparency requirement)
+    // Business rules will restrict Edit/Delete buttons in the UI based on ownership
+    return getAllCommittees($includeArchived);
+
+    if (!$result) {
         return [];
     }
 
@@ -110,13 +204,14 @@ function createCommittee($data)
     global $conn;
 
     $stmt = $conn->prepare("INSERT INTO committees 
-        (committee_name, committee_type, description, jurisdiction, chairperson_id, vice_chair_id, secretary_id, is_active) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        (committee_name, committee_type, description, jurisdiction, chairperson_id, vice_chair_id, secretary_id, creation_authority, is_active) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
     $isActive = isset($data['is_active']) ? $data['is_active'] : true;
+    $authority = $data['creation_authority'] ?? 'N/A';
 
     $stmt->bind_param(
-        "ssssiiii",
+        "ssssiiiis",
         $data['name'],
         $data['type'],
         $data['description'],
@@ -124,19 +219,20 @@ function createCommittee($data)
         $data['chairperson_id'],
         $data['vice_chair_id'],
         $data['secretary_id'],
+        $authority,
         $isActive
     );
 
     if ($stmt->execute()) {
         $committeeId = $conn->insert_id;
 
-        // Automatic Notification for Admins
-        require_once __DIR__ . '/UserHelper.php';
-        require_once __DIR__ . '/NotificationHelper.php';
+        // Automatically sync lead roles to member list
+        syncCommitteeLeadRoles($committeeId, $data);
 
+        // Automatic Notification for Admins
         // Find Admins (Role ID 1 is Super Admin, Role ID 2 is Admin in most standard schemas)
         // We'll notify all users who have 'Admin' in their role name
-        $allUsers = getAllUsers();
+        $allUsers = UserHelper_getAllUsers();
         foreach ($allUsers as $user) {
             if (isset($user['role_name']) && (stripos($user['role_name'], 'Admin') !== false)) {
                 $title = "New Committee Created";
@@ -188,13 +284,15 @@ function updateCommittee($id, $data)
             chairperson_id = ?, 
             vice_chair_id = ?, 
             secretary_id = ?,
+            creation_authority = ?,
             is_active = ?
         WHERE committee_id = ?");
 
     $isActive = isset($data['is_active']) ? $data['is_active'] : true;
+    $authority = $data['creation_authority'] ?? 'N/A';
 
     $stmt->bind_param(
-        "ssssiiiii",  // 4 strings (name, type, description, jurisdiction) + 5 integers (3 user IDs, is_active, committee_id)
+        "ssssiiiisi",
         $data['name'],
         $data['type'],
         $data['description'],
@@ -202,11 +300,15 @@ function updateCommittee($id, $data)
         $data['chairperson_id'],
         $data['vice_chair_id'],
         $data['secretary_id'],
+        $authority,
         $isActive,
         $id
     );
 
     if ($stmt->execute()) {
+        // Automatically sync lead roles to member list
+        syncCommitteeLeadRoles($id, $data);
+
         // Build detailed change log
         $changes = [];
 
@@ -254,7 +356,7 @@ function updateCommittee($id, $data)
 }
 
 /**
- * Delete committee
+ * Archive committee (Professional Soft Delete)
  */
 function deleteCommittee($id)
 {
@@ -262,33 +364,26 @@ function deleteCommittee($id)
 
     // Get committee name for logging
     $committee = getCommitteeById($id);
+    if (!$committee)
+        return false;
+
     $committeeName = $committee['name'] ?? "ID: $id";
 
-    // Delete all audit logs related to this committee
-    $deleteLogsStmt = $conn->prepare("DELETE FROM audit_logs 
-        WHERE module = 'committees' 
-        AND (
-            description LIKE CONCAT('%committee \\'', ?, '\\'%')
-            OR description LIKE CONCAT('%ID: ', ?)
-            OR description LIKE CONCAT('%committee ID: ', ?)
-        )");
-    $deleteLogsStmt->bind_param("sii", $committeeName, $id, $id);
-    $deleteLogsStmt->execute();
-
-    $stmt = $conn->prepare("DELETE FROM committees WHERE committee_id = ?");
+    // Set is_active to 0 instead of deleting from database
+    $stmt = $conn->prepare("UPDATE committees SET is_active = 0 WHERE committee_id = ?");
     $stmt->bind_param("i", $id);
 
     if ($stmt->execute()) {
-        // Log the deletion action (this will be the last log for this committee)
+        // Log the archiving action
         if (function_exists('logAuditAction')) {
-            $details = "Deleted committee '{$committeeName}'";
+            $details = "Archived committee '{$committeeName}'";
             if (isset($committee['type'])) {
                 $details .= " (Type: {$committee['type']})";
             }
 
             logAuditAction(
                 $_SESSION['user_id'] ?? null,
-                'DELETE',
+                'ARCHIVE',
                 'committees',
                 $details
             );
@@ -297,8 +392,19 @@ function deleteCommittee($id)
         return true;
     }
 
-    error_log("Error deleting committee: " . $conn->error);
+    error_log("Error archiving committee: " . $conn->error);
     return false;
+}
+
+/**
+ * Restore an archived committee
+ */
+function restoreCommittee($id)
+{
+    global $conn;
+    $stmt = $conn->prepare("UPDATE committees SET is_active = 1 WHERE committee_id = ?");
+    $stmt->bind_param("i", $id);
+    return $stmt->execute();
 }
 
 /**
@@ -326,6 +432,7 @@ function getCommitteeMembers($committeeId)
                     WHEN 'Secretary' THEN 3
                     ELSE 4
                 END,
+                cm.membership_status DESC,
                 u.last_name ASC");
 
     $stmt->bind_param("i", $committeeId);
@@ -345,7 +452,8 @@ function getCommitteeMembers($committeeId)
             'position' => $row['user_position'],
             'department' => $row['department'],
             'join_date' => $row['join_date'],
-            'is_active' => $row['is_active']
+            'is_active' => $row['is_active'],
+            'membership_status' => $row['membership_status'] ?? 'Active'
         ];
     }
 
@@ -370,18 +478,28 @@ function addCommitteeMember($committeeId, $userId, $position = 'Member', $joinDa
     $checkStmt->execute();
     $checkResult = $checkStmt->get_result();
 
+    // Logic: If added by Secretary, status is Pending. If by Chair/Admin, status is Active.
+    $currentUserRole = $_SESSION['user_role'] ?? 'User';
+    $currentUserId = $_SESSION['user_id'] ?? 0;
+
+    $committee = getCommitteeById($committeeId);
+    $isChair = ($currentUserId == ($committee['chairperson_id'] ?? 0) || $currentUserId == ($committee['vice_chair_id'] ?? 0));
+    $isAdmin = ($currentUserRole === 'Admin' || $currentUserRole === 'Super Admin');
+
+    $status = ($isChair || $isAdmin) ? 'Active' : 'Pending';
+
     if ($checkResult->num_rows > 0) {
         // Update existing member
         $stmt = $conn->prepare("UPDATE committee_members 
-            SET position = ?, join_date = ?, is_active = 1 
+            SET position = ?, join_date = ?, is_active = 1, membership_status = ?
             WHERE committee_id = ? AND user_id = ?");
-        $stmt->bind_param("ssii", $position, $joinDate, $committeeId, $userId);
+        $stmt->bind_param("ssisi", $position, $joinDate, $status, $committeeId, $userId);
     } else {
         // Insert new member
         $stmt = $conn->prepare("INSERT INTO committee_members 
-            (committee_id, user_id, position, join_date, is_active) 
-            VALUES (?, ?, ?, ?, 1)");
-        $stmt->bind_param("iiss", $committeeId, $userId, $position, $joinDate);
+            (committee_id, user_id, position, join_date, is_active, membership_status) 
+            VALUES (?, ?, ?, ?, 1, ?)");
+        $stmt->bind_param("iisss", $committeeId, $userId, $position, $joinDate, $status);
     }
 
     if ($stmt->execute()) {
@@ -413,6 +531,33 @@ function addCommitteeMember($committeeId, $userId, $position = 'Member', $joinDa
 }
 
 /**
+ * Approve a pending committee member
+ */
+function approveCommitteeMember($committeeId, $memberId)
+{
+    global $conn;
+
+    // Finalize appointment
+    $stmt = $conn->prepare("UPDATE committee_members 
+        SET membership_status = 'Active' 
+        WHERE committee_id = ? AND member_id = ?");
+    $stmt->bind_param("ii", $committeeId, $memberId);
+
+    if ($stmt->execute()) {
+        if (function_exists('logAuditAction')) {
+            logAuditAction(
+                $_SESSION['user_id'] ?? null,
+                'APPROVE_MEMBER',
+                'committees',
+                "Approved member appointment ID: {$memberId} for committee ID: {$committeeId}"
+            );
+        }
+        return true;
+    }
+    return false;
+}
+
+/**
  * Remove member from committee
  */
 function removeCommitteeMember($committeeId, $userId)
@@ -436,13 +581,38 @@ function removeCommitteeMember($committeeId, $userId)
         $committee = getCommitteeById($committeeId);
         $committeeName = $committee['name'] ?? "Committee ID: $committeeId";
 
+        // NEW: Check if this user holds any leadership role in the committee
+        $roleCleanup = [];
+        if (($committee['chairperson_id'] ?? 0) == $userId) {
+            $updateChair = $conn->prepare("UPDATE committees SET chairperson_id = NULL WHERE committee_id = ?");
+            $updateChair->bind_param("i", $committeeId);
+            $updateChair->execute();
+            $roleCleanup[] = "Chairperson";
+        }
+        if (($committee['vice_chair_id'] ?? 0) == $userId) {
+            $updateVice = $conn->prepare("UPDATE committees SET vice_chair_id = NULL WHERE committee_id = ?");
+            $updateVice->bind_param("i", $committeeId);
+            $updateVice->execute();
+            $roleCleanup[] = "Vice-Chairperson";
+        }
+        if (($committee['secretary_id'] ?? 0) == $userId) {
+            $updateSec = $conn->prepare("UPDATE committees SET secretary_id = NULL WHERE committee_id = ?");
+            $updateSec->bind_param("i", $committeeId);
+            $updateSec->execute();
+            $roleCleanup[] = "Secretary";
+        }
+
         // Log the action with details
         if (function_exists('logAuditAction')) {
+            $details = "Removed '{$userName}' from committee '{$committeeName}'";
+            if (!empty($roleCleanup)) {
+                $details .= " (Automatic Role Removal: " . implode(", ", $roleCleanup) . ")";
+            }
             logAuditAction(
                 $_SESSION['user_id'] ?? null,
                 'REMOVE_MEMBER',
                 'committees',
-                "Removed '{$userName}' from committee '{$committeeName}'"
+                $details
             );
         }
 
@@ -607,6 +777,7 @@ function getAvailableUsersForCommittee($committeeId)
                 role_id
             FROM users
             WHERE is_active = 1
+            AND role_id NOT IN (1, 2) -- Exclude Super Admin and Admin
             AND user_id NOT IN (
                 SELECT user_id 
                 FROM committee_members 
@@ -862,9 +1033,9 @@ function saveCommitteeDocument($committeeId, $data, $file = null)
 // End of file
 
 /**
- * Delete committee document
+ * Remove committee document
  */
-function deleteCommitteeDocument($documentId)
+function removeCommitteeDocument($documentId)
 {
     global $conn;
 
@@ -924,6 +1095,39 @@ function isCommitteeMember($committeeId, $userId)
     $stmt->bind_param("ii", $committeeId, $userId);
     $stmt->execute();
     return $stmt->get_result()->num_rows > 0;
+}
+
+/**
+ * Get all approved resolutions for Legal Basis selection
+ */
+function getApprovedResolutions()
+{
+    global $conn;
+    $sql = "SELECT document_id, document_number, title 
+            FROM legislative_documents 
+            WHERE document_type = 'resolution' AND status = 'Approved'
+            ORDER BY created_at DESC";
+    $result = $conn->query($sql);
+    $items = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $items[] = $row;
+        }
+    }
+    return $items;
+}
+
+/**
+ * Check if a Creation Authority (string) exists as a document
+ */
+function getDocumentByNumber($number)
+{
+    global $conn;
+    $stmt = $conn->prepare("SELECT document_id, title FROM legislative_documents WHERE document_number = ?");
+    $stmt->bind_param("s", $number);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result ? $result->fetch_assoc() : null;
 }
 
 ?>

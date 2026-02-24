@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 require_once __DIR__ . '/../../../app/helpers/ReferralHelper.php';
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -51,7 +52,7 @@ if (isset($_POST['delete'])) {
         exit();
     }
     deleteCommittee($id);
-    $_SESSION['success_message'] = 'Committee deleted successfully';
+    $_SESSION['success_message'] = 'Committee has been archived successfully and preserved in the legislative records.';
     header('Location: index.php');
     exit();
 }
@@ -144,6 +145,30 @@ include '../../includes/header.php';
             </button>
         </div>
     </div>
+
+    <?php
+    // Check for pending members that need approval
+    $pendingMembersCount = count(array_filter($members, function ($m) {
+        return ($m['membership_status'] ?? 'Active') === 'Pending';
+    }));
+    $isChairOrAdmin = ($userRole === 'Admin' || $userRole === 'Super Admin' || $userId == ($committee['chairperson_id'] ?? 0) || $userId == ($committee['vice_chair_id'] ?? 0));
+
+    if ($pendingMembersCount > 0 && $isChairOrAdmin): ?>
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 animate-pulse">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="bi bi-person-exclamation text-yellow-600 text-xl"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700 font-bold">
+                        ACTION REQUIRED: There are <?php echo $pendingMembersCount; ?> pending member recommendations
+                        awaiting your official approval.
+                        <a href="members.php?id=<?php echo $id; ?>" class="underline ml-2">Approve Appointments →</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -636,6 +661,22 @@ include '../../includes/header.php';
                                 <?php echo htmlspecialchars($committee['status']); ?>
                             </span>
                         </div>
+                        <div class="md:col-span-2">
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Legal Basis (Authority)</p>
+                            <span class="font-bold text-gray-900 dark:text-white">
+                                <?php
+                                $authority = $committee['creation_authority'] ?? 'N/A';
+                                $linkedDoc = getDocumentByNumber($authority);
+                                if ($linkedDoc): ?>
+                                    <a href="../referral-management/view.php?id=<?php echo $linkedDoc['document_id']; ?>"
+                                        class="text-red-600 hover:text-red-700 underline" title="View Source Resolution">
+                                        <i class="bi bi-file-earmark-check mr-1"></i><?php echo htmlspecialchars($authority); ?>
+                                    </a>
+                                <?php else: ?>
+                                    <i class="bi bi-bank mr-1 text-gray-400"></i><?php echo htmlspecialchars($authority); ?>
+                                <?php endif; ?>
+                            </span>
+                        </div>
                     </div>
 
                     <div class="mt-6">
@@ -1020,11 +1061,12 @@ include '../../includes/header.php';
                         <?php endif; ?>
 
                         <?php if (canDelete($userId, 'committees', $id)): ?>
-                            <form method="POST" onsubmit="return confirm('Are you sure you want to delete this committee?');"
+                            <form method="POST"
+                                onsubmit="return confirm('Professional Record Preservation: Are you sure you want to ARCHIVE this committee? It will be removed from active status but preserved in the audit archives.');"
                                 class="mt-4">
                                 <button type="submit" name="delete"
-                                    class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
-                                    <i class="bi bi-trash mr-2"></i>Delete Committee
+                                    class="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                    <i class="bi bi-archive mr-2"></i>Archive Committee
                                 </button>
                             </form>
                         <?php endif; ?>

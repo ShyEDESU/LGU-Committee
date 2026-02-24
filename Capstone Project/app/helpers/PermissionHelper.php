@@ -13,9 +13,10 @@ function getRoles()
     return [
         1 => 'Super Admin',
         2 => 'Admin',
-        3 => 'Committee Chairman',
-        4 => 'Vice Committee Chairman',
-        5 => 'User'
+        3 => 'Chairman',
+        4 => 'Vice-Chair',
+        5 => 'Committee Member',
+        6 => 'Secretary'
     ];
 }
 
@@ -47,18 +48,18 @@ function getPermissionMatrix()
             'audit_logs' => ['read'],
             'agendas' => ['create', 'read', 'update', 'delete', 'manage_all']
         ],
-        'Committee Chairman' => [
+        'Chairman' => [
             'committees' => ['read', 'update'],
-            'meetings' => ['create', 'read', 'update'],
+            'meetings' => ['create', 'read', 'update', 'delete', 'approve'], // 'delete' is Archive
             'referrals' => ['read', 'update'],
-            'action_items' => ['create', 'read', 'update'],
-            'reports' => ['create', 'read', 'update', 'publish'],
+            'action_items' => ['create', 'read', 'update', 'delete'],
+            'reports' => ['create', 'read', 'update', 'publish', 'delete'],
             'users' => [],
             'settings' => [],
-            'agendas' => ['create', 'read', 'update']
+            'agendas' => ['create', 'read', 'update', 'delete', 'approve'] // Chair can Approve
         ],
-        'Vice Committee Chairman' => [
-            'committees' => ['read', 'update'],
+        'Vice-Chair' => [
+            'committees' => ['read'],
             'meetings' => ['create', 'read', 'update'],
             'referrals' => ['read', 'update'],
             'action_items' => ['create', 'read', 'update'],
@@ -67,7 +68,7 @@ function getPermissionMatrix()
             'settings' => [],
             'agendas' => ['read', 'update']
         ],
-        'User' => [
+        'Committee Member' => [
             'committees' => ['read'],
             'meetings' => ['read'],
             'referrals' => ['read'],
@@ -76,6 +77,16 @@ function getPermissionMatrix()
             'users' => [],
             'settings' => [],
             'agendas' => ['read']
+        ],
+        'Secretary' => [
+            'committees' => ['read', 'update'],
+            'meetings' => ['create', 'read', 'update'], // Secretary can schedule "By Order"
+            'referrals' => ['read', 'update'],
+            'action_items' => ['create', 'read', 'update'],
+            'reports' => ['read'],
+            'users' => [],
+            'settings' => [],
+            'agendas' => ['create', 'read', 'update', 'delete'] // Secretary drafts/archives
         ]
     ];
 }
@@ -151,9 +162,39 @@ function canRead($userId, $module)
 /**
  * Can update
  */
-function canUpdate($userId, $module)
+function canUpdate($userId, $module, $itemId = null)
 {
-    return hasPermission($userId, $module, 'update');
+    // First check matrix permission
+    if (!hasPermission($userId, $module, 'update')) {
+        return false;
+    }
+
+    // If no specific item, we just check general permission
+    if ($itemId === null) {
+        return true;
+    }
+
+    // Admins can update anything
+    $user = UserHelper_getUserById($userId);
+    if ($user && ($user['role_name'] === 'Super Admin' || $user['role_name'] === 'Admin')) {
+        return true;
+    }
+
+    // Item-specific ownership/leadership checks
+    if ($module === 'committees') {
+        require_once __DIR__ . '/CommitteeHelper.php';
+        $committee = getCommitteeById($itemId);
+        if ($committee) {
+            // Chairperson, Vice Chairperson, and Secretary can update their committee
+            return (
+                $userId == ($committee['chairperson_id'] ?? 0) ||
+                $userId == ($committee['vice_chair_id'] ?? 0) ||
+                $userId == ($committee['secretary_id'] ?? 0)
+            );
+        }
+    }
+
+    return true; // Default to true if no specific ownership check defined but matrix allows
 }
 
 /**
@@ -194,17 +235,67 @@ function canDelete($userId, $module, $itemId = null)
 /**
  * Can approve
  */
-function canApprove($userId, $module)
+function canApprove($userId, $module, $itemId = null)
 {
-    return hasPermission($userId, $module, 'approve');
+    if (!hasPermission($userId, $module, 'approve')) {
+        return false;
+    }
+
+    if ($itemId === null) {
+        return true;
+    }
+
+    $user = UserHelper_getUserById($userId);
+    if ($user && ($user['role_name'] === 'Super Admin' || $user['role_name'] === 'Admin')) {
+        return true;
+    }
+
+    // Item-specific ownership/leadership checks
+    if ($module === 'meetings' || $module === 'agendas') {
+        require_once __DIR__ . '/CommitteeHelper.php';
+
+        // For agendas, we check the meeting first
+        if ($module === 'agendas') {
+            require_once __DIR__ . '/MeetingHelper.php';
+            $meeting = getMeetingById($itemId);
+            $committeeId = $meeting['committee_id'] ?? 0;
+        } else {
+            require_once __DIR__ . '/MeetingHelper.php';
+            $meeting = getMeetingById($itemId);
+            $committeeId = $meeting['committee_id'] ?? 0;
+        }
+
+        if ($committeeId) {
+            $committee = getCommitteeById($committeeId);
+            if ($committee) {
+                // Only Chairperson can approve (Vice Chairman can be added if needed)
+                return ($userId == ($committee['chairperson_id'] ?? 0));
+            }
+        }
+    }
+
+    return false;
 }
 
 /**
  * Can publish
  */
-function canPublish($userId, $module)
+function canPublish($userId, $module, $itemId = null)
 {
-    return hasPermission($userId, $module, 'publish');
+    if (!hasPermission($userId, $module, 'publish')) {
+        return false;
+    }
+
+    if ($itemId === null) {
+        return true;
+    }
+
+    $user = UserHelper_getUserById($userId);
+    if ($user && ($user['role_name'] === 'Super Admin' || $user['role_name'] === 'Admin')) {
+        return true;
+    }
+
+    return false; // Default to Admin-only for publishing unless explicit leadership logic added
 }
 
 /**

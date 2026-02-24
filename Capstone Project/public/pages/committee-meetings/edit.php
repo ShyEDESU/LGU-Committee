@@ -2,11 +2,14 @@
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
     exit();
 }
+
+$userId = $_SESSION['user_id'];
 
 $id = $_GET['id'] ?? 0;
 $meeting = getMeetingById($id);
@@ -14,6 +17,12 @@ $meeting = getMeetingById($id);
 if (!$meeting) {
     $_SESSION['error_message'] = 'Meeting not found';
     header('Location: index.php');
+    exit();
+}
+
+if (!canUpdate($userId, 'meetings', $id)) {
+    $_SESSION['error_message'] = 'Unauthorized to edit this meeting. Administrative updates are restricted to the Committee Secretariat and Leadership.';
+    header('Location: view.php?id=' . $id);
     exit();
 }
 
@@ -71,8 +80,11 @@ include '../../includes/header.php';
 
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Edit Meeting</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">Update meeting details</p>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Secretary Workspace: Meeting Details</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                <i class="bi bi-info-circle text-blue-600 mr-1"></i>
+                Logistics & Administrative Updates: By Order of the Committee Chairperson
+            </p>
         </div>
         <a href="view.php?id=<?php echo $id; ?>" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg">
             <i class="bi bi-x-lg mr-2"></i>Cancel
@@ -158,11 +170,16 @@ include '../../includes/header.php';
                 </label>
                 <select name="status" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
                     <?php
-                    $statuses = ['Scheduled', 'Ongoing', 'Completed', 'Cancelled'];
-                    foreach ($statuses as $status):
+                    $statusLabels = [
+                        'Scheduled' => 'CALLED',
+                        'Ongoing' => 'DELIBERATING',
+                        'Completed' => 'ADJOURNED',
+                        'Cancelled' => 'ARCHIVED'
+                    ];
+                    foreach ($statusLabels as $value => $label):
                     ?>
-                        <option value="<?php echo $status; ?>" <?php echo $meeting['status'] === $status ? 'selected' : ''; ?>>
-                            <?php echo $status; ?>
+                        <option value="<?php echo $value; ?>" <?php echo $meeting['status'] === $value ? 'selected' : ''; ?>>
+                            <?php echo $label; ?>
                         </option>
                     <?php endforeach; ?>
                 </select>

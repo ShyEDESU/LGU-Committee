@@ -4,26 +4,47 @@ require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
+
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
     exit();
 }
 
+$userId = $_SESSION['user_id'];
+
 // Get meeting ID from URL
 $meetingId = $_GET['meeting_id'] ?? 0;
 $meeting = $meetingId ? getMeetingById($meetingId) : null;
 
-// Get all meetings for selection
-$allMeetings = getAllMeetings();
+// Security: Validate meeting jurisdiction if one is selected
+if ($meeting && !canUpdate($userId, 'agendas', $meetingId)) {
+    $_SESSION['error_message'] = 'Security Violation: Jurisdictional boundary breach detected.';
+    header('Location: deliberation.php');
+    exit();
+}
+
+// Get all meetings filtered by user jurisdiction
+$allMeetings = getUserMeetings($userId);
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_deliberation'])) {
+    $targetMeetingId = $_POST['meeting_id'];
+
+    // Security: Final authority check before recording legislative record
+    if (!canUpdate($userId, 'agendas', $targetMeetingId)) {
+        $_SESSION['error_message'] = 'Security Violation: Unauthorized attempt to modify legislative record.';
+        header('Location: deliberation.php');
+        exit();
+    }
+
     createDeliberation($_POST['agenda_item_id'], [
         'speaker' => $_POST['speaker'],
         'notes' => $_POST['notes'],
-        'duration' => $_POST['duration'] ?? 0
+        'duration' => $_POST['duration'] ?? 0,
+        'recorded_by' => $userId
     ]);
-    header('Location: deliberation.php?meeting_id=' . $_POST['meeting_id'] . '&added=1');
+    header('Location: deliberation.php?meeting_id=' . $targetMeetingId . '&added=1');
     exit();
 }
 

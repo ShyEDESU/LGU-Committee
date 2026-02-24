@@ -63,10 +63,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['success_message'] = 'Referral reassigned successfully';
         header('Location: view.php?id=' . $referralId);
         exit();
-    } elseif (isset($_POST['delete'])) {
-        deleteReferral($referralId);
-        $_SESSION['success_message'] = 'Referral deleted successfully';
-        header('Location: index.php');
+    } elseif (isset($_POST['archive_referral'])) {
+        archiveReferral($referralId);
+        $_SESSION['success_message'] = 'Referral has been successfully archived in the legislative records.';
+        header('Location: index.php?archived=1');
         exit();
     }
 }
@@ -289,34 +289,36 @@ include '../../includes/header.php';
                     class="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition text-sm flex items-center justify-center">
                     <i class="bi bi-pencil mr-2"></i> Edit Referral
                 </a>
-                <button onclick="confirmDelete()"
-                    class="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition text-sm">
-                    <i class="bi bi-trash mr-2"></i> Delete Referral
+                <button onclick="confirmArchive()"
+                    class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition flex items-center">
+                    <i class="bi bi-archive mr-2"></i> Archive Referral
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div id="deleteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4">
-        <div class="flex items-center mb-4">
-            <i class="bi bi-exclamation-triangle-fill text-red-500 text-3xl mr-3"></i>
-            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Confirm Delete</h3>
+<!-- Archive Confirmation Modal -->
+<div id="archiveModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6 shadow-2xl mx-4">
+        <div class="flex items-center mb-4 text-red-600">
+            <i class="bi bi-exclamation-triangle-fill text-3xl mr-3"></i>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Confirm Archiving</h3>
         </div>
         <p class="text-gray-600 dark:text-gray-400 mb-6">
-            Are you sure you want to delete this referral? This action cannot be undone.
+            Are you sure you want to archive this referral? It will be preserved in the legislative records but removed
+            from active deliberation.
         </p>
         <div class="flex justify-end space-x-3">
-            <button onclick="closeDeleteModal()"
-                class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            <button onclick="closeArchiveModal()"
+                class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
                 Cancel
             </button>
-            <form method="POST" class="inline">
-                <input type="hidden" name="delete" value="1">
-                <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
-                    Delete
+            <form method="POST">
+                <input type="hidden" name="archive_referral" value="1">
+                <button type="submit"
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-semibold">
+                    Archive
                 </button>
             </form>
         </div>
@@ -324,12 +326,12 @@ include '../../includes/header.php';
 </div>
 
 <script>
-    function confirmDelete() {
-        document.getElementById('deleteModal').classList.remove('hidden');
+    function confirmArchive() {
+        document.getElementById('archiveModal').classList.remove('hidden');
     }
 
-    function closeDeleteModal() {
-        document.getElementById('deleteModal').classList.add('hidden');
+    function closeArchiveModal() {
+        document.getElementById('archiveModal').classList.add('hidden');
     }
 </script>
 

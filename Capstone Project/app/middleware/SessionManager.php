@@ -28,6 +28,33 @@ class SessionManager
     }
 
     /**
+     * Verify credentials without starting a session (Pre-authentication)
+     */
+    public function verifyCredentials($email, $password)
+    {
+        $query = "SELECT u.user_id, u.email, u.first_name, u.last_name, u.password_hash, u.role_id, u.email_verified, u.is_active, r.role_name 
+                  FROM users u 
+                  JOIN roles r ON u.role_id = r.role_id 
+                  WHERE u.email = ? AND u.is_active = TRUE AND u.email_verified = TRUE";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows === 1) {
+            $user = $result->fetch_assoc();
+            if (password_verify($password, $user['password_hash'])) {
+                return $user;
+            }
+        }
+
+        // Log failed attempt
+        $this->logAuditAction(0, 'PREAUTH_FAILED', 'Authentication', 'Failed pre-authentication attempt with email: ' . $email);
+        return false;
+    }
+
+    /**
      * Authenticate user with credentials
      */
     public function authenticate($email, $password)
@@ -72,6 +99,79 @@ class SessionManager
 
         // Log failed login attempt with email
         $this->logAuditAction(0, 'LOGIN_FAILED', 'Authentication', 'Failed login attempt with email: ' . $email);
+
+        return false;
+    }
+
+    /**
+     * Set temporary session for OTP verification
+     */
+    public function setPreAuthSession($user)
+    {
+        // Unset any existing full session
+        $_SESSION = array();
+
+        $_SESSION['otp_user_id'] = $user['user_id'];
+        $_SESSION['otp_email'] = $user['email'];
+        $_SESSION['otp_name'] = $user['first_name'] . ' ' . $user['last_name'];
+        $_SESSION['is_otp_pending'] = true;
+        $_SESSION['otp_start_time'] = time();
+
+        return true;
+    }
+
+    /**
+     * Complete authentication after OTP verification
+     */
+    public function completeAuthentication($user_id)
+    {
+        $query = "SELECT u.user_id, u.email, u.first_name, u.last_name, u.role_id, r.role_name 
+                  FROM users u 
+                  JOIN roles r ON u.role_id = r.role_id 
+                  WHERE u.user_id = ? AND u.is_active = TRUE";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows === 1) {
+            $user = $result->fetch_assoc();
+
+            // Clear OTP from DB
+            $clear_query = "UPDATE users SET otp_code = NULL, otp_expiry = NULL WHERE user_id = ?";
+            $clear_stmt = $this->conn->prepare($clear_query);
+            $clear_stmt->bind_param("i", $user_id);
+            $clear_stmt->execute();
+
+            // Clear OTP session variables
+            unset($_SESSION['otp_user_id']);
+            unset($_SESSION['otp_email']);
+            unset($_SESSION['otp_name']);
+            unset($_SESSION['is_otp_pending']);
+            unset($_SESSION['otp_start_time']);
+
+            // Update last login
+            $this->updateLastLogin($user['user_id']);
+
+            // Set full session variables
+            $_SESSION['user_id'] = $user['user_id'];
+            $_SESSION['email'] = $user['email'];
+            $_SESSION['full_name'] = $user['first_name'] . ' ' . $user['last_name'];
+            $_SESSION['role_id'] = $user['role_id'];
+            $_SESSION['role_name'] = $user['role_name'];
+            $_SESSION['login_time'] = time();
+
+            // Frontend compatibility keys
+            $_SESSION['user_name'] = $_SESSION['full_name'];
+            $_SESSION['user_email'] = $_SESSION['email'];
+            $_SESSION['user_role'] = $_SESSION['role_name'];
+
+            // Log the login action
+            $this->logAuditAction($user['user_id'], 'LOGIN_OTP_VERIFIED', 'Authentication', 'User logged in successfully after OTP verification');
+
+            return true;
+        }
 
         return false;
     }

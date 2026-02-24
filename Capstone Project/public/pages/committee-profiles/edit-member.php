@@ -17,6 +17,15 @@ if (!$committee) {
     exit();
 }
 
+// Permission Check
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
+$currentUserId = $_SESSION['user_id'] ?? 0;
+if (!canEdit($currentUserId, 'committees', $committeeId)) {
+    $_SESSION['error_message'] = 'Unauthorized access to committee management';
+    header('Location: view.php?id=' . $committeeId);
+    exit();
+}
+
 // Find the member to edit from database
 $members = getCommitteeMembers($committeeId);
 $member = null;

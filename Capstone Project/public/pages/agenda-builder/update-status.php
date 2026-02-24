@@ -33,6 +33,8 @@ if (empty($meetingId) || empty($newStatus)) {
     exit();
 }
 
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
+
 // Validate meeting exists
 $meeting = getMeetingById($meetingId);
 if (!$meeting) {
@@ -41,8 +43,51 @@ if (!$meeting) {
     exit();
 }
 
-// Update the meeting status
-$result = updateMeeting($meetingId, ['agenda_status' => $newStatus]);
+// Permission Checks based on Role-Based Governance
+$userId = $_SESSION['user_id'];
+
+if ($newStatus === 'Under Review') {
+    if (!canUpdate($userId, 'agendas', $meetingId)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Unauthorized to submit for review']);
+        exit();
+    }
+} elseif ($newStatus === 'Approved') {
+    if (!canApprove($userId, 'agendas', $meetingId)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Only the Committee Chairperson or Admin can approve the agenda']);
+        exit();
+    }
+} elseif ($newStatus === 'Published') {
+    if (!canPublish($userId, 'agendas', $meetingId)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Unauthorized to publish the agenda']);
+        exit();
+    }
+} elseif ($newStatus === 'Draft' || $newStatus === 'Archived') {
+    if (!canUpdate($userId, 'agendas', $meetingId)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Unauthorized to change agenda status']);
+        exit();
+    }
+}
+
+// Prepare meeting update data
+$updateData = ['agenda_status' => $newStatus];
+
+// Governance Logic: Legal Notice Timestamping
+if ($newStatus === 'Published') {
+    // Only set posted_at if it hasn't been set yet (first publication)
+    if (empty($meeting['posted_at'])) {
+        $updateData['posted_at'] = date('Y-m-d H:i:s');
+    } else {
+        // If it was already published once, any subsequent publication is an Amendment
+        $updateData['is_amended'] = 1;
+    }
+}
+
+// Update the meeting status and governance attributes
+$result = updateMeeting($meetingId, $updateData);
 
 if ($result) {
     // Update session activity to keep user logged in

@@ -4,14 +4,34 @@ require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
+
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
+    exit();
+}
+
+$userId = $_SESSION['user_id'];
+
+// Access Control: Professional Initiation Lockdown
+if (!canCreate($userId, 'agendas')) {
+    $_SESSION['error_message'] = 'Unauthorized: Agenda initiation is restricted to the Committee Secretariat and Leadership.';
+    header('Location: index.php');
     exit();
 }
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $meetingId = $_POST['meeting_id'];
+
+    // Validate meeting ownership/jurisdiction before processing
+    $meetingCheck = getMeetingById($meetingId);
+    if (!$meetingCheck || !canUpdate($userId, 'agendas', $meetingId)) {
+        $_SESSION['error_message'] = 'Security Violation: Jurisdictional boundary breach detected.';
+        header('Location: index.php');
+        exit();
+    }
+
     $templateId = $_POST['template_id'] ?? null;
 
     // If template is selected, apply it
@@ -48,8 +68,9 @@ $pageTitle = 'Create Agenda';
 include '../../includes/header.php';
 
 // Get all committees and meetings
-$committees = getAllCommittees();
-$allMeetings = getAllMeetings();
+// Get committees and meetings filtered by user jurisdiction
+$committees = getUserCommittees($userId);
+$allMeetings = getUserMeetings($userId, ['status' => 'Scheduled']);
 $templates = getAllAgendaTemplates();
 
 // Get selected committee for filtering meetings

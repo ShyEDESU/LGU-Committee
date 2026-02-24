@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `address` TEXT,
   `is_active` BOOLEAN DEFAULT FALSE,
   `email_verified` BOOLEAN DEFAULT FALSE,
+  `otp_code` VARCHAR(10) NULL,
+  `otp_expiry` DATETIME NULL,
   `verification_token` VARCHAR(255),
   `verification_token_expires` DATETIME,
   `password_reset_token` VARCHAR(255),
@@ -87,6 +89,7 @@ CREATE TABLE IF NOT EXISTS `committees` (
   `chairperson_id` INT,
   `vice_chair_id` INT,
   `secretary_id` INT,
+  `creation_authority` TEXT COMMENT 'Legal Basis: Resolution or Ordinance #',
   `is_active` BOOLEAN DEFAULT TRUE,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -108,6 +111,7 @@ CREATE TABLE IF NOT EXISTS `committee_members` (
   `position` VARCHAR(100),
   `join_date` DATE,
   `is_active` BOOLEAN DEFAULT TRUE,
+  `membership_status` ENUM('Pending', 'Active') DEFAULT 'Active',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY `unique_committee_user` (`committee_id`, `user_id`),
   FOREIGN KEY (`committee_id`) REFERENCES `committees`(`committee_id`) ON DELETE CASCADE,
@@ -129,8 +133,10 @@ CREATE TABLE IF NOT EXISTS `meetings` (
   `meeting_end_time` DATETIME,
   `location` VARCHAR(200),
   `status` ENUM('Scheduled', 'Ongoing', 'Completed', 'Cancelled') DEFAULT 'Scheduled',
-  `agenda_status` ENUM('None', 'Draft', 'Under Review', 'Approved', 'Published') DEFAULT 'None',
+  `agenda_status` ENUM('None', 'Draft', 'Under Review', 'Approved', 'Published', 'Archived') DEFAULT 'None',
   `is_public` BOOLEAN DEFAULT TRUE,
+  `posted_at` DATETIME NULL COMMENT 'Statutory Public Notice Posting Timestamp',
+  `is_amended` BOOLEAN DEFAULT FALSE COMMENT 'Flag for Revised/Amended Agendas',
   `notes` TEXT,
   `created_by` INT NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -213,8 +219,9 @@ CREATE TABLE IF NOT EXISTS `agenda_items` (
   `duration` INT COMMENT 'Duration in minutes',
   `item_type` ENUM('Procedural', 'Presentation', 'Discussion', 'Voting', 'Report', 'Public Input', 'Other') NOT NULL,
   `referral_id` INT COMMENT 'Related referral if applicable',
+  `is_consent` BOOLEAN DEFAULT FALSE COMMENT 'Part of Consent Calendar?',
   `notes` TEXT,
-  `status` ENUM('Pending', 'In Progress', 'Completed', 'Deferred') DEFAULT 'Pending',
+  `status` ENUM('Pending', 'In Progress', 'Completed', 'Deferred', 'Archived') DEFAULT 'Pending',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`meeting_id`) REFERENCES `meetings`(`meeting_id`) ON DELETE CASCADE,
@@ -256,6 +263,7 @@ CREATE TABLE IF NOT EXISTS `referrals` (
   `referral_id` INT AUTO_INCREMENT PRIMARY KEY,
   `document_id` INT NOT NULL,
   `referral_type` ENUM('incoming', 'outgoing') NOT NULL,
+  `endorsement_number` VARCHAR(50) NULL COMMENT 'Official inbound endorsement tracking number',
   `to_committee_id` INT,
   `assigned_to_user_id` INT COMMENT 'User assigned to handle this referral',
   `assigned_date` DATETIME NOT NULL,
@@ -280,6 +288,7 @@ CREATE TABLE IF NOT EXISTS `referrals` (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS `tasks` (
   `task_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `meeting_id` INT NULL COMMENT 'Originating meeting ID (Provenance)',
   `committee_id` INT COMMENT 'Related committee',
   `title` VARCHAR(200) NOT NULL,
   `description` TEXT,
@@ -332,6 +341,7 @@ CREATE TABLE IF NOT EXISTS `system_settings` (
   `lgu_contact` VARCHAR(20),
   `lgu_email` VARCHAR(100),
   `lgu_logo_path` VARCHAR(255),
+  `base_url` VARCHAR(255) NULL,
   `theme_color` VARCHAR(20) DEFAULT '#dc2626',
   `timezone` VARCHAR(50) DEFAULT 'Asia/Manila',
   `auto_backup_enabled` BOOLEAN DEFAULT TRUE,
@@ -394,9 +404,10 @@ CREATE TABLE IF NOT EXISTS `error_logs` (
 INSERT INTO `roles` (`role_name`, `description`, `permissions`) VALUES
 ('Super Admin', 'Complete system access - reserves for future automation/API', JSON_OBJECT('all_modules', true, 'user_management', true, 'system_settings', true, 'user_approval', true, 'role_management', true, 'super_admin_panel', true, 'agendas', true)),
 ('Admin', 'Full system access for LGU admins', JSON_OBJECT('all_modules', true, 'user_management', true, 'system_settings', true, 'user_approval', true, 'agendas', true)),
-('Committee Chairman', 'Can manage assigned committees, meetings, and agendas', JSON_OBJECT('committee_management', true, 'document_creation', true, 'meeting_scheduling', true, 'agendas', true)),
-('Vice Committee Chairman', 'Deputy head of a committee with management privileges', JSON_OBJECT('committee_management', true, 'document_creation', true, 'meeting_scheduling', true, 'agendas', true)),
-('User', 'Committee member access - can view and participate in meetings', JSON_OBJECT('view_public_documents', true, 'view_calendar', true, 'view_ordinances', true, 'vote', true, 'agendas', true));
+('Chairman', 'Can manage assigned committees, meetings, and agendas', JSON_OBJECT('committee_management', true, 'document_creation', true, 'meeting_scheduling', true, 'agendas', true)),
+('Vice-Chair', 'Deputy head of a committee with management privileges', JSON_OBJECT('committee_management', true, 'document_creation', true, 'meeting_scheduling', true, 'agendas', true)),
+('Committee Member', 'Committee member access - can view and participate in meetings', JSON_OBJECT('view_public_documents', true, 'view_calendar', true, 'view_ordinances', true, 'vote', true, 'agendas', true)),
+('Secretary', 'Administrative role for managing committee data and minutes', JSON_OBJECT('committee_management', true, 'meeting_scheduling', true, 'drafting_minutes', true, 'agendas', true));
 
 -- ============================================================================
 -- INSERT DEFAULT ADMIN USERS

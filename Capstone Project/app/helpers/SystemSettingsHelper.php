@@ -19,7 +19,12 @@ function getSystemSettings()
     $result = $conn->query($query);
 
     if ($result && $result->num_rows > 0) {
-        return $result->fetch_assoc();
+        $settings = $result->fetch_assoc();
+        // Fallback to auto-detection if DB value is empty
+        if (empty($settings['base_url'])) {
+            $settings['base_url'] = detectBaseUrl();
+        }
+        return $settings;
     }
 
     // Return defaults if table is empty
@@ -28,6 +33,7 @@ function getSystemSettings()
         'lgu_address' => 'Poblacion, Valenzuela City',
         'lgu_contact' => '(02) 123-4567',
         'lgu_email' => 'contact@valenzuela.gov.ph',
+        'base_url' => detectBaseUrl(),
         'lgu_logo_path' => 'assets/images/logo.png',
         'theme_color' => '#dc2626',
         'timezone' => 'Asia/Manila',
@@ -71,6 +77,7 @@ function updateSystemSettings($data, $updatedBy)
         ['v' => $data['lgu_address'], 't' => 's'],
         ['v' => $data['lgu_contact'], 't' => 's'],
         ['v' => $data['lgu_email'], 't' => 's'],
+        ['v' => $data['base_url'], 't' => 's'],
         ['v' => $data['lgu_logo_path'], 't' => 's'],
         ['v' => $data['theme_color'], 't' => 's'],
         ['v' => $data['timezone'], 't' => 's'],
@@ -104,12 +111,14 @@ function updateSystemSettings($data, $updatedBy)
             $decrypted = SecurityHelper::decrypt($data['smtp_pass']);
             if ($decrypted === $data['smtp_pass']) {
                 $encrypted = SecurityHelper::encrypt($data['smtp_pass']);
-                $params[16]['v'] = $encrypted; // Update password in params array
+                // The params array is constructed based on the keys. 
+                // smtp_pass is the 18th field (index 17).
+                $params[17]['v'] = $encrypted;
             }
         }
 
         $sql = "UPDATE system_settings SET 
-            lgu_name = ?, lgu_address = ?, lgu_contact = ?, lgu_email = ?, lgu_logo_path = ?,
+            lgu_name = ?, lgu_address = ?, lgu_contact = ?, lgu_email = ?, base_url = ?, lgu_logo_path = ?,
             theme_color = ?, timezone = ?, auto_backup_enabled = ?, backup_frequency = ?, maintenance_mode = ?,
             session_timeout = ?, min_password_length = ?, require_special_chars = ?,
             smtp_host = ?, smtp_port = ?, smtp_user = ?, smtp_pass = ?, smtp_encryption = ?,
@@ -134,15 +143,15 @@ function updateSystemSettings($data, $updatedBy)
         // For Insert, encrypt password before creating params
         if (!empty($data['smtp_pass'])) {
             $data['smtp_pass'] = SecurityHelper::encrypt($data['smtp_pass']);
-            $params[16]['v'] = $data['smtp_pass'];
+            $params[17]['v'] = $data['smtp_pass'];
         }
 
         $sql = "INSERT INTO system_settings (
-            lgu_name, lgu_address, lgu_contact, lgu_email, lgu_logo_path, theme_color, timezone, 
+            lgu_name, lgu_address, lgu_contact, lgu_email, base_url, lgu_logo_path, theme_color, timezone, 
             auto_backup_enabled, backup_frequency, maintenance_mode, session_timeout, min_password_length, 
             require_special_chars, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_encryption, 
             log_retention_days, system_title, system_acronym, default_language, date_format, time_format, updated_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $conn->prepare($sql);
 
@@ -160,4 +169,46 @@ function updateSystemSettings($data, $updatedBy)
     $stmt->close();
     return $result;
 }
+
+/**
+ * Automatically detects the base URL of the application.
+ */
+function detectBaseUrl()
+{
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) ? "https" : "http";
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+    // Get the script name (e.g., /Capstone Project/public/index.php)
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+
+    // Find where /public/ or /app/ or any other known entry path starts
+    $entryPoints = ['/public', '/app', '/auth', '/api', '/pages'];
+    $basePath = '';
+
+    foreach ($entryPoints as $point) {
+        $pos = strpos($scriptName, $point . '/');
+        if ($pos !== false) {
+            $basePath = substr($scriptName, 0, $pos);
+            break;
+        }
+    }
+
+    // If no entry point found, just use the directory of the current script if it's not root
+    if (empty($basePath) && $scriptName !== '/index.php' && !empty($scriptName)) {
+        $baseDir = dirname($scriptName);
+        if ($baseDir !== '/' && $baseDir !== '\\') {
+            $basePath = rtrim($baseDir, '/\\');
+            // If it still points to a helper dir, we might need to go up
+            if (strpos($basePath, '/app/helpers') !== false) {
+                $basePath = str_replace('/app/helpers', '', $basePath);
+            }
+        }
+    }
+
+    // Ensure we don't return backslashes in URL and handle spaces for local dev folders
+    $basePath = str_replace('\\', '/', $basePath);
+
+    return $protocol . "://" . $host . rtrim($basePath, '/');
+}
+
 ?>

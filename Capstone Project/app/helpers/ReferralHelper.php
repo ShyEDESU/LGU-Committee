@@ -15,7 +15,19 @@ function getAllReferrals()
     global $conn;
 
     $sql = "SELECT 
-                r.*,
+                r.endorsement_number,
+                r.referral_id,
+                r.document_id,
+                r.referral_type,
+                r.to_committee_id,
+                r.assigned_to_user_id,
+                r.assigned_date,
+                r.deadline_date,
+                r.status,
+                r.notes,
+                r.created_by,
+                r.created_at,
+                r.updated_at,
                 ld.title,
                 ld.document_number,
                 ld.document_type as type,
@@ -53,6 +65,7 @@ function getAllReferrals()
             'assigned_to' => $row['assigned_to_name'] ?? 'Not Assigned',
             'assigned_member_id' => $row['assigned_to_user_id'],
             'deadline' => $row['deadline_date'],
+            'endorsement_number' => $row['endorsement_number'],
             'created_at' => $row['created_at'],
             'notes' => $row['notes'],
             'is_public' => (bool) $row['is_public']
@@ -70,7 +83,7 @@ function getReferralById($id)
     global $conn;
 
     $sql = "SELECT 
-                r.*,
+                r.endorsement_number,
                 ld.title,
                 ld.document_number,
                 ld.document_type as type,
@@ -112,6 +125,7 @@ function getReferralById($id)
         'created_at' => $row['created_at'],
         'updated_at' => $row['updated_at'] ?? null,
         'notes' => $row['notes'],
+        'endorsement_number' => $row['endorsement_number'],
         'is_public' => (bool) $row['is_public']
     ];
 }
@@ -150,8 +164,8 @@ function createReferral($data)
         $assignedDate = date('Y-m-d H:i:s');
         $deadline = $data['deadline'] ?? null;
 
-        $stmtRef = $conn->prepare("INSERT INTO referrals (document_id, referral_type, to_committee_id, assigned_to_user_id, assigned_date, deadline_date, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmtRef->bind_param("isiisssi", $documentId, $referralType, $data['committee_id'], $assignedTo, $assignedDate, $deadline, $data['notes'], $createdBy);
+        $stmtRef = $conn->prepare("INSERT INTO referrals (document_id, referral_type, endorsement_number, to_committee_id, assigned_to_user_id, assigned_date, deadline_date, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmtRef->bind_param("isssiisss", $documentId, $referralType, $data['endorsement_number'], $data['committee_id'], $assignedTo, $assignedDate, $deadline, $data['notes'], $createdBy);
 
         if (!$stmtRef->execute()) {
             throw new Exception("Failed to create referral: " . $stmtRef->error);
@@ -238,8 +252,8 @@ function updateReferral($id, $data)
         $deadline = $data['deadline'] ?? $referral['deadline'];
         $status = $data['status'] ?? $referral['status'];
 
-        $stmtRef = $conn->prepare("UPDATE referrals SET to_committee_id = ?, assigned_to_user_id = ?, deadline_date = ?, status = ?, notes = ? WHERE referral_id = ?");
-        $stmtRef->bind_param("iisssi", $data['committee_id'], $assignedTo, $deadline, $status, $data['notes'], $id);
+        $stmtRef = $conn->prepare("UPDATE referrals SET to_committee_id = ?, assigned_to_user_id = ?, endorsement_number = ?, deadline_date = ?, status = ?, notes = ? WHERE referral_id = ?");
+        $stmtRef->bind_param("iissssi", $data['committee_id'], $assignedTo, $data['endorsement_number'], $deadline, $status, $data['notes'], $id);
 
         if (!$stmtRef->execute()) {
             throw new Exception("Failed to update referral: " . $stmtRef->error);
@@ -264,9 +278,9 @@ function updateReferral($id, $data)
 }
 
 /**
- * Delete referral and linked document
+ * Archive referral (Soft-delete for legislative records)
  */
-function deleteReferral($id)
+function archiveReferral($id)
 {
     global $conn;
 
@@ -277,22 +291,20 @@ function deleteReferral($id)
     $conn->begin_transaction();
 
     try {
-        // Referral will be deleted automatically if ON DELETE CASCADE is set on document_id, 
-        // but let's be explicit if needed. The schema shows FOREIGN KEY (document_id) REFERENCES legislative_documents(document_id) ON DELETE CASCADE.
+        // Professional Archiving: Update status to 'Archived' instead of deleting
+        $stmt = $conn->prepare("UPDATE referrals SET status = 'Archived' WHERE referral_id = ?");
+        $stmt->bind_param("i", $id);
 
-        $stmtDoc = $conn->prepare("DELETE FROM legislative_documents WHERE document_id = ?");
-        $stmtDoc->bind_param("i", $referral['document_id']);
-
-        if (!$stmtDoc->execute()) {
-            throw new Exception("Failed to delete legislative document: " . $stmtDoc->error);
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to archive referral: " . $stmt->error);
         }
 
         // Log the action
         logAuditAction(
             $_SESSION['user_id'] ?? null,
-            'DELETE',
+            'ARCHIVE',
             'referrals',
-            "Deleted referral ID: $id and its linked document"
+            "Archived referral ID: $id for historical records"
         );
 
         $conn->commit();
@@ -300,7 +312,7 @@ function deleteReferral($id)
 
     } catch (Exception $e) {
         $conn->rollback();
-        error_log("Error deleting referral: " . $e->getMessage());
+        error_log("Error archiving referral: " . $e->getMessage());
         return false;
     }
 }
@@ -368,5 +380,26 @@ function getReferralsByDeadline($start, $end)
         if (empty($ref['deadline']))
             return false;
         return $ref['deadline'] >= $start && $ref['deadline'] <= $end;
+    });
+}
+/**
+ * Get referrals by type
+ */
+function getReferralsByType($type)
+{
+    $referrals = getAllReferrals();
+    return array_filter($referrals, function ($ref) use ($type) {
+        return strtolower($ref['type'] ?? '') === strtolower($type);
+    });
+}
+
+/**
+ * Get referrals by priority
+ */
+function getReferralsByPriority($priority)
+{
+    $referrals = getAllReferrals();
+    return array_filter($referrals, function ($ref) use ($priority) {
+        return strtolower($ref['priority'] ?? '') === strtolower($priority);
     });
 }

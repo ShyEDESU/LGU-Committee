@@ -27,13 +27,16 @@ define('SMTP_ENCRYPTION', ''); // e.g., 'tls'
  * FROM SETTINGS
  * These define how the email appears in the recipient's inbox.
  */
-define('MAIL_FROM_ADDRESS', 'noreply@legislative-cms.gov');
-define('MAIL_FROM_NAME', 'Legislative Services MS');
+define('MAIL_FROM_ADDRESS', '');
+define('MAIL_FROM_NAME', '');
 
 /**
  * APP BASE URL
- * Used to construct the verification links.
- * Change this to your actual domain in production.
+ * Used to construct the verification links and logo URLs.
+ * 
+ * Set this to your actual domain (e.g., 'https://yourwebsite.com') if the
+ * automatic detection in MailHelper.php doesn't work for your setup.
+ * Otherwise, leave it as null or empty to enable automatic detection.
  */
-define('APP_URL', 'http://localhost/Capstone%20Project');
+define('APP_URL', '');
 ?>

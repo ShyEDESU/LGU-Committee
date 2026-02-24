@@ -7,6 +7,7 @@ ini_set('display_startup_errors', '0');
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -31,8 +32,20 @@ if (!$meeting) {
 
 // Handle attendance marking
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_attendance'])) {
+    if (!canUpdate($_SESSION['user_id'], 'meetings', $meetingId)) {
+        $_SESSION['error_message'] = 'Unauthorized: Only Committee Leadership or the Secretary can record attendance.';
+        header('Location: attendance.php?id=' . $meetingId);
+        exit();
+    }
+
     $userId = intval($_POST['user_id']);
     $status = $_POST['status'] ?? 'absent';
+
+    if ($meeting['status'] !== 'Ongoing') {
+        $_SESSION['error_message'] = 'Attendance marking is only available while the meeting is in session (Ongoing status).';
+        header('Location: attendance.php?id=' . $meetingId);
+        exit();
+    }
 
     if (markAttendance($meetingId, $userId, $status)) {
         $_SESSION['success_message'] = 'Attendance marked successfully';
@@ -46,7 +59,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_attendance'])) {
 
 // Handle syncing assigned members
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sync_members'])) {
+    if (!canUpdate($_SESSION['user_id'], 'meetings', $meetingId)) {
+        $_SESSION['error_message'] = 'Unauthorized: Only Committee Leadership or the Secretary can modify meeting assignments.';
+        header('Location: attendance.php?id=' . $meetingId);
+        exit();
+    }
+
     $assignedUserIds = $_POST['assigned_users'] ?? [];
+    if ($meeting['status'] === 'Completed' || $meeting['status'] === 'Cancelled') {
+        $_SESSION['error_message'] = 'Meeting assignments cannot be modified for finished or cancelled meetings.';
+        header('Location: attendance.php?id=' . $meetingId);
+        exit();
+    }
+
     if (syncMeetingInvitees($meetingId, $assignedUserIds)) {
         $_SESSION['success_message'] = 'Meeting assignments updated successfully';
     } else {
@@ -58,6 +83,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sync_members'])) {
 
 // Get assigned invitees (assigned members) and attendance records
 $invitees = getMeetingInvitees($meetingId);
+
+// Self-Healing Logic: Auto-populate members for legacy meetings if none are assigned
+if ($meetingId > 0 && empty($invitees) && $meeting['committee_id'] > 0) {
+    if (autoInviteCommitteeMembers($meetingId, $meeting['committee_id'])) {
+        $invitees = getMeetingInvitees($meetingId);
+        $_SESSION['success_message'] = 'System Note: Committee members have been automatically assigned to this meeting to ensure legislative quorum.';
+    }
+}
+
 $committeeMembers = getCommitteeMembers($meeting['committee_id']);
 $attendanceRecords = getAttendanceRecords($meetingId);
 $stats = getAttendanceStats($meetingId);
@@ -115,10 +149,12 @@ include '../../includes/header.php';
             </p>
         </div>
         <div class="flex gap-2">
-            <button onclick="openManageMembersModal()"
-                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition border border-transparent flex items-center shadow-sm">
-                <i class="bi bi-person-plus-fill mr-2"></i>Manage Assigned Members
-            </button>
+            <?php if (($meeting['status'] === 'Scheduled' || $meeting['status'] === 'Ongoing') && canUpdate($_SESSION['user_id'], 'meetings', $meetingId)): ?>
+                <button onclick="openManageMembersModal()"
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition border border-transparent flex items-center shadow-sm">
+                    <i class="bi bi-person-plus-fill mr-2"></i>Manage Assigned Members
+                </button>
+            <?php endif; ?>
             <a href="view.php?id=<?php echo $meetingId; ?>"
                 class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition flex items-center shadow-sm">
                 <i class="bi bi-arrow-left mr-2"></i>Back to Meeting
@@ -146,6 +182,10 @@ include '../../includes/header.php';
             <a href="documents.php?id=<?php echo $meetingId; ?>"
                 class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
                 Documents
+            </a>
+            <a href="voting.php?id=<?php echo $meetingId; ?>"
+                class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                Voting
             </a>
         </nav>
     </div>
@@ -217,21 +257,30 @@ include '../../includes/header.php';
 <!-- Quorum Status -->
 <div class="mb-6">
     <div
-        class="bg-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-50 dark:bg-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-900/20 border-l-4 border-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-500 p-4">
+        class="bg-<?php echo ($meeting['status'] === 'Ongoing') ? ($stats['has_quorum'] ? 'green' : 'red') : 'gray'; ?>-50 dark:bg-<?php echo ($meeting['status'] === 'Ongoing') ? ($stats['has_quorum'] ? 'green' : 'red') : 'gray'; ?>-900/20 border-l-4 border-<?php echo ($meeting['status'] === 'Ongoing') ? ($stats['has_quorum'] ? 'green' : 'red') : 'gray'; ?>-500 p-4">
         <div class="flex items-center">
-            <i
-                class="bi bi-<?php echo $stats['has_quorum'] ? 'check' : 'exclamation'; ?>-circle text-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-600 dark:text-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-400 text-xl mr-3"></i>
-            <div>
-                <p
-                    class="font-semibold text-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-900 dark:text-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-300">
-                    <?php echo $stats['has_quorum'] ? 'Quorum Achieved' : 'No Quorum'; ?>
-                </p>
-                <p
-                    class="text-sm text-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-700 dark:text-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-400">
-                    <?php echo $stats['present']; ?> out of
-                    <?php echo $stats['quorum_required']; ?> required members present
-                </p>
-            </div>
+            <?php if ($meeting['status'] === 'Scheduled'): ?>
+                <i class="bi bi-lock-fill text-gray-600 dark:text-gray-400 text-xl mr-3"></i>
+                <div>
+                    <p class="font-semibold text-gray-900 dark:text-gray-300">Temporal Lockdown Active</p>
+                    <p class="text-sm text-gray-700 dark:text-gray-400">Attendance marking will be enabled once the
+                        Committee Chairperson commences the session.</p>
+                </div>
+            <?php else: ?>
+                <i
+                    class="bi bi-<?php echo $stats['has_quorum'] ? 'check' : 'exclamation'; ?>-circle text-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-600 dark:text-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-400 text-xl mr-3"></i>
+                <div>
+                    <p
+                        class="font-semibold text-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-900 dark:text-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-300">
+                        <?php echo $stats['has_quorum'] ? 'Quorum Achieved' : 'No Quorum'; ?>
+                    </p>
+                    <p
+                        class="text-sm text-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-700 dark:text-<?php echo $stats['has_quorum'] ? 'green' : 'red'; ?>-400">
+                        <?php echo $stats['present']; ?> out of <?php echo $stats['quorum_required']; ?> required members
+                        present
+                    </p>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -325,11 +374,17 @@ include '../../includes/header.php';
                                 <?php echo $attendance && $attendance['check_in_time'] ? date('g:i A', strtotime($attendance['check_in_time'])) : '—'; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <button
-                                    onclick="openAttendanceModal(<?php echo $invitee['user_id']; ?>, '<?php echo htmlspecialchars($invitee['name'], ENT_QUOTES); ?>', '<?php echo $status; ?>')"
-                                    class="text-red-600 hover:text-red-900 dark:text-blue-400 dark:hover:text-blue-300">
-                                    <i class="bi bi-pencil mr-1"></i>Mark
-                                </button>
+                                <?php if ($meeting['status'] === 'Ongoing'): ?>
+                                    <button
+                                        onclick="openAttendanceModal(<?php echo $invitee['user_id']; ?>, '<?php echo htmlspecialchars($invitee['name'], ENT_QUOTES); ?>', '<?php echo $status; ?>')"
+                                        class="text-red-600 hover:text-red-900 dark:text-blue-400 dark:hover:text-blue-300">
+                                        <i class="bi bi-pencil mr-1"></i>Mark
+                                    </button>
+                                <?php else: ?>
+                                    <span class="text-gray-400 text-xs italic">
+                                        <i class="bi bi-lock mr-1"></i>Locked
+                                    </span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

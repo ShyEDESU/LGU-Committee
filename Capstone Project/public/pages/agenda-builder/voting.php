@@ -16,20 +16,11 @@ $meeting = $meetingId ? getMeetingById($meetingId) : null;
 // Get all meetings for selection
 $allMeetings = getAllMeetings();
 
-// Handle form submissions
+// Decommissioned: Voting execution moved to Committee Meetings module for professional accuracy.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['create_vote'])) {
-        createVote($_POST['agenda_item_id'], [
-            'motion_text' => $_POST['motion_text'],
-            'voting_method' => $_POST['voting_method']
-        ]);
-        header('Location: voting.php?meeting_id=' . $_POST['meeting_id'] . '&created=1');
-        exit();
-    } elseif (isset($_POST['record_vote'])) {
-        recordMemberVote($_POST['vote_id'], $_POST['member_id'], $_POST['vote']);
-        header('Location: voting.php?meeting_id=' . $_POST['meeting_id'] . '&recorded=1');
-        exit();
-    }
+    $_SESSION['error_message'] = 'Voting execution is now handled directly within the Meeting Session interface.';
+    header('Location: voting.php?meeting_id=' . ($_POST['meeting_id'] ?? $meetingId));
+    exit();
 }
 
 $userName = $_SESSION['user_name'] ?? 'User';
@@ -60,8 +51,8 @@ if (isset($_GET['created'])) {
 <div class="mb-6">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Voting Management</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">Record and track voting on agenda items</p>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Resolution & Vote Records</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Formal historical archive of committee decisions</p>
         </div>
         <a href="index.php"
             class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition">
@@ -144,139 +135,61 @@ if (isset($_GET['created'])) {
                                 </div>
                             </div>
                             <div class="p-4">
-                                <!-- Vote Results -->
-                                <div class="grid grid-cols-4 gap-4 mb-4">
-                                    <div class="text-center">
-                                        <div class="text-3xl font-bold text-green-600 dark:text-green-400">
-                                            <?php echo $results['yes']; ?>
-                                        </div>
-                                        <div class="text-sm text-gray-600 dark:text-gray-400">Yes</div>
-                                    </div>
-                                    <div class="text-center">
-                                        <div class="text-3xl font-bold text-red-600 dark:text-red-400"><?php echo $results['no']; ?>
-                                        </div>
-                                        <div class="text-sm text-gray-600 dark:text-gray-400">No</div>
-                                    </div>
-                                    <div class="text-center">
-                                        <div class="text-3xl font-bold text-gray-600 dark:text-gray-400">
-                                            <?php echo $results['abstain']; ?>
-                                        </div>
-                                        <div class="text-sm text-gray-600 dark:text-gray-400">Abstain</div>
-                                    </div>
-                                    <div class="text-center">
-                                        <div class="text-3xl font-bold text-gray-400 dark:text-gray-500">
-                                            <?php echo $results['absent']; ?>
-                                        </div>
-                                        <div class="text-sm text-gray-600 dark:text-gray-400">Absent</div>
-                                    </div>
-                                </div>
-
-                                <!-- Result Badge -->
-                                <div class="text-center">
-                                    <span class="inline-block px-4 py-2 text-lg font-bold rounded-full 
-                                    <?php
-                                    echo $results['result'] === 'Passed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                                        ($results['result'] === 'Failed' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                                            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300');
-                                    ?>">
-                                        <?php echo $results['result']; ?>
-                                    </span>
-                                </div>
                             </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
 
-            <!-- Create Vote Form -->
-            <div class="lg:col-span-1">
-                <div
-                    class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 sticky top-6">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                        <i class="bi bi-plus-lg mr-2"></i> Create Vote
-                    </h2>
-
-                    <form method="POST" class="space-y-4">
-                        <input type="hidden" name="create_vote" value="1">
-                        <input type="hidden" name="meeting_id" value="<?php echo $meetingId; ?>">
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Agenda Item <span class="text-red-600">*</span>
-                            </label>
-                            <select name="agenda_item_id" required
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-                                <option value="">Select item...</option>
-                                <?php foreach ($agendaItems as $item): ?>
-                                    <option value="<?php echo $item['id']; ?>">
-                                        <?php echo htmlspecialchars($item['title']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Motion Text <span class="text-red-600">*</span>
-                            </label>
-                            <textarea name="motion_text" rows="3" required
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white"
-                                placeholder="Enter the motion to be voted on..."></textarea>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Voting Method <span class="text-red-600">*</span>
-                            </label>
-                            <select name="voting_method" required
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-600 dark:bg-gray-700 dark:text-white">
-                                <option value="Voice Vote">Voice Vote</option>
-                                <option value="Roll Call">Roll Call</option>
-                                <option value="Secret Ballot">Secret Ballot</option>
-                                <option value="Show of Hands">Show of Hands</option>
-                            </select>
-                        </div>
-
-                        <button type="submit"
-                            class="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
-                            <i class="bi bi-plus-lg mr-2"></i> Create Vote
-                        </button>
-                    </form>
-
-                    <div class="mt-6 p-4 bg-red-50 dark:bg-blue-900/20 rounded-lg">
-                        <p class="text-sm text-blue-700 dark:text-blue-300">
-                            <i class="bi bi-info-circle mr-1"></i> After creating a vote, you can record individual member
-                            votes
-                            through the committee meeting interface.
+                <!-- Resolution Context -->
+                <div class="lg:col-span-1">
+                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500 p-6 sticky top-6">
+                        <h2 class="text-xl font-bold text-blue-900 dark:text-blue-300 mb-4">
+                            <i class="bi bi-shield-lock mr-2"></i> Legislative Archive
+                        </h2>
+                        <p class="text-sm text-blue-700 dark:text-blue-400 mb-4">
+                            This view serves as the **Permanent Resolution Record** for this meeting.
                         </p>
+                        <div class="space-y-3 text-xs text-blue-600 dark:text-blue-500">
+                            <p><i class="bi bi-info-circle mr-2"></i> These records are finalized during the live meeting
+                                session.</p>
+                            <p><i class="bi bi-info-circle mr-2"></i> Modification of finalized resolutions requires an
+                                administrative override or a Motion to Rescind.</p>
+                        </div>
+
+                        <div class="mt-8 pt-6 border-t border-blue-200 dark:border-blue-800">
+                            <a href="../committee-meetings/voting.php?id=<?php echo $meetingId; ?>"
+                                class="block w-full text-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm transition">
+                                <i class="bi bi-arrow-up-right-circle mr-2"></i> Enter Live Session
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    <?php else: ?>
-        <div
-            class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
-            <i class="bi bi-hand-thumbs-up text-6xl text-gray-400 dark:text-gray-500 mb-4"></i>
-            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Select a Meeting</h3>
-            <p class="text-gray-600 dark:text-gray-400">Choose a meeting above to manage voting</p>
-        </div>
-    <?php endif; ?>
-</div>
+        <?php else: ?>
+            <div
+                class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+                <i class="bi bi-hand-thumbs-up text-6xl text-gray-400 dark:text-gray-500 mb-4"></i>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Select a Meeting</h3>
+                <p class="text-gray-600 dark:text-gray-400">Choose a meeting above to manage voting</p>
+            </div>
+        <?php endif; ?>
+    </div>
 
-<!-- Pagination/Summary Box - Styled to match index.php exactly -->
-<div
-    class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-    <div class="text-sm text-gray-700 dark:text-gray-300">
-        Showing <span class="font-medium">1</span> to
-        <span class="font-medium"><?php echo count($votes); ?></span> of
-        <span class="font-medium"><?php echo count($votes); ?></span> record(s)
-    </div>
-    <div class="flex gap-2">
-        <!-- Empty space for pagination consistency -->
-        <div class="text-xs text-gray-400 italic font-medium">Meeting ID: <?php echo htmlspecialchars($meetingId); ?>
+    <!-- Pagination/Summary Box - Styled to match index.php exactly -->
+    <div
+        class="mt-6 flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div class="text-sm text-gray-700 dark:text-gray-300">
+            Showing <span class="font-medium">1</span> to
+            <span class="font-medium"><?php echo count($votes); ?></span> of
+            <span class="font-medium"><?php echo count($votes); ?></span> record(s)
+        </div>
+        <div class="flex gap-2">
+            <!-- Empty space for pagination consistency -->
+            <div class="text-xs text-gray-400 italic font-medium">Meeting ID:
+                <?php echo htmlspecialchars($meetingId); ?>
+            </div>
         </div>
     </div>
-</div>
 </div> <!-- Closing module-content-wrapper -->
 
 <?php

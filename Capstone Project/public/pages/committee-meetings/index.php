@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
+require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -9,12 +10,17 @@ if (!isset($_SESSION['user_id'])) {
 
 $userName = $_SESSION['user_name'] ?? 'User';
 
-// Handle delete
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_meeting'])) {
+// Handle archive
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['archive_meeting'])) {
     $meetingId = $_POST['meeting_id'];
-    if (deleteMeeting($meetingId)) {
-        $_SESSION['success_message'] = 'Meeting deleted successfully';
-        header('Location: index.php?deleted=1');
+    if (!canApprove($_SESSION['user_id'], 'meetings', $meetingId)) {
+        $_SESSION['error_message'] = 'Unauthorized: Only Committee Leadership can cancel or archive legislative records.';
+        header('Location: index.php');
+        exit();
+    }
+    if (archiveMeeting($meetingId)) {
+        $_SESSION['success_message'] = 'Meeting has been successfully cancelled and archived in the legislative records.';
+        header('Location: index.php?archived=1');
         exit();
     }
 }
@@ -32,33 +38,7 @@ if ($search)
 if ($statusFilter)
     $filters['status'] = $statusFilter;
 
-$meetings = getAllMeetings($filters);
-
-// Filter meetings for non-admins
-$userRole = $_SESSION['user_role'] ?? 'User';
-$userId = $_SESSION['user_id'];
-if ($userRole !== 'Admin' && $userRole !== 'Super Admin') {
-    require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
-    $meetings = array_filter($meetings, function ($m) use ($userId) {
-        $committeeId = $m['committee_id'];
-        $committee = getCommitteeById($committeeId);
-        if (!$committee)
-            return false;
-
-        // Leadership check
-        $isLeadership = (
-            $userId == ($committee['chair_id'] ?? 0) ||
-            $userId == ($committee['vice_chair_id'] ?? 0) ||
-            $userId == ($committee['secretary_id'] ?? 0)
-        );
-
-        if ($isLeadership)
-            return true;
-
-        // Membership check
-        return isCommitteeMember($committeeId, $userId);
-    });
-}
+$meetings = getUserMeetings($userId, $filters);
 
 // Pagination logic
 $itemsPerPage = 10;
@@ -299,14 +279,14 @@ $paginatedMeetings = array_slice($meetings, $offset, $itemsPerPage);
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                 <?php endif; ?>
-                                <?php if (canDelete($userId, 'meetings')): ?>
+                                <?php if (canApprove($userId, 'meetings', $meeting['id'])): ?>
                                     <form method="POST" class="inline"
-                                        onsubmit="return confirm('Are you sure you want to delete this meeting? This action cannot be undone.');">
+                                        onsubmit="return confirm('Are you sure you want to cancel this meeting? It will be archived in the legislative records for audit purposes.');">
                                         <input type="hidden" name="meeting_id" value="<?php echo $meeting['id']; ?>">
-                                        <button type="submit" name="delete_meeting" value="1"
+                                        <button type="submit" name="archive_meeting" value="1"
                                             class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-semibold"
-                                            title="Delete">
-                                            <i class="bi bi-trash"></i>
+                                            title="Cancel/Archive Meeting">
+                                            <i class="bi bi-archive"></i>
                                         </button>
                                     </form>
                                 <?php endif; ?>

@@ -55,6 +55,23 @@ $lastActive = $statsResult['last_active'] ? date('M j, g:i A', strtotime($statsR
 // Fetch recent activity
 $recentActivities = getAuditLogs(5, 0, ['user_id' => $userId]);
 
+// Fetch login/logout history
+$loginHistoryQuery = "SELECT al.*, u.first_name, u.last_name FROM audit_logs al 
+                      LEFT JOIN users u ON al.user_id = u.user_id 
+                      WHERE al.user_id = ? AND (al.action = 'LOGIN' OR al.action = 'LOGOUT')
+                      ORDER BY al.timestamp DESC LIMIT 20";
+$loginHistoryStmt = $conn->prepare($loginHistoryQuery);
+$loginHistoryStmt->bind_param("i", $userId);
+$loginHistoryStmt->execute();
+$loginHistoryResult = $loginHistoryStmt->get_result();
+$loginHistory = [];
+if ($loginHistoryResult) {
+    while ($row = $loginHistoryResult->fetch_assoc()) {
+        $loginHistory[] = $row;
+    }
+}
+$loginHistoryStmt->close();
+
 // Update session with latest data
 $_SESSION['user_name'] = $userName;
 $_SESSION['user_email'] = $userEmail;
@@ -399,7 +416,7 @@ include '../../includes/header.php';
                     <i class="bi bi-chevron-right text-gray-400"></i>
                 </button>
 
-                <button
+                <button onclick="openLoginHistoryModal()"
                     class="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition border border-gray-100 dark:border-gray-600">
                     <div class="flex items-center gap-3">
                         <i class="bi bi-clock-history text-purple-600 dark:text-purple-400 text-xl"></i>
@@ -733,7 +750,120 @@ include '../../includes/header.php';
                 alert('An error occurred');
             });
     }
+
+    // Login History Modal Functions
+    function openLoginHistoryModal() {
+        const modal = document.getElementById('loginHistoryModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeLoginHistoryModal() {
+        const modal = document.getElementById('loginHistoryModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('loginHistoryModal');
+        if (modal) {
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) {
+                    closeLoginHistoryModal();
+                }
+            });
+        }
+    });
 </script>
+
+<!-- Login History Modal -->
+<div id="loginHistoryModal"
+    class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full my-8">
+        <!-- Modal Header -->
+        <div
+            class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 rounded-t-2xl">
+            <div class="flex items-center gap-3">
+                <i class="bi bi-clock-history text-2xl text-purple-600 dark:text-purple-400"></i>
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Login History</h2>
+            </div>
+            <button onclick="closeLoginHistoryModal()"
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-0 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            <?php if (empty($loginHistory)): ?>
+                <div class="p-12 text-center text-gray-500 dark:text-gray-400">
+                    <i class="bi bi-clock-history text-4xl mb-4 opacity-20 block"></i>
+                    No login history records found.
+                </div>
+            <?php else: ?>
+                <div class="p-6">
+                    <div
+                        class="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent dark:before:via-gray-700">
+                        <?php foreach ($loginHistory as $entry): ?>
+                            <div class="relative flex items-center justify-between md:justify-start md:space-x-4 group">
+                                <!-- Dot -->
+                                <div
+                                    class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white dark:border-gray-800 shadow-sm shrink-0 z-10 transition-transform group-hover:scale-110 <?php echo $entry['action'] === 'LOGIN' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'; ?>">
+                                    <i
+                                        class="bi <?php echo $entry['action'] === 'LOGIN' ? 'bi-box-arrow-in-right' : 'bi-box-arrow-right'; ?> text-base"></i>
+                                </div>
+                                <!-- Content Card -->
+                                <div
+                                    class="flex-1 bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 ml-2 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-all duration-300 shadow-sm">
+                                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                                        <div>
+                                            <h4 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                                <?php echo $entry['action']; ?>
+                                                <span
+                                                    class="px-2 py-0.5 rounded-md text-[9px] uppercase tracking-wider font-extrabold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+                                                    SUCCESS
+                                                </span>
+                                            </h4>
+                                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                                                <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                                    <i class="bi bi-cpu text-gray-400"></i>
+                                                    <span
+                                                        class="font-mono"><?php echo htmlspecialchars($entry['ip_address'] ?? 'Unknown'); ?></span>
+                                                </p>
+                                                <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                                    <i class="bi bi-calendar3 text-gray-400"></i>
+                                                    <?php echo date('M j, Y', strtotime($entry['timestamp'])); ?>
+                                                </p>
+                                                <p class="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                                                    <i class="bi bi-clock text-gray-400"></i>
+                                                    <?php echo date('g:i A', strtotime($entry['timestamp'])); ?>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-b-2xl text-center">
+            <p class="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-bold">
+                <i class="bi bi-shield-check mr-1"></i> Security Log • Last 20 Sessions
+            </p>
+        </div>
+    </div>
+</div>
 
 </div> <!-- Closing module-content-wrapper -->
 <?php
