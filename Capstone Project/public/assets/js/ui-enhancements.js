@@ -125,31 +125,41 @@ class UIEnhancements {
     }
 
     switchTab(tabName, tabButtons, tabContents) {
-        // Deactivate all tabs
-        tabButtons.forEach(btn => {
-            btn.classList.remove('active', 'animate-scale-in');
-        });
+        if (window.LoadingBar) {
+            window.LoadingBar.start();
+        }
         
-        tabContents.forEach(content => {
-            content.classList.remove('active', 'animate-fade-in');
-            content.style.display = 'none';
-        });
+        setTimeout(() => {
+            // Deactivate all tabs
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active', 'animate-scale-in');
+            });
+            
+            tabContents.forEach(content => {
+                content.classList.remove('active', 'animate-fade-in');
+                content.style.display = 'none';
+            });
 
-        // Activate selected tab
-        const activeButton = document.querySelector(`[data-tab="${tabName}"]`);
-        const activeContent = document.querySelector(`[data-tab-content="${tabName}"]`);
+            // Activate selected tab
+            const activeButton = document.querySelector(`[data-tab="${tabName}"]`);
+            const activeContent = document.querySelector(`[data-tab-content="${tabName}"]`);
 
-        if (activeButton) {
-            activeButton.classList.add('active', 'animate-scale-in');
-        }
+            if (activeButton) {
+                activeButton.classList.add('active', 'animate-scale-in');
+            }
 
-        if (activeContent) {
-            activeContent.style.display = 'block';
-            activeContent.classList.add('active', 'animate-fade-in');
-        }
+            if (activeContent) {
+                activeContent.style.display = 'block';
+                activeContent.classList.add('active', 'animate-fade-in');
+            }
 
-        // Save active tab to localStorage
-        localStorage.setItem(`activeTab_${location.pathname}`, tabName);
+            // Save active tab to localStorage
+            localStorage.setItem(`activeTab_${location.pathname}`, tabName);
+            
+            if (window.LoadingBar) {
+                window.LoadingBar.finish();
+            }
+        }, 150); // Match the 150ms delay for consistency
     }
 
     restoreActiveTab() {

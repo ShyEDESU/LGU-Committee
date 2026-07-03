@@ -27,42 +27,52 @@ class TabNavigation {
     }
 
     switchTab(tabName, buttonElement = null) {
-        // Get all tab content elements
-        const tabContents = this.container.querySelectorAll('[data-tab-content]');
-        const tabButtons = this.container.querySelectorAll('[data-tab]');
+        if (window.LoadingBar) {
+            window.LoadingBar.start();
+        }
+        
+        setTimeout(() => {
+            // Get all tab content elements
+            const tabContents = this.container.querySelectorAll('[data-tab-content]');
+            const tabButtons = this.container.querySelectorAll('[data-tab]');
 
-        // Hide all tab contents with fade out animation
-        tabContents.forEach(content => {
-            if (content.getAttribute('data-tab-content') !== tabName) {
-                content.classList.add('hidden');
-                content.style.animation = 'none';
+            // Hide all tab contents with fade out animation
+            tabContents.forEach(content => {
+                if (content.getAttribute('data-tab-content') !== tabName) {
+                    content.classList.add('hidden');
+                    content.style.animation = 'none';
+                }
+            });
+
+            // Remove active state from all buttons
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.borderBottomColor = 'transparent';
+            });
+
+            // Show the selected tab content with fade in animation
+            const activeContent = this.container.querySelector(`[data-tab-content="${tabName}"]`);
+            if (activeContent) {
+                activeContent.classList.remove('hidden');
+                activeContent.style.animation = 'tab-content-fade 300ms ease-in-out';
+                activeContent.offsetHeight; // Trigger reflow
             }
-        });
 
-        // Remove active state from all buttons
-        tabButtons.forEach(btn => {
-            btn.classList.remove('active');
-            btn.style.borderBottomColor = 'transparent';
-        });
+            // Set active button
+            const activeButton = buttonElement || this.container.querySelector(`[data-tab="${tabName}"]`);
+            if (activeButton) {
+                activeButton.classList.add('active');
+                activeButton.style.borderBottomColor = '#dc2626';
+            }
 
-        // Show the selected tab content with fade in animation
-        const activeContent = this.container.querySelector(`[data-tab-content="${tabName}"]`);
-        if (activeContent) {
-            activeContent.classList.remove('hidden');
-            activeContent.style.animation = 'tab-content-fade 300ms ease-in-out';
-            activeContent.offsetHeight; // Trigger reflow
-        }
-
-        // Set active button
-        const activeButton = buttonElement || this.container.querySelector(`[data-tab="${tabName}"]`);
-        if (activeButton) {
-            activeButton.classList.add('active');
-            activeButton.style.borderBottomColor = '#dc2626';
-        }
-
-        // Save active tab to localStorage
-        const pageKey = `activeTab_${window.location.pathname}`;
-        localStorage.setItem(pageKey, tabName);
+            // Save active tab to localStorage
+            const pageKey = `activeTab_${window.location.pathname}`;
+            localStorage.setItem(pageKey, tabName);
+            
+            if (window.LoadingBar) {
+                window.LoadingBar.finish();
+            }
+        }, 150); // Fast 150ms delay for snappiness
     }
 
     restoreActiveTab() {

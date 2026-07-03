@@ -2,8 +2,7 @@
 require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
-require_once __DIR__ . '/../../../app/helpers/ReferralHelper.php';
-require_once __DIR__ . '/../../../app/helpers/PermissionHelper.php';
+require_once __DIR__ . '/../../../app/helpers/ReportsHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -52,7 +51,7 @@ if (isset($_POST['delete'])) {
         exit();
     }
     deleteCommittee($id);
-    $_SESSION['success_message'] = 'Committee has been archived successfully and preserved in the legislative records.';
+    $_SESSION['success_message'] = 'Committee deleted successfully';
     header('Location: index.php');
     exit();
 }
@@ -78,17 +77,11 @@ foreach ($upcomingMeetings as $m) {
     }
 }
 
-// Calculate urgent referrals (Pending or High Priority status)
-$allReferrals = getAllReferrals();
-$committeeReferrals = array_filter($allReferrals, function ($r) use ($id) {
-    return ($r['committee_id'] ?? null) == $id;
-});
-$urgentReferralsCount = count(array_filter($committeeReferrals, function ($r) {
-    return $r['status'] === 'Pending' || ($r['priority'] ?? '') === 'High';
+// Committee Reports
+$committeeReports = getAllReports(['committee_id' => $id]);
+$votingReportsCount = count(array_filter($committeeReports, function ($r) {
+    return $r['status'] === 'Voting';
 }));
-
-// Committee Agendas
-$committeeAgendas = getAgendasByCommittee($id);
 
 // Pagination logic
 $itemsPerPage = 10;
@@ -145,30 +138,6 @@ include '../../includes/header.php';
             </button>
         </div>
     </div>
-
-    <?php
-    // Check for pending members that need approval
-    $pendingMembersCount = count(array_filter($members, function ($m) {
-        return ($m['membership_status'] ?? 'Active') === 'Pending';
-    }));
-    $isChairOrAdmin = ($userRole === 'Admin' || $userRole === 'Super Admin' || $userId == ($committee['chairperson_id'] ?? 0) || $userId == ($committee['vice_chair_id'] ?? 0));
-
-    if ($pendingMembersCount > 0 && $isChairOrAdmin): ?>
-        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 animate-pulse">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <i class="bi bi-person-exclamation text-yellow-600 text-xl"></i>
-                </div>
-                <div class="ml-3">
-                    <p class="text-sm text-yellow-700 font-bold">
-                        ACTION REQUIRED: There are <?php echo $pendingMembersCount; ?> pending member recommendations
-                        awaiting your official approval.
-                        <a href="members.php?id=<?php echo $id; ?>" class="underline ml-2">Approve Appointments →</a>
-                    </p>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -255,36 +224,7 @@ include '../../includes/header.php';
                     class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
                     <i class="bi bi-people mr-1"></i>Members
                 </a>
-                <a href="view.php?id=<?php echo $id; ?>&tab=meetings"
-                    class="<?php echo isset($_GET['tab']) && $_GET['tab'] === 'meetings' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'; ?> whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
-                    <i class="bi bi-calendar-event mr-1"></i>Meetings
-                    <?php if (count($upcomingMeetings) > 0): ?>
-                        <span
-                            class="ml-2 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 text-xs font-semibold px-2 py-0.5 rounded-full">
-                            <?php echo count($upcomingMeetings); ?>
-                        </span>
-                    <?php endif; ?>
-                </a>
-                <a href="view.php?id=<?php echo $id; ?>&tab=agendas"
-                    class="<?php echo isset($_GET['tab']) && $_GET['tab'] === 'agendas' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'; ?> whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
-                    <i class="bi bi-journal-text mr-1"></i>Agendas
-                    <?php if (count($committeeAgendas) > 0): ?>
-                        <span
-                            class="ml-2 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 text-xs font-semibold px-2 py-0.5 rounded-full">
-                            <?php echo count($committeeAgendas); ?>
-                        </span>
-                    <?php endif; ?>
-                </a>
-                <a href="view.php?id=<?php echo $id; ?>&tab=referrals"
-                    class="<?php echo isset($_GET['tab']) && $_GET['tab'] === 'referrals' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'; ?> whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
-                    <i class="bi bi-arrow-left-right mr-1"></i>Referrals
-                    <?php if ($urgentReferralsCount > 0): ?>
-                        <span
-                            class="ml-2 bg-red-100 text-red-800 dark:bg-blue-900 dark:text-blue-300 text-xs font-semibold px-2 py-0.5 rounded-full">
-                            <?php echo $urgentReferralsCount; ?>
-                        </span>
-                    <?php endif; ?>
-                </a>
+
                 <a href="documents.php?id=<?php echo $id; ?>"
                     class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium transition">
                     <i class="bi bi-folder mr-1"></i>Documents
@@ -297,332 +237,7 @@ include '../../includes/header.php';
         </div>
     </div>
 
-    <?php if (isset($_GET['tab']) && $_GET['tab'] === 'meetings'): ?>
-        <!-- Meetings Tab Content -->
-        <div class="space-y-6">
-            <!-- Quick Actions -->
-            <div class="flex justify-between items-center">
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Committee Meetings</h2>
-                <?php if (canEdit($userId, 'committees', $id)): ?>
-                    <a href="../committee-meetings/schedule.php?committee=<?php echo $id; ?>"
-                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
-                        <i class="bi bi-plus-circle mr-2"></i>Schedule Meeting
-                    </a>
-                <?php endif; ?>
-            </div>
 
-            <!-- Upcoming Meetings -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-                        <i class="bi bi-calendar-check text-green-600 mr-2"></i>Upcoming Meetings
-                    </h3>
-                </div>
-                <div class="p-6">
-                    <?php if (empty($upcomingMeetings)): ?>
-                        <div class="text-center py-8">
-                            <i class="bi bi-calendar-x text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
-                            <p class="text-gray-500 dark:text-gray-400">No upcoming meetings scheduled</p>
-                            <a href="../committee-meetings/schedule.php?committee=<?php echo $id; ?>"
-                                class="inline-block mt-4 text-red-600 hover:text-red-700 dark:text-red-400 font-semibold">
-                                Schedule a meeting →
-                            </a>
-                        </div>
-                    <?php else: ?>
-                        <div class="space-y-4">
-                            <?php foreach ($upcomingMeetings as $meeting): ?>
-                                <div
-                                    class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
-                                    <div class="flex items-start justify-between">
-                                        <div class="flex-1">
-                                            <h4 class="font-semibold text-gray-900 dark:text-white">
-                                                <?php echo htmlspecialchars($meeting['title']); ?>
-                                            </h4>
-                                            <div class="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                                                <p><i
-                                                        class="bi bi-calendar3 mr-2"></i><?php echo date('F j, Y', strtotime($meeting['date'])); ?>
-                                                </p>
-                                                <p><i
-                                                        class="bi bi-clock mr-2"></i><?php echo date('g:i A', strtotime($meeting['time_start'])); ?>
-                                                </p>
-                                                <p><i
-                                                        class="bi bi-geo-alt mr-2"></i><?php echo htmlspecialchars($meeting['venue']); ?>
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="flex flex-col items-end gap-2">
-                                            <span
-                                                class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-blue-900 dark:text-blue-300">
-                                                <?php echo $meeting['status']; ?>
-                                            </span>
-                                            <a href="../committee-meetings/view.php?id=<?php echo $meeting['id']; ?>"
-                                                class="text-red-600 hover:text-red-700 dark:text-red-400 text-sm font-semibold">
-                                                View Details →
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- Past Meetings -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-                        <i class="bi bi-clock-history text-gray-600 mr-2"></i>Past Meetings
-                    </h3>
-                </div>
-                <div class="p-6">
-                    <?php if (empty($pastMeetings)): ?>
-                        <p class="text-center text-gray-500 dark:text-gray-400 py-8">No past meetings</p>
-                    <?php else: ?>
-                        <div class="space-y-3">
-                            <?php
-                            $totalPastMeetings = count($pastMeetings);
-                            $paginatedPastMeetings = array_slice($pastMeetings, $offset, $itemsPerPage);
-                            $totalPagesMeetings = ceil($totalPastMeetings / $itemsPerPage);
-
-                            foreach ($paginatedPastMeetings as $meeting):
-                                ?>
-                                <div
-                                    class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
-                                    <div>
-                                        <p class="font-medium text-gray-900 dark:text-white">
-                                            <?php echo htmlspecialchars($meeting['title']); ?>
-                                        </p>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                                            <?php echo date('M j, Y', strtotime($meeting['date'])); ?>
-                                        </p>
-                                    </div>
-                                    <a href="../committee-meetings/view.php?id=<?php echo $meeting['id']; ?>"
-                                        class="text-red-600 hover:text-red-700 dark:text-red-400 text-sm">
-                                        View →
-                                    </a>
-                                </div>
-                            <?php endforeach; ?>
-
-                            <!-- Pagination for Meetings -->
-                            <?php if ($totalPagesMeetings > 1): ?>
-                                <div
-                                    class="flex items-center justify-between mt-4 border-t border-gray-100 dark:border-gray-700 pt-4">
-                                    <div class="text-xs text-gray-500">
-                                        Showing
-                                        <?php echo $offset + 1; ?>-<?php echo min($offset + $itemsPerPage, $totalPastMeetings); ?>
-                                        of <?php echo $totalPastMeetings; ?>
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <?php if ($page > 1): ?>
-                                            <a href="?id=<?php echo $id; ?>&tab=meetings&page=<?php echo $page - 1; ?>"
-                                                class="p-2 border border-gray-300 rounded hover:bg-gray-100 text-xs">
-                                                <i class="bi bi-chevron-left"></i>
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if ($page < $totalPagesMeetings): ?>
-                                            <a href="?id=<?php echo $id; ?>&tab=meetings&page=<?php echo $page + 1; ?>"
-                                                class="p-2 border border-gray-300 rounded hover:bg-gray-100 text-xs">
-                                                <i class="bi bi-chevron-right"></i>
-                                            </a>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-    <?php elseif (isset($_GET['tab']) && $_GET['tab'] === 'agendas'): ?>
-        <div class="space-y-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Meeting Agendas</h2>
-                <?php if (canEdit($userId, 'committees', $id)): ?>
-                    <a href="../agenda-builder/create.php?committee=<?php echo $id; ?>"
-                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
-                        <i class="bi bi-plus-circle mr-2"></i>Create Agenda
-                    </a>
-                <?php endif; ?>
-            </div>
-
-            <?php if (empty($committeeMeetings)): ?>
-                <div
-                    class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
-                    <i class="bi bi-journal-x text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
-                    <p class="text-gray-500 dark:text-gray-400">No meetings scheduled, so no agendas found.</p>
-                </div>
-            <?php else: ?>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <?php
-                    $totalAgendas = count($committeeMeetings);
-                    $paginatedAgendas = array_slice($committeeMeetings, $offset, $itemsPerPage);
-                    $totalPagesAgendas = ceil($totalAgendas / $itemsPerPage);
-
-                    foreach ($paginatedAgendas as $meeting): ?>
-                        <div
-                            class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition">
-                            <div
-                                class="p-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                                <h3 class="font-bold text-gray-900 dark:text-white">
-                                    <?php echo htmlspecialchars($meeting['title']); ?>
-                                </h3>
-                                <span
-                                    class="text-xs text-gray-500"><?php echo date('M j, Y', strtotime($meeting['date'])); ?></span>
-                            </div>
-                            <div class="p-4">
-                                <?php
-                                $agendas = getAgendaItems($meeting['id']);
-                                if (empty($agendas)):
-                                    ?>
-                                    <p class="text-xs text-gray-500 italic">No agenda items defined yet.</p>
-                                <?php else: ?>
-                                    <ul class="space-y-2">
-                                        <?php foreach (array_slice($agendas, 0, 3) as $item): ?>
-                                            <li class="text-sm flex items-start gap-2">
-                                                <span class="text-red-600">•</span>
-                                                <span
-                                                    class="text-gray-700 dark:text-gray-300 line-clamp-1"><?php echo htmlspecialchars($item['title']); ?></span>
-                                            </li>
-                                        <?php endforeach; ?>
-                                        <?php if (count($agendas) > 3): ?>
-                                            <li class="text-xs text-gray-500 italic ml-4">+ <?php echo count($agendas) - 3; ?>
-                                                more items...</li>
-                                        <?php endif; ?>
-                                    </ul>
-                                <?php endif; ?>
-                                <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-                                    <a href="../agenda-builder/view.php?id=<?php echo $meeting['id']; ?>"
-                                        class="text-red-600 hover:text-red-700 text-sm font-semibold">
-                                        View Full Agenda →
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-
-                <!-- Pagination for Agendas -->
-                <?php if ($totalPagesAgendas > 1): ?>
-                    <div
-                        class="flex items-center justify-between mt-6 bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <div class="text-sm text-gray-500">
-                            Showing <?php echo $offset + 1; ?>-<?php echo min($offset + $itemsPerPage, $totalAgendas); ?> of
-                            <?php echo $totalAgendas; ?> agendas
-                        </div>
-                        <div class="flex gap-2">
-                            <?php if ($page > 1): ?>
-                                <a href="?id=<?php echo $id; ?>&tab=agendas&page=<?php echo $page - 1; ?>"
-                                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm">Previous</a>
-                            <?php endif; ?>
-                            <?php if ($page < $totalPagesAgendas): ?>
-                                <a href="?id=<?php echo $id; ?>&tab=agendas&page=<?php echo $page + 1; ?>"
-                                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm">Next</a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-    <?php elseif (isset($_GET['tab']) && $_GET['tab'] === 'referrals'): ?>
-        <div class="space-y-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Committee Referrals</h2>
-                <?php if (canEdit($userId, 'committees', $id)): ?>
-                    <a href="../referral-management/create.php?committee=<?php echo $id; ?>"
-                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
-                        <i class="bi bi-plus-circle mr-2"></i>New Referral
-                    </a>
-                <?php endif; ?>
-            </div>
-
-            <?php
-            $committeeReferrals = array_filter(getAllReferrals(), function ($r) use ($id) {
-                return ($r['committee_id'] ?? null) == $id;
-            });
-            if (empty($committeeReferrals)):
-                ?>
-                <div
-                    class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
-                    <i class="bi bi-arrow-left-right text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
-                    <p class="text-gray-500 dark:text-gray-400">No referrals assigned to this committee yet.</p>
-                </div>
-            <?php else: ?>
-                <div
-                    class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-700">
-                            <tr>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                    Document</th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                    Date</th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                    Status</th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                    Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                            <?php
-                            $totalReferrals = count($committeeReferrals);
-                            $paginatedReferrals = array_slice($committeeReferrals, $offset, $itemsPerPage);
-                            $totalPagesReferrals = ceil($totalReferrals / $itemsPerPage);
-
-                            foreach ($paginatedReferrals as $ref): ?>
-                                <tr>
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                            <?php echo htmlspecialchars($ref['title']); ?>
-                                        </div>
-                                        <div class="text-xs text-gray-500">
-                                            <?php echo htmlspecialchars($ref['document_number'] ?? 'N/A'); ?>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <?php echo date('M j, Y', strtotime($ref['created_at'])); ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span
-                                            class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800"><?php echo $ref['status']; ?></span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <a href="../referral-management/view.php?id=<?php echo $ref['id']; ?>"
-                                            class="text-red-600 hover:text-red-900">View</a>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Pagination for Referrals -->
-                <?php if ($totalPagesReferrals > 1): ?>
-                    <div
-                        class="flex items-center justify-between mt-6 bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <div class="text-sm text-gray-500">
-                            Showing <?php echo $offset + 1; ?>-<?php echo min($offset + $itemsPerPage, $totalReferrals); ?> of
-                            <?php echo $totalReferrals; ?> referrals
-                        </div>
-                        <div class="flex gap-2">
-                            <?php if ($page > 1): ?>
-                                <a href="?id=<?php echo $id; ?>&tab=referrals&page=<?php echo $page - 1; ?>"
-                                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm">Previous</a>
-                            <?php endif; ?>
-                            <?php if ($page < $totalPagesReferrals): ?>
-                                <a href="?id=<?php echo $id; ?>&tab=referrals&page=<?php echo $page + 1; ?>"
-                                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm">Next</a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-    <?php else: ?>
         <!-- Overview Tab Content (existing content) -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Main Info -->
@@ -659,22 +274,6 @@ include '../../includes/header.php';
                             <span
                                 class="inline-block px-3 py-1 <?php echo $committee['status'] === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'; ?> rounded-full text-sm">
                                 <?php echo htmlspecialchars($committee['status']); ?>
-                            </span>
-                        </div>
-                        <div class="md:col-span-2">
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Legal Basis (Authority)</p>
-                            <span class="font-bold text-gray-900 dark:text-white">
-                                <?php
-                                $authority = $committee['creation_authority'] ?? 'N/A';
-                                $linkedDoc = getDocumentByNumber($authority);
-                                if ($linkedDoc): ?>
-                                    <a href="../referral-management/view.php?id=<?php echo $linkedDoc['document_id']; ?>"
-                                        class="text-red-600 hover:text-red-700 underline" title="View Source Resolution">
-                                        <i class="bi bi-file-earmark-check mr-1"></i><?php echo htmlspecialchars($authority); ?>
-                                    </a>
-                                <?php else: ?>
-                                    <i class="bi bi-bank mr-1 text-gray-400"></i><?php echo htmlspecialchars($authority); ?>
-                                <?php endif; ?>
                             </span>
                         </div>
                     </div>
@@ -774,74 +373,82 @@ include '../../includes/header.php';
                             <?php if (count($committeeMeetings) > 5): ?>
                                 <a href="../committee-meetings/index.php"
                                     class="block text-center text-red-600 hover:text-red-700 text-sm mt-2">
-                                    View all
-                                    <?php echo count($committeeMeetings); ?> meetings →
+                                    View all <?php echo count($committeeMeetings); ?> meetings →
                                 </a>
                             <?php endif; ?>
                         </div>
                     <?php endif; ?>
                 </div>
 
-                <!-- Committee Referrals -->
+                <!-- Committee Reports -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-bold">Assigned Referrals</h2>
-                        <a href="../referral-management/create.php?committee=<?php echo $id; ?>"
-                            class="text-red-600 hover:text-red-700">
-                            <i class="bi bi-plus-circle mr-1"></i>Create New
-                        </a>
+                        <h2 class="text-lg font-bold">Committee Reports</h2>
+                        <?php if (canCreate($userId, 'reports') && ($userRole === 'Admin' || $userRole === 'Super Admin' || $userId == $committee['chairperson_id'] || $userId == $committee['vice_chair_id'] || $userId == $committee['secretary_id'])): ?>
+                            <a href="../committee-reports/create.php?committee=<?php echo $id; ?>"
+                                class="text-red-600 hover:text-red-700">
+                                <i class="bi bi-plus-circle mr-1"></i>Draft New
+                            </a>
+                        <?php endif; ?>
                     </div>
-                    <?php
-                    $committeeReferrals = getReferralsByCommittee($id);
-                    ?>
-                    <?php if (empty($committeeReferrals)): ?>
-                        <p class="text-gray-500">No referrals assigned yet</p>
+                    <?php if (empty($committeeReports)): ?>
+                        <p class="text-gray-500 text-sm">No reports drafted yet</p>
                     <?php else: ?>
                         <div class="space-y-3">
-                            <?php foreach (array_slice($committeeReferrals, 0, 5) as $referral): ?>
+                            <?php foreach (array_slice($committeeReports, 0, 5) as $report):
+                                $sigs = getReportSignatures($report['report_id']);
+                                $activeMembers = getCommitteeMembersForReport($report['committee_id']);
+                                
+                                $signedCount = 0;
+                                foreach ($sigs as $s) {
+                                    if ($s['status'] === 'Approved') $signedCount++;
+                                }
+                                
+                                $statusColor = 'gray';
+                                if ($report['status'] === 'Draft') $statusColor = 'yellow';
+                                elseif ($report['status'] === 'Voting') $statusColor = 'blue';
+                                elseif ($report['status'] === 'Approved') $statusColor = 'green';
+                                elseif ($report['status'] === 'Rejected') $statusColor = 'red';
+                                
+                                $recColor = 'green';
+                                if ($report['recommendation'] === 'Disapprove') $recColor = 'red';
+                                elseif ($report['recommendation'] === 'Amend') $recColor = 'yellow';
+                                ?>
                                 <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                     <div class="flex justify-between items-start mb-2">
-                                        <p class="font-semibold">
-                                            <?php echo htmlspecialchars($referral['title']); ?>
+                                        <p class="font-semibold text-sm">
+                                            <?php echo htmlspecialchars($report['title']); ?>
                                         </p>
-                                        <span
-                                            class="px-2 py-1 text-xs rounded-full <?php echo $referral['status'] === 'Pending' ? 'bg-gray-100 text-gray-800' :
-                                                ($referral['status'] === 'Under Review' ? 'bg-red-100 text-red-800' :
-                                                    ($referral['status'] === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800')); ?>">
-                                            <?php echo $referral['status']; ?>
+                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-<?php echo $statusColor; ?>-100 text-<?php echo $statusColor; ?>-800 dark:bg-<?php echo $statusColor; ?>-900/30 dark:text-<?php echo $statusColor; ?>-200">
+                                            <?php echo htmlspecialchars($report['status']); ?>
                                         </span>
                                     </div>
-                                    <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                                        <span
-                                            class="px-2 py-1 rounded-full <?php echo $referral['priority'] === 'High' ? 'bg-red-100 text-red-800' :
-                                                ($referral['priority'] === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'); ?>">
-                                            <?php echo $referral['priority']; ?> Priority
-                                        </span>
-                                        <?php if (!empty($referral['deadline'])): ?>
-                                            <span>
-                                                <i class="bi bi-calendar-x mr-1"></i>
-                                                Due:
-                                                <?php echo date('M j, Y', strtotime($referral['deadline'])); ?>
+                                    <div class="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                        <span>
+                                            <span class="px-1.5 py-0.5 text-2xs rounded bg-<?php echo $recColor; ?>-100 text-<?php echo $recColor; ?>-800 dark:bg-<?php echo $recColor; ?>-900/30 dark:text-<?php echo $recColor; ?>-200 font-semibold font-sans">
+                                                <?php echo htmlspecialchars($report['recommendation']); ?>
                                             </span>
-                                        <?php endif; ?>
+                                        </span>
+                                        <span>
+                                            <i class="bi bi-pen mr-1"></i>
+                                            <?php echo $signedCount; ?> / <?php echo count($activeMembers); ?> signed
+                                        </span>
                                     </div>
-                                    <a href="../referral-management/view.php?id=<?php echo $referral['id']; ?>"
-                                        class="text-red-600 hover:text-red-700 text-sm mt-2 inline-block">
+                                    <a href="../committee-reports/view.php?id=<?php echo $report['report_id']; ?>"
+                                        class="text-red-605 hover:text-red-700 text-xs font-semibold mt-2 inline-block">
                                         View Details →
                                     </a>
                                 </div>
                             <?php endforeach; ?>
+                            <?php if (count($committeeReports) > 5): ?>
+                                <a href="view.php?id=<?php echo $id; ?>&tab=reports"
+                                    class="block text-center text-red-650 hover:text-red-805 text-xs font-semibold mt-2">
+                                    View all <?php echo count($committeeReports); ?> reports →
+                                </a>
+                            <?php endif; ?>
                         </div>
-                        <?php if (count($committeeReferrals) > 5): ?>
-                            <a href="../referral-management/index.php?committee=<?php echo $id; ?>"
-                                class="text-red-600 hover:text-red-700 text-sm mt-3 inline-block">
-                                View All Referrals (
-                                <?php echo count($committeeReferrals); ?>) →
-                            </a>
-                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
-
                 <!-- Committee Action Items -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
                     <div class="flex justify-between items-center mb-4">
@@ -917,59 +524,43 @@ include '../../includes/header.php';
                     <?php endif; ?>
                 </div>
 
-                <!-- Committee Agendas -->
+                <!-- Recent Meetings -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-bold">Committee Agendas</h2>
-                        <a href="../agenda-builder/index.php" class="text-red-600 hover:text-red-700">
+                        <h2 class="text-lg font-bold">Recent Meetings</h2>
+                        <a href="../committee-meetings/index.php" class="text-red-600 hover:text-red-700">
                             View All →
                         </a>
                     </div>
-                    <?php
-                    // Already fetched at the top
-                    ?>
-                    <?php if (empty($committeeAgendas)): ?>
-                        <p class="text-gray-500">No agendas created yet</p>
+                    <?php if (empty($committeeMeetings)): ?>
+                        <p class="text-gray-500">No meetings scheduled yet</p>
                     <?php else: ?>
                         <div class="space-y-3">
-                            <?php foreach (array_slice($committeeAgendas, 0, 5) as $agenda): ?>
+                            <?php foreach (array_slice($committeeMeetings, 0, 5) as $meeting): ?>
                                 <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <p class="font-semibold">
-                                            <?php echo htmlspecialchars($agenda['meeting']['title']); ?>
-                                        </p>
-                                        <span class="px-2 py-1 text-xs rounded-full 
+                                    <div class="flex justify-between items-start mb-1">
+                                        <p class="font-semibold text-sm"><?php echo htmlspecialchars($meeting['title'] ?? $meeting['meeting_title'] ?? 'Untitled Meeting'); ?></p>
+                                        <span class="px-2 py-1 text-xs rounded-full
                                         <?php
-                                        $status = $agenda['meeting']['agenda_status'] ?? 'Draft';
-                                        echo $status === 'Draft' ? 'bg-yellow-100 text-yellow-800' :
-                                            ($status === 'Approved' ? 'bg-green-100 text-green-800' :
-                                                ($status === 'Published' ? 'bg-purple-100 text-purple-800' :
-                                                    'bg-gray-100 text-gray-800'));
+                                        $mStatus = $meeting['status'] ?? 'Scheduled';
+                                        echo $mStatus === 'Completed' ? 'bg-green-100 text-green-800' :
+                                            ($mStatus === 'Ongoing' ? 'bg-blue-100 text-blue-800' :
+                                                ($mStatus === 'Cancelled' ? 'bg-red-100 text-red-800' :
+                                                    'bg-yellow-100 text-yellow-800'));
                                         ?>">
-                                            <?php echo $status; ?>
+                                            <?php echo htmlspecialchars($mStatus); ?>
                                         </span>
                                     </div>
                                     <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                         <i class="bi bi-calendar mr-2"></i>
-                                        <?php echo date('M j, Y', strtotime($agenda['meeting']['date'])); ?>
+                                        <?php echo date('M j, Y', strtotime($meeting['date'] ?? $meeting['meeting_date'] ?? 'now')); ?>
                                     </div>
-                                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                        <i class="bi bi-list-check mr-2"></i>
-                                        <?php echo $agenda['item_count']; ?> items
-                                    </div>
-                                    <a href="../agenda-builder/view.php?id=<?php echo $agenda['meeting']['id']; ?>"
+                                    <a href="../committee-meetings/view.php?id=<?php echo $meeting['id'] ?? $meeting['meeting_id']; ?>"
                                         class="text-red-600 hover:text-red-700 text-sm mt-2 inline-block">
-                                        View Agenda →
+                                        View Details →
                                     </a>
                                 </div>
                             <?php endforeach; ?>
-                            <?php if (count($committeeAgendas) > 5): ?>
-                                <a href="../agenda-builder/index.php"
-                                    class="block text-center text-red-600 hover:text-red-700 text-sm mt-2">
-                                    View all
-                                    <?php echo count($committeeAgendas); ?> agendas →
-                                </a>
-                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -1025,48 +616,18 @@ include '../../includes/header.php';
                                 <?php echo $committee['member_count'] ?? 0; ?>
                             </span>
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600 dark:text-gray-400">Meetings Held</span>
-                            <span class="text-2xl font-bold text-green-600">
-                                <?php echo $committee['meetings_held']; ?>
-                            </span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600 dark:text-gray-400">Pending Referrals</span>
-                            <span class="text-2xl font-bold text-orange-600">
-                                <?php echo $committee['pending_referrals']; ?>
-                            </span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600 dark:text-gray-400">Agendas</span>
-                            <span class="text-2xl font-bold text-purple-600">
-                                <?php echo count($committeeAgendas); ?>
-                            </span>
-                        </div>
                     </div>
                 </div>
 
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
                     <h2 class="text-lg font-bold mb-4">Quick Actions</h2>
                     <div class="space-y-2">
-                        <?php if (canEdit($userId, 'committees', $id)): ?>
-                            <a href="../committee-meetings/schedule.php?committee=<?php echo $id; ?>"
-                                class="block w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-center">
-                                <i class="bi bi-calendar-plus mr-2"></i>Schedule Meeting
-                            </a>
-                            <a href="../referral-management/create.php?committee=<?php echo $id; ?>"
-                                class="block w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-center">
-                                <i class="bi bi-inbox mr-2"></i>New Referral
-                            </a>
-                        <?php endif; ?>
-
                         <?php if (canDelete($userId, 'committees', $id)): ?>
-                            <form method="POST"
-                                onsubmit="return confirm('Professional Record Preservation: Are you sure you want to ARCHIVE this committee? It will be removed from active status but preserved in the audit archives.');"
+                            <form method="POST" onsubmit="return confirm('Are you sure you want to delete this committee?');"
                                 class="mt-4">
                                 <button type="submit" name="delete"
-                                    class="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
-                                    <i class="bi bi-archive mr-2"></i>Archive Committee
+                                    class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition">
+                                    <i class="bi bi-trash mr-2"></i>Delete Committee
                                 </button>
                             </form>
                         <?php endif; ?>
@@ -1074,7 +635,6 @@ include '../../includes/header.php';
                 </div>
             </div>
         </div>
-    <?php endif; ?>
 </div> <!-- Closing container-fluid -->
 </div> <!-- Closing module-content-wrapper -->
 <?php

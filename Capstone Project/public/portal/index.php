@@ -1,4 +1,34 @@
-<?php include 'header.php'; ?>
+<?php 
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../app/helpers/ReportsHelper.php';
+
+// Fetch stats
+$overallStats = getOverallStats();
+$activeCommitteesCount = $overallStats['committees'] ?? 0;
+
+// Count meetings this month
+$monthStart = date('Y-m-01 00:00:00');
+$monthEnd = date('Y-m-t 23:59:59');
+$stmt = $conn->prepare("SELECT COUNT(*) as count FROM meetings WHERE meeting_date BETWEEN ? AND ?");
+$stmt->bind_param("ss", $monthStart, $monthEnd);
+$stmt->execute();
+$meetingsThisMonth = $stmt->get_result()->fetch_assoc()['count'] ?? 0;
+$stmt->close();
+
+// Count approved reports
+$stmt = $conn->prepare("SELECT COUNT(*) as count FROM reports WHERE status = 'Approved'");
+$stmt->execute();
+$approvedReportsCount = $stmt->get_result()->fetch_assoc()['count'] ?? 0;
+$stmt->close();
+
+// Count available minutes
+$stmt = $conn->prepare("SELECT COUNT(*) as count FROM meeting_documents WHERE document_type = 'minutes'");
+$stmt->execute();
+$availableMinutes = $stmt->get_result()->fetch_assoc()['count'] ?? 0;
+$stmt->close();
+
+include 'header.php'; 
+?>
 
 <!-- Hero Section -->
 <section class="hero-pattern text-white py-20">
@@ -6,7 +36,7 @@
         <h1 class="text-4xl md:text-5xl font-bold mb-4">Welcome to the Public Portal</h1>
         <p class="text-xl md:text-2xl mb-8 text-red-100">Transparency and Accountability in Local Governance</p>
         <p class="text-lg mb-8 max-w-3xl mx-auto">
-            Access committee meetings, agendas, minutes, and legislative information from the City Government of
+            Access committee meetings, reports, minutes, and legislative information from the City Government of
             Valenzuela
         </p>
         <div class="flex flex-wrap justify-center gap-4">
@@ -27,19 +57,19 @@
     <div class="container mx-auto px-4">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="text-center p-6 bg-gray-50 rounded-lg">
-                <div class="text-4xl font-bold text-red-600 mb-2">12</div>
+                <div class="text-4xl font-bold text-red-650 mb-2"><?php echo $activeCommitteesCount; ?></div>
                 <div class="text-gray-600">Active Committees</div>
             </div>
             <div class="text-center p-6 bg-gray-50 rounded-lg">
-                <div class="text-4xl font-bold text-red-600 mb-2">8</div>
+                <div class="text-4xl font-bold text-red-655 mb-2"><?php echo $meetingsThisMonth; ?></div>
                 <div class="text-gray-600">Meetings This Month</div>
             </div>
             <div class="text-center p-6 bg-gray-50 rounded-lg">
-                <div class="text-4xl font-bold text-green-600 mb-2">45</div>
-                <div class="text-gray-600">Published Agendas</div>
+                <div class="text-4xl font-bold text-green-600 mb-2"><?php echo $approvedReportsCount; ?></div>
+                <div class="text-gray-600">Approved Reports</div>
             </div>
             <div class="text-center p-6 bg-gray-50 rounded-lg">
-                <div class="text-4xl font-bold text-purple-600 mb-2">120</div>
+                <div class="text-4xl font-bold text-purple-600 mb-2"><?php echo $availableMinutes; ?></div>
                 <div class="text-gray-600">Available Minutes</div>
             </div>
         </div>
@@ -168,11 +198,11 @@
 
             <div class="text-center">
                 <div class="bg-red-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                    <i class="bi bi-list-ul text-red-600 text-3xl"></i>
+                    <i class="bi bi-file-earmark-text text-red-600 text-3xl"></i>
                 </div>
-                <h3 class="text-xl font-bold text-gray-900 mb-2">Meeting Agendas</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Committee Reports</h3>
                 <p class="text-gray-600">
-                    Access published agendas to know what topics will be discussed in upcoming meetings.
+                    Access official, approved committee reports outlining legislative recommendations and signatures.
                 </p>
             </div>
 
@@ -202,7 +232,7 @@
                 </div>
                 <h3 class="text-xl font-bold text-gray-900 mb-2">Search & Filter</h3>
                 <p class="text-gray-600">
-                    Easily find specific meetings, agendas, or minutes using our search and filter tools.
+                    Easily find specific meetings, reports, or minutes using our search and filter tools.
                 </p>
             </div>
 

@@ -50,9 +50,9 @@ $systemLogo = $settings['lgu_logo_path'] ?? 'assets/images/logo.png';
                     <li><a href="<?php echo $rootPath; ?>index.php" class="hover:text-white transition-colors">Home</a>
                     </li>
                     <li><a href="<?php echo $rootPath; ?>public/pages/committee-meetings/index.php"
-                            class="hover:text-white transition-colors">Browse Documents</a></li>
-                    <li><a href="<?php echo $rootPath; ?>public/pages/referral-management/index.php"
-                            class="hover:text-white transition-colors">Track Progress</a></li>
+                            class="hover:text-white transition-colors">Browse Meetings</a></li>
+                    <li><a href="<?php echo $rootPath; ?>public/pages/committee-reports/index.php"
+                            class="hover:text-white transition-colors">Committee Reports</a></li>
                     <li><a href="<?php echo $rootPath; ?>index.php#leaders"
                             class="hover:text-white transition-colors">Contact Us</a></li>
                 </ul>

@@ -257,7 +257,8 @@ function createActionItem($data)
     }
 
     foreach ($mapping as $key => $type) {
-        $dbKey = ($key === 'document_id') ? 'related_document_id' : $key;
+        $dbKey = ($key === 'meeting_id') ? 'related_meeting_id' :
+            (($key === 'document_id') ? 'related_document_id' : $key);
 
         $fields[] = $dbKey;
         $placeholders[] = "?";
@@ -333,7 +334,8 @@ function updateActionItem($id, $data)
     ];
 
     foreach ($mapping as $key => $type) {
-        $dbKey = ($key === 'document_id') ? 'related_document_id' : $key;
+        $dbKey = ($key === 'meeting_id') ? 'related_meeting_id' :
+            (($key === 'document_id') ? 'related_document_id' : $key);
 
         if (isset($data[$key])) {
             $fields[] = "$dbKey = ?";
@@ -367,9 +369,9 @@ function updateActionItem($id, $data)
 }
 
 /**
- * Remove action item
+ * Delete an action item
  */
-function removeActionItem($id)
+function deleteActionItem($id)
 {
     global $conn;
     $stmt = $conn->prepare("DELETE FROM tasks WHERE task_id = ?");
@@ -464,15 +466,18 @@ function getReportsByCommittee($committeeId)
 function getActionItemsByMeeting($meetingId)
 {
     global $conn;
-    $stmt = $conn->prepare("SELECT t.*, c.committee_name, CONCAT(u.first_name, ' ', u.last_name) as assigned_to_name 
-                            FROM tasks t 
-                            LEFT JOIN committees c ON t.committee_id = c.committee_id 
-                            LEFT JOIN users u ON t.assigned_to = u.user_id 
-                            WHERE t.meeting_id = ?");
-    $stmt->bind_param("i", $meetingId);
+    // Assuming meeting_id might be stored in a linked field or we filter by category
+    $stmt = $conn->prepare("SELECT * FROM tasks WHERE description LIKE ?");
+    $term = "%Meeting ID: $meetingId%";
+    $stmt->bind_param("s", $term);
     $stmt->execute();
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $result = $stmt->get_result();
+    $items = [];
+    while ($row = $result->fetch_assoc()) {
+        $row['id'] = $row['task_id'];
+        $items[] = $row;
+    }
+    return $items;
 }
 
-require_once __DIR__ . '/ReferralHelper.php';
 ?>

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Meeting Helper Functions
  * Handles all meeting-related database operations
@@ -94,49 +94,6 @@ function getAllMeetings($filters = [])
 }
 
 /**
- * Get meetings that a specific user is allowed to see
- */
-function getUserMeetings($userId, $filters = [])
-{
-    global $conn;
-
-    // Get user role
-    $user = UserHelper_getUserById($userId);
-    $roleName = $user['role_name'] ?? 'User';
-
-    // Admins see everything
-    if ($roleName === 'Super Admin' || $roleName === 'Admin') {
-        return getAllMeetings($filters);
-    }
-
-    // For others, return all meetings so they can "view" them (transparency requirement)
-    // Business rules will restrict Edit/Delete buttons in the UI based on ownership
-    return getAllMeetings($filters);
-
-    $meetings = [];
-    while ($row = $result->fetch_assoc()) {
-        $meetings[] = [
-            'id' => $row['meeting_id'],
-            'committee_id' => $row['committee_id'],
-            'committee_name' => $row['committee_name'],
-            'title' => $row['meeting_title'],
-            'description' => $row['description'],
-            'date' => ($row['meeting_date'] && $row['meeting_date'] !== '0000-00-00 00:00:00') ? date('Y-m-d', strtotime($row['meeting_date'])) : '',
-            'time_start' => ($row['meeting_date'] && $row['meeting_date'] !== '0000-00-00 00:00:00') ? date('H:i', strtotime($row['meeting_date'])) : '',
-            'time_end' => ($row['meeting_end_time'] && $row['meeting_end_time'] !== '0000-00-00 00:00:00') ? date('H:i', strtotime($row['meeting_end_time'])) : '',
-            'venue' => $row['location'],
-            'status' => $row['status'],
-            'agenda_status' => $row['agenda_status'],
-            'is_public' => $row['is_public'],
-            'created_by' => $row['created_by_name'],
-            'created_date' => $row['created_at']
-        ];
-    }
-
-    return $meetings;
-}
-
-/**
  * Get single meeting by ID
  */
 function getMeetingById($id)
@@ -190,134 +147,27 @@ function getMeetingsByCommittee($committeeId)
 }
 
 /**
- * Create new meeting
+ * Create new meeting (DEPRECATED: Managed by external Scheduling API)
  */
 function createMeeting($data)
 {
-    global $conn;
-
-    $meetingDate = $data['date'] . ' ' . $data['time_start'];
-    $meetingEndTime = null;
-    if (!empty($data['time_end'])) {
-        $meetingEndTime = $data['date'] . ' ' . $data['time_end'];
-    }
-
-    $stmt = $conn->prepare("INSERT INTO meetings 
-        (committee_id, meeting_title, description, meeting_date, meeting_end_time, location, status, is_public, created_by) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-    $status = $data['status'] ?? 'Scheduled';
-    $isPublic = isset($data['is_public']) ? (int) $data['is_public'] : 1;
-    $createdBy = $_SESSION['user_id'] ?? 1;
-
-    $stmt->bind_param(
-        "issssssii",
-        $data['committee_id'],
-        $data['title'],
-        $data['description'],
-        $meetingDate,
-        $meetingEndTime,
-        $data['venue'],
-        $status,
-        $isPublic,
-        $createdBy
-    );
-
-    if ($stmt->execute()) {
-        $meetingId = $conn->insert_id;
-
-        // Auto-invite committee members (Professional Baseline)
-        autoInviteCommitteeMembers($meetingId, $data['committee_id']);
-
-        logAuditAction(
-            $_SESSION['user_id'] ?? null,
-            'CREATE',
-            'meetings',
-            "Created meeting '{$data['title']}' for committee ID: {$data['committee_id']}"
-        );
-        return $meetingId;
-    }
-
-    $error = $conn->error;
-    error_log("Error creating meeting: " . $error);
-    $_SESSION['error_message'] = "Database Error: " . $error;
+    error_log("Attempted local meeting creation. Blocked: Meetings are read-only API-synced.");
+    $_SESSION['error_message'] = "Meetings cannot be created locally. They are synced from the Legislative Scheduling system.";
     return false;
 }
 
 /**
- * Update meeting (Dynamic/Partial Support)
+ * Update meeting (DEPRECATED: Managed by external Scheduling API)
  */
 function updateMeeting($id, $data)
 {
-    global $conn;
-
-    $fields = [];
-    $params = [];
-    $types = "";
-
-    $map = [
-        'title' => 'meeting_title',
-        'description' => 'description',
-        'venue' => 'location',
-        'location' => 'location',
-        'status' => 'status',
-        'agenda_status' => 'agenda_status',
-        'is_public' => 'is_public'
-    ];
-
-    foreach ($map as $key => $column) {
-        if (isset($data[$key])) {
-            $fields[] = "$column = ?";
-            $params[] = $data[$key];
-            $types .= (is_int($data[$key]) || is_bool($data[$key])) ? "i" : "s";
-        }
-    }
-
-    if (isset($data['date']) && isset($data['time_start'])) {
-        $meetingDate = $data['date'] . ' ' . $data['time_start'];
-        $fields[] = "meeting_date = ?";
-        $params[] = $meetingDate;
-        $types .= "s";
-
-        if (isset($data['time_end'])) {
-            $meetingEndTime = $data['date'] . ' ' . $data['time_end'];
-            $fields[] = "meeting_end_time = ?";
-            $params[] = $meetingEndTime;
-            $types .= "s";
-        }
-    }
-
-    if (empty($fields))
-        return true;
-
-    $sql = "UPDATE meetings SET " . implode(", ", $fields) . " WHERE meeting_id = ?";
-    $params[] = $id;
-    $types .= "i";
-
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param($types, ...$params);
-
-    return $stmt->execute();
+    error_log("Attempted local meeting update. Blocked: Meetings are read-only API-synced.");
+    return false;
 }
 
-/**
- * Professional Archiving: Replace Hard Delete with "Cancelled" status
- * This ensures data integrity and preserves legislative records.
- */
-function archiveMeeting($id)
+function deleteMeeting($id)
 {
-    global $conn;
-    $stmt = $conn->prepare("UPDATE meetings SET status = 'Cancelled' WHERE meeting_id = ?");
-    $stmt->bind_param("i", $id);
-    if ($stmt->execute()) {
-        logAuditAction(
-            $_SESSION['user_id'] ?? null,
-            'ARCHIVE',
-            'meetings',
-            "Archived/Cancelled meeting ID: $id"
-        );
-        return true;
-    }
+    error_log("Attempted local meeting deletion. Blocked: Meetings are read-only API-synced.");
     return false;
 }
 
@@ -326,16 +176,7 @@ function archiveMeeting($id)
  */
 function changeMeetingStatus($id, $status)
 {
-    if (updateMeeting($id, ['status' => $status])) {
-        logAuditAction(
-            $_SESSION['user_id'] ?? null,
-            'STATUS_CHANGE',
-            'meetings',
-            "Meeting ID: $id transitioned to status: $status"
-        );
-        return true;
-    }
-    return false;
+    return updateMeeting($id, ['status' => $status]);
 }
 
 /**
@@ -424,9 +265,8 @@ function addAgendaItem($meetingId, $data)
 {
     global $conn;
     $referralId = $data['referral_id'] ?? null;
-    $isConsent = $data['is_consent'] ?? 0;
-    $stmt = $conn->prepare("INSERT INTO agenda_items (meeting_id, referral_id, title, description, duration, presenter, item_order, is_consent) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("iissisii", $meetingId, $referralId, $data['title'], $data['description'], $data['duration'], $data['presenter'], $data['item_order'], $isConsent);
+    $stmt = $conn->prepare("INSERT INTO agenda_items (meeting_id, referral_id, title, description, duration, presenter, item_order) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("iissisi", $meetingId, $referralId, $data['title'], $data['description'], $data['duration'], $data['presenter'], $data['item_order']);
     $success = $stmt->execute();
     if ($success) {
         logAuditAction(
@@ -435,16 +275,6 @@ function addAgendaItem($meetingId, $data)
             'agenda',
             "Added agenda item to meeting ID: $meetingId - '{$data['title']}'"
         );
-    }
-
-    if ($success && $referralId) {
-        // Update referral status to 'In Committee'
-        if (file_exists(__DIR__ . '/ReferralHelper.php')) {
-            require_once __DIR__ . '/ReferralHelper.php';
-            if (function_exists('updateReferralStatus')) {
-                updateReferralStatus($referralId, 'In Committee');
-            }
-        }
     }
 
     return $success;
@@ -466,8 +296,7 @@ function updateAgendaItem($itemId, $data)
         'duration' => 'duration',
         'presenter' => 'presenter',
         'item_order' => 'item_order',
-        'item_number' => 'item_order', // UI uses item_number for sorting
-        'is_consent' => 'is_consent'
+        'item_number' => 'item_order' // UI uses item_number for sorting
     ];
 
     foreach ($map as $key => $column) {
@@ -491,13 +320,12 @@ function updateAgendaItem($itemId, $data)
 }
 
 /**
- * Professional Archiving: Replace Hard Delete with "Archived" status
- * This ensures individual legislative items are preserved for history.
+ * Delete agenda item
  */
-function archiveAgendaItem($itemId)
+function deleteAgendaItem($itemId)
 {
     global $conn;
-    $stmt = $conn->prepare("UPDATE agenda_items SET status = 'Archived' WHERE item_id = ?");
+    $stmt = $conn->prepare("DELETE FROM agenda_items WHERE item_id = ?");
     $stmt->bind_param("i", $itemId);
     return $stmt->execute();
 }
@@ -756,7 +584,7 @@ function addMeetingDocument($meetingId, $data, $file = null)
     return $stmt->execute();
 }
 
-function removeMeetingDocument($docId)
+function deleteMeetingDocument($docId)
 {
     global $conn;
 
@@ -997,9 +825,9 @@ function createAgendaTemplate($data)
 }
 
 /**
- * Remove agenda template
+ * Delete agenda template
  */
-function removeAgendaTemplate($id)
+function deleteAgendaTemplate($id)
 {
     global $conn;
     // items will be deleted by CASCADE if FOREIGN KEY is set correctly

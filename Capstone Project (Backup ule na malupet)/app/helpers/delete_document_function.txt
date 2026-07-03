@@ -1,0 +1,52 @@
+/**
+ * Delete committee document
+ */
+function deleteCommitteeDocument($documentId)
+{
+    global $conn;
+    
+    // Get document info first
+    $stmt = $conn->prepare("SELECT ld.*, c.committee_name 
+            FROM legislative_documents ld
+            LEFT JOIN committees c ON ld.assigned_committee_id = c.committee_id
+            WHERE ld.document_id = ?");
+    $stmt->bind_param("i", $documentId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $document = $result->fetch_assoc();
+    
+    if (!$document) {
+        return false;
+    }
+    
+    // Parse file info and delete file if exists
+    $fileInfo = json_decode($document['content'], true);
+    if ($fileInfo && isset($fileInfo['file_path'])) {
+        $fullPath = __DIR__ . '/../../' . $fileInfo['file_path'];
+        if (file_exists($fullPath)) {
+            unlink($fullPath);
+        }
+    }
+    
+    // Delete from database
+    $deleteStmt = $conn->prepare("DELETE FROM legislative_documents WHERE document_id = ?");
+    $deleteStmt->bind_param("i", $documentId);
+    
+    if ($deleteStmt->execute()) {
+        // Log the action
+        if (function_exists('logAuditAction')) {
+            $committeeName = $document['committee_name'] ?? 'Unknown Committee';
+            logAuditAction(
+                $_SESSION['user_id'] ?? null,
+                'DELETE_DOCUMENT',
+                'committees',
+                "Deleted document '{$document['title']}' from committee '{$committeeName}'"
+            );
+        }
+        
+        return true;
+    }
+    
+    error_log("Error deleting document: " . $conn->error);
+    return false;
+}

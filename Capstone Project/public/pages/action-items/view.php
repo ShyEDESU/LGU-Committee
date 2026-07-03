@@ -3,7 +3,6 @@ require_once __DIR__ . '/../../../config/session_config.php';
 require_once __DIR__ . '/../../../app/helpers/DataHelper.php';
 require_once __DIR__ . '/../../../app/helpers/CommitteeHelper.php';
 require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
-require_once __DIR__ . '/../../../app/helpers/ReferralHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../../auth/login.php');
@@ -19,10 +18,10 @@ if (!$item) {
     exit();
 }
 
-// Handle removal
-if (isset($_POST['remove_item'])) {
-    if (removeActionItem($itemId)) {
-        header('Location: index.php?removed=1');
+// Handle delete
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_item'])) {
+    if (deleteActionItem($itemId)) {
+        header('Location: index.php?deleted=1');
         exit();
     }
 }
@@ -30,8 +29,6 @@ if (isset($_POST['remove_item'])) {
 // Get related items
 $committee = !empty($item['committee_id']) ? getCommitteeById($item['committee_id']) : null;
 $meeting = !empty($item['related_meeting_id']) ? getMeetingById($item['related_meeting_id']) : null;
-$referral = !empty($item['referral_id']) ? getReferralById($item['referral_id']) : null;
-$agendaItem = !empty($item['agenda_item_id']) ? getAgendaItemById($item['agenda_item_id']) : null;
 
 $userName = $_SESSION['user_name'] ?? 'User';
 $pageTitle = 'Action Item Details';
@@ -150,39 +147,6 @@ include '../../includes/header.php';
             </p>
         </div>
 
-        <!-- Removal Confirmation Modal -->
-        <div id="removeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-            <div class="bg-white dark:bg-gray-800 rounded-xl max-w-sm w-full p-6 shadow-2xl mx-4">
-                <div class="text-center">
-                    <i class="bi bi-exclamation-circle text-red-500 text-5xl mb-4"></i>
-                    <h3 class="text-xl font-bold mb-2">Remove Action Item?</h3>
-                    <p class="text-gray-600 mb-6">This will remove the item from active tracking.</p>
-                    <div class="flex space-x-3">
-                        <button onclick="closeRemoveModal()"
-                            class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
-                            Cancel
-                        </button>
-                        <form method="POST" class="flex-1">
-                            <input type="hidden" name="remove_item" value="1">
-                            <button type="submit"
-                                class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
-                                Remove
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <script>
-            function confirmRemove() {
-                document.getElementById('removeModal').classList.remove('hidden');
-            }
-            function closeRemoveModal() {
-                document.getElementById('removeModal').classList.add('hidden');
-            }
-        </script>
-
         <!-- Time Tracking -->
         <?php if (!empty($item['estimated_hours']) || !empty($item['actual_hours'])): ?>
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -242,12 +206,6 @@ include '../../includes/header.php';
                         </button>
                     </form>
                 <?php endif; ?>
-                <?php if (canApprove($userId, 'action_items')): ?>
-                    <button onclick="confirmRemove()"
-                        class="px-4 py-2 border border-red-600 text-red-600 hover:bg-red-50 rounded-lg transition">
-                        <i class="bi bi-x-circle mr-2"></i>Remove Item
-                    </button>
-                <?php endif; ?>
             </div>
         </div>
 
@@ -269,7 +227,7 @@ include '../../includes/header.php';
         <?php endif; ?>
 
         <!-- Related Items -->
-        <?php if ($committee || $meeting || $referral || $agendaItem): ?>
+        <?php if ($committee || $meeting): ?>
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 class="font-bold text-gray-900 dark:text-white mb-4">
                     <i class="bi bi-link-45deg mr-2"></i>Related Items
@@ -290,23 +248,6 @@ include '../../includes/header.php';
                             <a href="../committee-meetings/view.php?id=<?php echo $meeting['id']; ?>"
                                 class="text-red-600 dark:text-blue-400 hover:underline font-medium">
                                 <i class="bi bi-calendar-event mr-1"></i><?php echo htmlspecialchars($meeting['title']); ?>
-                            </a>
-                        </div>
-                    <?php endif; ?>
-                    <?php if ($agendaItem): ?>
-                        <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Agenda Item</p>
-                            <span class="text-gray-900 dark:text-white font-medium">
-                                <i class="bi bi-list-task mr-1"></i><?php echo htmlspecialchars($agendaItem['title']); ?>
-                            </span>
-                        </div>
-                    <?php endif; ?>
-                    <?php if ($referral): ?>
-                        <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Referral</p>
-                            <a href="../referral-management/view.php?id=<?php echo $referral['id']; ?>"
-                                class="text-red-600 dark:text-blue-400 hover:underline font-medium">
-                                <i class="bi bi-file-earmark-text mr-1"></i><?php echo htmlspecialchars($referral['title']); ?>
                             </a>
                         </div>
                     <?php endif; ?>

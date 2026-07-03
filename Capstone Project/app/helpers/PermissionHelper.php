@@ -13,10 +13,9 @@ function getRoles()
     return [
         1 => 'Super Admin',
         2 => 'Admin',
-        3 => 'Chairman',
-        4 => 'Vice-Chair',
-        5 => 'Committee Member',
-        6 => 'Secretary'
+        3 => 'Committee Chairman',
+        4 => 'Vice Committee Chairman',
+        5 => 'User'
     ];
 }
 
@@ -29,64 +28,44 @@ function getPermissionMatrix()
         'Super Admin' => [
             'committees' => ['create', 'read', 'update', 'delete', 'manage_all'],
             'meetings' => ['create', 'read', 'update', 'delete', 'approve', 'manage_all'],
-            'referrals' => ['create', 'read', 'update', 'delete', 'approve', 'manage_all'],
             'action_items' => ['create', 'read', 'update', 'delete'],
             'reports' => ['create', 'read', 'update', 'delete', 'publish'],
             'users' => ['create', 'read', 'update', 'delete'],
             'settings' => ['read', 'update'],
-            'audit_logs' => ['read'],
-            'agendas' => ['create', 'read', 'update', 'delete', 'manage_all']
+            'audit_logs' => ['read']
         ],
         'Admin' => [
             'committees' => ['create', 'read', 'update', 'delete', 'manage_all'],
             'meetings' => ['create', 'read', 'update', 'delete', 'approve', 'manage_all'],
-            'referrals' => ['create', 'read', 'update', 'delete', 'approve', 'manage_all'],
             'action_items' => ['create', 'read', 'update', 'delete'],
             'reports' => ['create', 'read', 'update', 'delete', 'publish'],
             'users' => ['create', 'read', 'update', 'delete'],
             'settings' => ['read', 'update'],
-            'audit_logs' => ['read'],
-            'agendas' => ['create', 'read', 'update', 'delete', 'manage_all']
+            'audit_logs' => ['read']
         ],
-        'Chairman' => [
+        'Committee Chairman' => [
             'committees' => ['read', 'update'],
-            'meetings' => ['create', 'read', 'update', 'delete', 'approve'], // 'delete' is Archive
-            'referrals' => ['read', 'update'],
-            'action_items' => ['create', 'read', 'update', 'delete'],
-            'reports' => ['create', 'read', 'update', 'publish', 'delete'],
-            'users' => [],
-            'settings' => [],
-            'agendas' => ['create', 'read', 'update', 'delete', 'approve'] // Chair can Approve
-        ],
-        'Vice-Chair' => [
-            'committees' => ['read'],
             'meetings' => ['create', 'read', 'update'],
-            'referrals' => ['read', 'update'],
+            'action_items' => ['create', 'read', 'update'],
+            'reports' => ['create', 'read', 'update', 'publish'],
+            'users' => [],
+            'settings' => []
+        ],
+        'Vice Committee Chairman' => [
+            'committees' => ['read', 'update'],
+            'meetings' => ['create', 'read', 'update'],
             'action_items' => ['create', 'read', 'update'],
             'reports' => ['create', 'read', 'update'],
             'users' => [],
-            'settings' => [],
-            'agendas' => ['read', 'update']
+            'settings' => []
         ],
-        'Committee Member' => [
+        'User' => [
             'committees' => ['read'],
             'meetings' => ['read'],
-            'referrals' => ['read'],
             'action_items' => ['read', 'update'], // Can update own action items
             'reports' => ['read'],
             'users' => [],
-            'settings' => [],
-            'agendas' => ['read']
-        ],
-        'Secretary' => [
-            'committees' => ['read', 'update'],
-            'meetings' => ['create', 'read', 'update'], // Secretary can schedule "By Order"
-            'referrals' => ['read', 'update'],
-            'action_items' => ['create', 'read', 'update'],
-            'reports' => ['read'],
-            'users' => [],
-            'settings' => [],
-            'agendas' => ['create', 'read', 'update', 'delete'] // Secretary drafts/archives
+            'settings' => []
         ]
     ];
 }
@@ -162,39 +141,9 @@ function canRead($userId, $module)
 /**
  * Can update
  */
-function canUpdate($userId, $module, $itemId = null)
+function canUpdate($userId, $module)
 {
-    // First check matrix permission
-    if (!hasPermission($userId, $module, 'update')) {
-        return false;
-    }
-
-    // If no specific item, we just check general permission
-    if ($itemId === null) {
-        return true;
-    }
-
-    // Admins can update anything
-    $user = UserHelper_getUserById($userId);
-    if ($user && ($user['role_name'] === 'Super Admin' || $user['role_name'] === 'Admin')) {
-        return true;
-    }
-
-    // Item-specific ownership/leadership checks
-    if ($module === 'committees') {
-        require_once __DIR__ . '/CommitteeHelper.php';
-        $committee = getCommitteeById($itemId);
-        if ($committee) {
-            // Chairperson, Vice Chairperson, and Secretary can update their committee
-            return (
-                $userId == ($committee['chairperson_id'] ?? 0) ||
-                $userId == ($committee['vice_chair_id'] ?? 0) ||
-                $userId == ($committee['secretary_id'] ?? 0)
-            );
-        }
-    }
-
-    return true; // Default to true if no specific ownership check defined but matrix allows
+    return hasPermission($userId, $module, 'update');
 }
 
 /**
@@ -235,67 +184,17 @@ function canDelete($userId, $module, $itemId = null)
 /**
  * Can approve
  */
-function canApprove($userId, $module, $itemId = null)
+function canApprove($userId, $module)
 {
-    if (!hasPermission($userId, $module, 'approve')) {
-        return false;
-    }
-
-    if ($itemId === null) {
-        return true;
-    }
-
-    $user = UserHelper_getUserById($userId);
-    if ($user && ($user['role_name'] === 'Super Admin' || $user['role_name'] === 'Admin')) {
-        return true;
-    }
-
-    // Item-specific ownership/leadership checks
-    if ($module === 'meetings' || $module === 'agendas') {
-        require_once __DIR__ . '/CommitteeHelper.php';
-
-        // For agendas, we check the meeting first
-        if ($module === 'agendas') {
-            require_once __DIR__ . '/MeetingHelper.php';
-            $meeting = getMeetingById($itemId);
-            $committeeId = $meeting['committee_id'] ?? 0;
-        } else {
-            require_once __DIR__ . '/MeetingHelper.php';
-            $meeting = getMeetingById($itemId);
-            $committeeId = $meeting['committee_id'] ?? 0;
-        }
-
-        if ($committeeId) {
-            $committee = getCommitteeById($committeeId);
-            if ($committee) {
-                // Only Chairperson can approve (Vice Chairman can be added if needed)
-                return ($userId == ($committee['chairperson_id'] ?? 0));
-            }
-        }
-    }
-
-    return false;
+    return hasPermission($userId, $module, 'approve');
 }
 
 /**
  * Can publish
  */
-function canPublish($userId, $module, $itemId = null)
+function canPublish($userId, $module)
 {
-    if (!hasPermission($userId, $module, 'publish')) {
-        return false;
-    }
-
-    if ($itemId === null) {
-        return true;
-    }
-
-    $user = UserHelper_getUserById($userId);
-    if ($user && ($user['role_name'] === 'Super Admin' || $user['role_name'] === 'Admin')) {
-        return true;
-    }
-
-    return false; // Default to Admin-only for publishing unless explicit leadership logic added
+    return hasPermission($userId, $module, 'publish');
 }
 
 /**
@@ -334,22 +233,6 @@ function canEdit($userId, $module, $itemId)
         if ($meeting) {
             require_once __DIR__ . '/CommitteeHelper.php';
             $committee = getCommitteeById($meeting['committee_id']);
-            if ($committee) {
-                return (
-                    $userId == ($committee['chairperson_id'] ?? 0) ||
-                    $userId == ($committee['vice_chair_id'] ?? 0) ||
-                    $userId == ($committee['secretary_id'] ?? 0)
-                );
-            }
-        }
-    }
-
-    if ($module === 'referrals') {
-        require_once __DIR__ . '/ReferralHelper.php';
-        $referral = getReferralById($itemId);
-        if ($referral) {
-            require_once __DIR__ . '/CommitteeHelper.php';
-            $committee = getCommitteeById($referral['committee_id']);
             if ($committee) {
                 return (
                     $userId == ($committee['chairperson_id'] ?? 0) ||

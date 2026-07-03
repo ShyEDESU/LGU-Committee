@@ -7,7 +7,6 @@ require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/app/helpers/MeetingHelper.php';
 require_once __DIR__ . '/app/helpers/CommitteeHelper.php';
 require_once __DIR__ . '/app/helpers/DataHelper.php';
-require_once __DIR__ . '/app/helpers/ReferralHelper.php';
 
 // If user is already logged in, redirect to dashboard
 if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
@@ -32,7 +31,6 @@ function getSafeCount($conn, $sql)
 // Fetch Dynamic Stats
 $totalOrdinances = getSafeCount($conn, "SELECT COUNT(*) FROM legislative_documents WHERE document_type = 'ordinance'");
 $activeCommitteesCount = getSafeCount($conn, "SELECT COUNT(*) FROM committees WHERE is_active = 1");
-$totalReferrals = getSafeCount($conn, "SELECT COUNT(*) FROM referrals");
 
 // Additional stats for landing page dashboard
 $scheduledMeetings = getSafeCount($conn, "SELECT COUNT(*) FROM meetings WHERE status = 'Scheduled'");
@@ -59,10 +57,10 @@ try {
 } catch (Exception $e) {
 }
 
-// Fetch Committees with referral counts
+// Fetch Committees with report counts
 $committees = [];
 try {
-    $res = $conn->query("SELECT c.*, (SELECT COUNT(*) FROM referrals r WHERE r.to_committee_id = c.committee_id AND r.status = 'Pending') as pending_count FROM committees c WHERE c.is_active = 1 LIMIT 8");
+    $res = $conn->query("SELECT c.*, (SELECT COUNT(*) FROM committee_reports r WHERE r.committee_id = c.committee_id) as reports_count FROM committees c WHERE c.is_active = 1 LIMIT 8");
     if ($res) {
         $committees = $res->fetch_all(MYSQLI_ASSOC);
     }
@@ -479,7 +477,7 @@ try {
                                 </div>
                                 <a href="public/pages/committee-meetings/view.php?id=<?php echo $session['id']; ?>"
                                     class="block text-center py-4 bg-v-navy dark:bg-slate-700 text-white rounded-xl font-bold hover:bg-v-red dark:hover:bg-red-600 transition-all">
-                                    <?php echo ($session['status'] === 'Ongoing') ? 'Monitor Deliberation' : 'View Agenda'; ?>
+                                    <?php echo ($session['status'] === 'Ongoing') ? 'Monitor Deliberation' : 'View Details'; ?>
                                 </a>
                             </div>
                         </div>
@@ -586,8 +584,8 @@ try {
                             <?php echo htmlspecialchars($committee['committee_name']); ?>
                         </h4>
                         <span
-                            class="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest"><?php echo $committee['pending_count']; ?>
-                            Active Referrals</span>
+                            class="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest"><?php echo $committee['reports_count']; ?>
+                            Reports Submitted</span>
                     </div>
                 <?php endforeach; ?>
 
@@ -768,8 +766,8 @@ try {
                 if (navContainer) {
                     navContainer.classList.add('h-20');
                     navContainer.classList.remove('h-16');
-                }
             }
+        });
     </script>
 
     <!-- System Scripts -->

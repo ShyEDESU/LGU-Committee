@@ -15,25 +15,21 @@ if (!$committee) {
 }
 
 // Handle document deletion
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_document'])) {
-    $documentId = $_POST['document_id'] ?? 0;
+if (isset($_POST['delete_document'])) {
+    $documentId = intval($_POST['delete_document']);
     $isMeetingDoc = isset($_POST['is_meeting_doc']) && $_POST['is_meeting_doc'] == '1';
 
-    if ($documentId) {
-        if ($isMeetingDoc) {
-            require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
-            $success = removeMeetingDocument($documentId);
-        } else {
-            $success = removeCommitteeDocument($documentId); // Assuming this also needs to be updated for consistency
-        }
-
-        if ($success) {
-            $_SESSION['success_message'] = 'Document has been removed successfully from the records.';
-        } else {
-            $_SESSION['error_message'] = 'An administrative error occurred during removal.';
-        }
+    if ($isMeetingDoc) {
+        require_once __DIR__ . '/../../../app/helpers/MeetingHelper.php';
+        $success = deleteMeetingDocument($documentId);
     } else {
-        $_SESSION['error_message'] = 'Invalid document ID.';
+        $success = deleteCommitteeDocument($documentId);
+    }
+
+    if ($success) {
+        $_SESSION['success_message'] = 'Document deleted successfully';
+    } else {
+        $_SESSION['error_message'] = 'Failed to delete document';
     }
     header('Location: documents.php?id=' . $id);
     exit();
@@ -185,16 +181,14 @@ include '../../includes/header.php';
                                     <i class="bi bi-download mr-1"></i>No File
                                 </button>
                             <?php endif; ?>
-                            <form method="POST" style="display: inline;"
-                                onsubmit="return confirm('Professional Record Adjustment: Remove this document from the records?');">
-                                <input type="hidden" name="document_id" value="<?php echo $doc['id']; ?>">
-                                <input type="hidden" name="remove_document" value="1">
+                            <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this document?')">
+                                <input type="hidden" name="delete_document" value="<?php echo $doc['id']; ?>">
                                 <?php if (!empty($doc['is_meeting_doc'])): ?>
                                     <input type="hidden" name="is_meeting_doc" value="1">
                                 <?php endif; ?>
-                                <button type="submit" title="Remove Document"
+                                <button type="submit"
                                     class="px-3 py-2 border border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-sm transition">
-                                    <i class="bi bi-x-circle"></i>
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </form>
                         </div>

@@ -38,16 +38,6 @@ class ModuleDataHelper {
                 ['id' => 2, 'title' => 'Public Safety Review', 'date' => '2025-12-16', 'time' => '2:00 PM', 'location' => 'Conference Room B', 'status' => 'Scheduled'],
                 ['id' => 3, 'title' => 'Budget Review Session', 'date' => '2025-12-17', 'time' => '9:00 AM', 'location' => 'Board Room', 'status' => 'Completed'],
             ],
-            'agendas' => [
-                ['id' => 1, 'meeting_id' => 1, 'title' => 'Q4 Budget Review', 'items' => 5, 'status' => 'Draft', 'created' => '2025-12-01'],
-                ['id' => 2, 'meeting_id' => 2, 'title' => 'Safety Protocol Updates', 'items' => 3, 'status' => 'Published', 'created' => '2025-12-05'],
-                ['id' => 3, 'meeting_id' => 3, 'title' => 'Annual Report', 'items' => 7, 'status' => 'Completed', 'created' => '2025-11-20'],
-            ],
-            'referrals' => [
-                ['id' => 1, 'title' => 'Budget Allocation Request', 'from_committee' => 'Finance', 'to_committee' => 'Executive', 'status' => 'Pending', 'created' => '2025-12-01'],
-                ['id' => 2, 'title' => 'Policy Amendment Proposal', 'from_committee' => 'Public Safety', 'to_committee' => 'Legal Affairs', 'status' => 'Under Review', 'created' => '2025-11-28'],
-                ['id' => 3, 'title' => 'Facility Upgrade Request', 'from_committee' => 'Parks & Rec', 'to_committee' => 'Finance', 'status' => 'Approved', 'created' => '2025-11-15'],
-            ],
             'action_items' => [
                 ['id' => 1, 'title' => 'Prepare Budget Report', 'assignee' => 'John Smith', 'due_date' => '2025-12-20', 'priority' => 'High', 'status' => 'In Progress'],
                 ['id' => 2, 'title' => 'Review Safety Protocols', 'assignee' => 'Robert Brown', 'due_date' => '2025-12-18', 'priority' => 'High', 'status' => 'Not Started'],
@@ -102,9 +92,6 @@ class ModuleDataHelper {
             'member-assignment' => 'members',
             'meeting-scheduler' => 'meetings',
             'meetings' => 'meetings',
-            'agenda-builder' => 'agendas',
-            'referral-management' => 'referrals',
-            'referrals' => 'referrals',
             'action-items' => 'action_items',
             'documents' => 'documents',
             'deliberation-tools' => 'discussions',
@@ -139,9 +126,6 @@ class ModuleDataHelper {
             'member-assignment' => 'members',
             'meeting-scheduler' => 'meetings',
             'meetings' => 'meetings',
-            'agenda-builder' => 'agendas',
-            'referral-management' => 'referrals',
-            'referrals' => 'referrals',
             'action-items' => 'action_items',
             'documents' => 'documents',
             'deliberation-tools' => 'discussions',
@@ -188,9 +172,6 @@ class ModuleDataHelper {
             'member-assignment' => 'members',
             'meeting-scheduler' => 'meetings',
             'meetings' => 'meetings',
-            'agenda-builder' => 'agendas',
-            'referral-management' => 'referrals',
-            'referrals' => 'referrals',
             'action-items' => 'action_items',
             'documents' => 'documents',
             'deliberation-tools' => 'discussions',
@@ -232,9 +213,6 @@ class ModuleDataHelper {
             'member-assignment' => 'members',
             'meeting-scheduler' => 'meetings',
             'meetings' => 'meetings',
-            'agenda-builder' => 'agendas',
-            'referral-management' => 'referrals',
-            'referrals' => 'referrals',
             'action-items' => 'action_items',
             'documents' => 'documents',
             'deliberation-tools' => 'discussions',
@@ -304,8 +282,6 @@ class ModuleDataHelper {
             'total_committees' => count($_SESSION['module_data']['committees'] ?? []),
             'total_members' => count($_SESSION['module_data']['members'] ?? []),
             'total_meetings' => count($_SESSION['module_data']['meetings'] ?? []),
-            'total_agendas' => count($_SESSION['module_data']['agendas'] ?? []),
-            'total_referrals' => count($_SESSION['module_data']['referrals'] ?? []),
             'total_action_items' => count($_SESSION['module_data']['action_items'] ?? []),
             'total_documents' => count($_SESSION['module_data']['documents'] ?? []),
             'total_discussions' => count($_SESSION['module_data']['discussions'] ?? []),
@@ -351,57 +327,6 @@ class ModuleDataHelper {
             $meeting['committee'] = ['Finance Committee', 'Public Safety', 'Parks & Recreation'][rand(0, 2)];
             return $meeting;
         }, $meetings);
-    }
-
-    /**
-     * Get Agendas data
-     */
-    public static function getAgendas() {
-        self::initializeModuleData();
-        return array_map(function($agenda) {
-            $agenda['committee'] = ['Finance Committee', 'Public Safety'][rand(0, 1)];
-            $agenda['items_count'] = rand(3, 8);
-            return $agenda;
-        }, $_SESSION['module_data']['agendas'] ?? []);
-    }
-
-    /**
-     * Get Referrals data for Referral Tracking module
-     */
-    public static function getReferrals() {
-        self::initializeModuleData();
-        return [
-            [
-                'id' => 1,
-                'reference_number' => 'REF-2025-001',
-                'subject' => 'Budget Allocation Request for Q1 2025',
-                'from_department' => 'Finance Department',
-                'assigned_to' => 'John Smith',
-                'status' => 'In Review',
-                'deadline' => '2025-12-20',
-                'created' => '2025-12-01'
-            ],
-            [
-                'id' => 2,
-                'reference_number' => 'REF-2025-002',
-                'subject' => 'Policy Amendment - Safety Protocols Update',
-                'from_department' => 'Legal Affairs',
-                'assigned_to' => 'Robert Brown',
-                'status' => 'Pending',
-                'deadline' => '2025-12-18',
-                'created' => '2025-12-03'
-            ],
-            [
-                'id' => 3,
-                'reference_number' => 'REF-2025-003',
-                'subject' => 'Infrastructure Development Proposal',
-                'from_department' => 'Public Works',
-                'assigned_to' => 'Mary Johnson',
-                'status' => 'In Review',
-                'deadline' => '2025-12-25',
-                'created' => '2025-12-05'
-            ],
-        ];
     }
 
     /**

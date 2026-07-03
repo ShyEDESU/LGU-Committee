@@ -30,21 +30,6 @@ $modules = [
         ]
     ],
     [
-        'name' => 'Referral Management',
-        'path' => 'pages/referral-management/inbox.php',
-        'icon' => 'bi bi-inbox',
-        'color' => 'green',
-        'tabs' => [
-            ['id' => 'receive', 'label' => 'Receive Referrals', 'icon' => 'bi-arrow-down-circle', 'color' => 'green'],
-            ['id' => 'inbox', 'label' => 'Referral Inbox', 'icon' => 'bi-inbox', 'color' => 'green'],
-            ['id' => 'assignment', 'label' => 'Assignment', 'icon' => 'bi-distribution', 'color' => 'green'],
-            ['id' => 'multi-committee', 'label' => 'Multi-Committee', 'icon' => 'bi-diagram-3', 'color' => 'green'],
-            ['id' => 'acknowledgment', 'label' => 'Acknowledgment', 'icon' => 'bi-check-circle', 'color' => 'green'],
-            ['id' => 'deadlines', 'label' => 'Deadlines', 'icon' => 'bi-calendar-event', 'color' => 'green'],
-            ['id' => 'alerts', 'label' => 'Overdue Alerts', 'icon' => 'bi-bell', 'color' => 'green'],
-        ]
-    ],
-    [
         'name' => 'Meeting Scheduler',
         'path' => 'pages/meeting-scheduler/view.php',
         'icon' => 'bi bi-calendar-event',
@@ -57,21 +42,6 @@ $modules = [
             ['id' => 'conflict', 'label' => 'Conflict Detection', 'icon' => 'bi-exclamation-circle', 'color' => 'purple'],
             ['id' => 'quorum', 'label' => 'Quorum Setting', 'icon' => 'bi-people-fill', 'color' => 'purple'],
             ['id' => 'cancellation', 'label' => 'Cancellation', 'icon' => 'bi-x-circle', 'color' => 'purple'],
-        ]
-    ],
-    [
-        'name' => 'Agenda Builder',
-        'path' => 'pages/agenda-builder/create.php',
-        'icon' => 'bi bi-list-check',
-        'color' => 'yellow',
-        'tabs' => [
-            ['id' => 'create', 'label' => 'Create Agendas', 'icon' => 'bi-plus-circle', 'color' => 'yellow'],
-            ['id' => 'ordinances', 'label' => 'Add Ordinances', 'icon' => 'bi-file-text', 'color' => 'yellow'],
-            ['id' => 'prioritize', 'label' => 'Prioritization', 'icon' => 'bi-arrow-up-circle', 'color' => 'yellow'],
-            ['id' => 'attachments', 'label' => 'Attachments', 'icon' => 'bi-paperclip', 'color' => 'yellow'],
-            ['id' => 'time', 'label' => 'Time Allocation', 'icon' => 'bi-clock', 'color' => 'yellow'],
-            ['id' => 'templates', 'label' => 'Templates', 'icon' => 'bi-file-earmark', 'color' => 'yellow'],
-            ['id' => 'distribution', 'label' => 'Distribution', 'icon' => 'bi-share', 'color' => 'yellow'],
         ]
     ],
     [

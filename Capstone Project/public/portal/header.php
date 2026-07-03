@@ -93,13 +93,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         class="<?php echo $currentPage === 'meetings.php' ? 'text-red-600 font-semibold' : 'text-gray-700 hover:text-red-600'; ?> transition">
                         <i class="bi bi-calendar-event mr-1"></i> Meetings
                     </a>
-                    <a href="agendas.php"
-                        class="<?php echo $currentPage === 'agendas.php' ? 'text-red-600 font-semibold' : 'text-gray-700 hover:text-red-600'; ?> transition">
-                        <i class="bi bi-list-ul mr-1"></i> Agendas
-                    </a>
-                    <a href="minutes.php"
-                        class="<?php echo $currentPage === 'minutes.php' ? 'text-red-600 font-semibold' : 'text-gray-700 hover:text-red-600'; ?> transition">
-                        <i class="bi bi-file-text mr-1"></i> Minutes
+                    <a href="reports.php"
+                        class="<?php echo $currentPage === 'reports.php' ? 'text-red-600 font-semibold' : 'text-gray-700 hover:text-red-600'; ?> transition">
+                        <i class="bi bi-file-earmark-text mr-1"></i> Reports
                     </a>
                     <a href="committees.php"
                         class="<?php echo $currentPage === 'committees.php' ? 'text-red-600 font-semibold' : 'text-gray-700 hover:text-red-600'; ?> transition">
@@ -129,13 +125,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     class="block px-4 py-2 <?php echo $currentPage === 'meetings.php' ? 'bg-red-50 text-red-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'; ?> rounded-lg transition">
                     <i class="bi bi-calendar-event mr-2"></i> Meetings
                 </a>
-                <a href="agendas.php"
-                    class="block px-4 py-2 <?php echo $currentPage === 'agendas.php' ? 'bg-red-50 text-red-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'; ?> rounded-lg transition">
-                    <i class="bi bi-list-ul mr-2"></i> Agendas
-                </a>
-                <a href="minutes.php"
-                    class="block px-4 py-2 <?php echo $currentPage === 'minutes.php' ? 'bg-red-50 text-red-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'; ?> rounded-lg transition">
-                    <i class="bi bi-file-text mr-2"></i> Minutes
+                <a href="reports.php"
+                    class="block px-4 py-2 <?php echo $currentPage === 'reports.php' ? 'bg-red-50 text-red-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'; ?> rounded-lg transition">
+                    <i class="bi bi-file-earmark-text mr-2"></i> Reports
                 </a>
                 <a href="committees.php"
                     class="block px-4 py-2 <?php echo $currentPage === 'committees.php' ? 'bg-red-50 text-red-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'; ?> rounded-lg transition">

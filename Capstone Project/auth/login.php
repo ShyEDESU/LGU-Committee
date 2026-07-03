@@ -15,11 +15,9 @@ if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
 }
 
 // Initialize login attempts tracking
-if (!isset($_SESSION['failed_in_cycle'])) {
+if (!isset($_SESSION['login_attempts'])) {
     $_SESSION['login_attempts'] = 0;
-    $_SESSION['failed_in_cycle'] = 0;
-    $_SESSION['lockout_count'] = 0;
-    $_SESSION['last_attempt_time'] = null;
+    $_SESSION['first_attempt_time'] = null;
 }
 
 // Check if account is locked
@@ -27,27 +25,24 @@ $is_locked = false;
 $remaining_time = 0;
 
 $login_attempts = isset($_SESSION['login_attempts']) ? (int) $_SESSION['login_attempts'] : 0;
-$failed_in_cycle = isset($_SESSION['failed_in_cycle']) ? (int) $_SESSION['failed_in_cycle'] : 0;
-$lockout_count = isset($_SESSION['lockout_count']) ? (int) $_SESSION['lockout_count'] : 0;
-$last_attempt_time = isset($_SESSION['last_attempt_time']) ? $_SESSION['last_attempt_time'] : null;
+$first_attempt_time = isset($_SESSION['first_attempt_time']) ? $_SESSION['first_attempt_time'] : null;
 
-if ($failed_in_cycle >= 3) {
-    $elapsed_time = time() - $last_attempt_time;
-    
-    // Logic to calculate lockout duration based on lockout_count
-    $lockout_duration = 0;
-    if ($lockout_count == 1) $lockout_duration = 10;
-    elseif ($lockout_count == 2) $lockout_duration = 30;
-    elseif ($lockout_count == 3) $lockout_duration = 300;
-    elseif ($lockout_count == 4) $lockout_duration = 900;
-    elseif ($lockout_count >= 5) $lockout_duration = 1800;
+if ($login_attempts >= 5) {
+    if ($first_attempt_time === null) {
+        $first_attempt_time = time();
+        $_SESSION['first_attempt_time'] = $first_attempt_time;
+    }
+
+    $elapsed_time = time() - $first_attempt_time;
+    $lockout_duration = 300; // 5 minutes lockout
 
     if ($elapsed_time < $lockout_duration) {
         $is_locked = true;
         $remaining_time = $lockout_duration - $elapsed_time;
     } else {
-        // Lockout expired, clear cycle
-        $_SESSION['failed_in_cycle'] = 0;
+        $_SESSION['login_attempts'] = 0;
+        $_SESSION['first_attempt_time'] = null;
+        $is_locked = false;
     }
 }
 ?>
@@ -257,16 +252,17 @@ if ($failed_in_cycle >= 3) {
             border-radius: 50%;
             width: 20px;
             height: 20px;
-            animation: spin 1.5s linear infinite;
+            animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+            0% {
+                transform: rotate(0deg);
+            }
 
-        .animate-spin-slow {
-            animation: spin 2s linear infinite;
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
 
@@ -277,27 +273,11 @@ if ($failed_in_cycle >= 3) {
         } else {
             document.documentElement.classList.remove('dark');
         }
-
-        // Global loading timing
-        let authLoadingStartTime = 0;
-        const MIN_AUTH_LOADING_TIME = 3000;
     </script>
 </head>
-<body class="bg-slate-50 dark:bg-slate-900 min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
 
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 md:p-12 text-center">
-            <div class="flex justify-center mb-6">
-                <div class="relative w-16 h-16">
-                    <div class="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-slate-600"></div>
-                    <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-red-600 border-r-red-600 animate-spin-slow"></div>
-                </div>
-            </div>
-            <h3 class="text-lg md:text-xl font-semibold text-gray-900 dark:text-white mb-2">Authenticating</h3>
-            <p class="text-sm md:text-base text-gray-600 dark:text-slate-400">Please wait while we verify your credentials...</p>
-        </div>
-    </div>
+<body
+    class="bg-white dark:bg-slate-950 min-h-screen flex items-center justify-center p-3 md:p-4 transition-colors relative overflow-x-hidden">
 
     <div class="w-full max-w-md relative z-10">
         <!-- Logo Section -->
@@ -346,15 +326,30 @@ if ($failed_in_cycle >= 3) {
                 </p>
             </div>
 
-            <!-- Security Alert - Sleek Banner -->
+            <!-- Security Alert - Shows when account is locked -->
             <?php if ($is_locked): ?>
-                <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-6 animate-fade-in flex items-center gap-3">
-                    <div class="flex-shrink-0 w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                        <i class="bi bi-shield-lock text-red-600"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold text-red-900 uppercase tracking-wider">Account Locked</p>
-                        <p class="text-[11px] text-red-700 leading-tight">Too many failed attempts. Try again shortly.</p>
+                <div class="bg-red-50 border-l-4 border-red-600 rounded-lg p-4 mb-6 shadow-md">
+                    <div class="flex items-start">
+                        <i class="bi bi-lock-fill text-red-600 text-xl mt-1 mr-3 flex-shrink-0 animate-pulse"></i>
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-red-900 mb-2 flex items-center gap-2">
+                                <i class="bi bi-shield-lock text-red-600"></i>
+                                Account Temporarily Locked
+                            </h3>
+                            <p class="text-red-800 text-sm mb-3">Too many failed login attempts detected. For security,
+                                your
+                                account has been locked.</p>
+                            <div class="bg-white bg-opacity-50 rounded-lg p-3 border border-red-200">
+                                <p class="text-red-900 font-bold text-center text-2xl mb-1" id="lockoutTimer">
+                                    <?php echo str_pad(floor($remaining_time / 60), 2, '0', STR_PAD_LEFT) . ':' . str_pad($remaining_time % 60, 2, '0', STR_PAD_LEFT); ?>
+                                </p>
+                                <p class="text-red-700 text-xs text-center font-semibold">Time remaining</p>
+                            </div>
+                            <p class="text-red-700 text-xs mt-3 mb-0">
+                                <i class="bi bi-info-circle mr-1"></i>
+                                Please wait for the timer to expire before attempting to log in again.
+                            </p>
+                        </div>
                     </div>
                 </div>
             <?php endif; ?>
@@ -398,7 +393,7 @@ if ($failed_in_cycle >= 3) {
             </div>
 
             <!-- Login Form -->
-            <form id="loginForm" class="space-y-4 md:space-y-5">
+            <form id="loginForm" class="space-y-4 md:space-y-5" <?php echo $is_locked ? 'style="display: none;"' : ''; ?>>
                 <input type="hidden" name="action" value="login">
 
                 <!-- Email Field -->
@@ -407,8 +402,7 @@ if ($failed_in_cycle >= 3) {
                         <i class="bi bi-envelope mr-1"></i>Email Address
                     </label>
                     <input type="email" id="email" name="email" required placeholder="your.email@lgu.gov.ph"
-                        <?php echo $is_locked ? 'disabled' : ''; ?>
-                        class="input-field w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-base dark:bg-slate-700 dark:text-white <?php echo $is_locked ? 'opacity-50 cursor-not-allowed' : ''; ?>">
+                        class="input-field w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-base dark:bg-slate-700 dark:text-white">
                     <span class="text-red-500 text-xs hidden mt-1" id="email-error"></span>
                 </div>
 
@@ -420,8 +414,7 @@ if ($failed_in_cycle >= 3) {
                     </label>
                     <div class="relative">
                         <input type="password" id="password" name="password" required placeholder="Enter your password"
-                            <?php echo $is_locked ? 'disabled' : ''; ?>
-                            class="input-field w-full px-3 md:px-4 py-2.5 md:py-3 pr-12 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-base dark:bg-slate-700 dark:text-white <?php echo $is_locked ? 'opacity-50 cursor-not-allowed' : ''; ?>">
+                            class="input-field w-full px-3 md:px-4 py-2.5 md:py-3 pr-12 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-base dark:bg-slate-700 dark:text-white">
                         <button type="button" id="toggle-password"
                             class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
                             <i class="bi bi-eye text-lg" id="eye-icon"></i>
@@ -440,14 +433,9 @@ if ($failed_in_cycle >= 3) {
 
                 <!-- Submit Button -->
                 <button type="submit" id="login-btn"
-                    <?php echo $is_locked ? 'disabled' : ''; ?>
-                    class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 md:py-3 rounded-lg transition duration-200 ease-in-out shadow-md hover:shadow-lg flex items-center justify-center <?php echo $is_locked ? 'opacity-70 cursor-not-allowed' : ''; ?>">
-                    <span id="login-btn-text"><?php echo $is_locked ? 'Locked' : 'Sign In'; ?></span>
-                    <i class="bi <?php echo $is_locked ? '' : 'bi-arrow-right'; ?> ml-2" id="login-btn-icon">
-                        <?php if ($is_locked): ?>
-                            <span class="text-sm font-bold ml-1" id="btnTimer"><?php echo $remaining_time; ?>s</span>
-                        <?php endif; ?>
-                    </i>
+                    class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 md:py-3 rounded-lg transition duration-200 ease-in-out shadow-md hover:shadow-lg flex items-center justify-center">
+                    <span id="login-btn-text">Sign In</span>
+                    <i class="bi bi-arrow-right ml-2" id="login-btn-icon"></i>
                 </button>
 
                 <!-- Terms & Conditions Checkbox -->
@@ -465,59 +453,32 @@ if ($failed_in_cycle >= 3) {
                 </div>
             </form>
 
-            <!-- OTP Verification View (Hidden by default) -->
-            <div id="otpView" class="hidden space-y-6">
-                <div class="text-center">
-                    <div
-                        class="inline-flex items-center justify-center w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-full mb-4">
-                        <i class="bi bi-shield-lock text-3xl text-blue-600 dark:text-blue-400"></i>
+            <!-- Divider -->
+            <?php if (!$is_locked): ?>
+                <div class="relative my-5 md:my-6">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300 dark:border-slate-600"></div>
                     </div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Verify Your Identity</h2>
-                    <p class="text-sm text-gray-600 dark:text-slate-400 mt-2">
-                        We've sent a 6-digit code to <span id="maskedEmail"
-                            class="font-semibold text-gray-900 dark:text-white"></span>
-                    </p>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400">Or continue
+                            with</span>
+                    </div>
                 </div>
 
-                <form id="otpForm" class="space-y-6">
-                    <div>
-                        <div class="flex justify-between gap-2" id="otp-inputs">
-                            <input type="tel" maxlength="1" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                                class="otp-input w-12 h-14 text-center text-2xl font-bold bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none dark:text-white">
-                            <input type="tel" maxlength="1" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                                class="otp-input w-12 h-14 text-center text-2xl font-bold bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none dark:text-white">
-                            <input type="tel" maxlength="1" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                                class="otp-input w-12 h-14 text-center text-2xl font-bold bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none dark:text-white">
-                            <input type="tel" maxlength="1" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                                class="otp-input w-12 h-14 text-center text-2xl font-bold bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none dark:text-white">
-                            <input type="tel" maxlength="1" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                                class="otp-input w-12 h-14 text-center text-2xl font-bold bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none dark:text-white">
-                            <input type="tel" maxlength="1" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                                class="otp-input w-12 h-14 text-center text-2xl font-bold bg-gray-50 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none dark:text-white">
-                        </div>
-                        <input type="hidden" id="otp-value" name="otp">
-                    </div>
-
-                    <button type="submit" id="verify-otp-btn"
-                        class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition duration-200 shadow-md flex items-center justify-center">
-                        <span id="verify-otp-text">Verify & Sign In</span>
-                        <i class="bi bi-shield-check ml-2" id="verify-otp-icon"></i>
+                <!-- Alternative Login Options -->
+                <div class="grid grid-cols-2 gap-3">
+                    <button type="button" id="microsoftLoginBtn"
+                        class="flex items-center justify-center px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 transition-all duration-200">
+                        <i class="bi bi-microsoft text-lg mr-2 text-red-600 dark:text-red-400"></i>
+                        <span class="text-sm font-medium text-gray-700 dark:text-slate-300">Microsoft</span>
                     </button>
-
-                    <div class="text-center space-y-4">
-                        <p class="text-sm text-gray-500 dark:text-slate-500">
-                            Didn't receive the code?
-                            <button type="button" id="resend-otp-link"
-                                class="text-red-600 dark:text-red-400 font-bold hover:underline">Resend Code</button>
-                        </p>
-                        <button type="button" onclick="backToLogin()"
-                            class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 transition-colors">
-                            <i class="bi bi-arrow-left mr-1"></i> Back to sign in
-                        </button>
-                    </div>
-                </form>
-            </div>
-
+                    <button type="button" id="googleLoginBtn"
+                        class="flex items-center justify-center px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-400 dark:hover:border-slate-500 transition-all duration-200">
+                        <i class="bi bi-google text-lg mr-2 text-red-500 dark:text-red-400"></i>
+                        <span class="text-sm font-medium text-gray-700 dark:text-slate-300">Google</span>
+                    </button>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- Footer Info -->
@@ -734,69 +695,23 @@ if ($failed_in_cycle >= 3) {
         }
 
         // Lockout timer countdown
-        
-
-        // Unified Lockout Timer Logic
-        function startLockoutCountdown(duration) {
-            let timeLeft = parseInt(duration);
-            const loginBtn = document.getElementById('login-btn');
-            const loginBtnText = document.getElementById('login-btn-text');
-            const loginBtnIcon = document.getElementById('login-btn-icon');
-            const emailInput = document.getElementById('email');
-            const passwordInput = document.getElementById('password');
-
-            // Set initial locked state
-            loginBtn.disabled = true;
-            loginBtn.classList.add('opacity-70', 'cursor-not-allowed');
-            loginBtnText.textContent = 'Locked';
-            loginBtnIcon.classList.remove('bi-arrow-right', 'spinner');
-            loginBtnIcon.innerHTML = `<span class="text-sm font-bold ml-1" id="btnTimer">${timeLeft}s</span>`;
-            
-            if (emailInput) {
-                emailInput.disabled = true;
-                emailInput.classList.add('opacity-50', 'cursor-not-allowed');
-            }
-            if (passwordInput) {
-                passwordInput.disabled = true;
-                passwordInput.classList.add('opacity-50', 'cursor-not-allowed');
-            }
-
-            const countdown = setInterval(() => {
-                timeLeft--;
-                const timerDisplay = document.getElementById('btnTimer');
-                if (timerDisplay) timerDisplay.textContent = `${timeLeft}s`;
-
-                if (timeLeft <= 0) {
-                    clearInterval(countdown);
-                    
-                    // Re-enable everything
-                    loginBtn.disabled = false;
-                    loginBtn.classList.remove('opacity-70', 'cursor-not-allowed');
-                    loginBtnText.textContent = 'Sign In';
-                    loginBtnIcon.innerHTML = '';
-                    loginBtnIcon.classList.add('bi-arrow-right');
-                    
-                    if (emailInput) {
-                        emailInput.disabled = false;
-                        emailInput.classList.remove('opacity-50', 'cursor-not-allowed');
-                    }
-                    if (passwordInput) {
-                        passwordInput.disabled = false;
-                        passwordInput.classList.remove('opacity-50', 'cursor-not-allowed');
-                    }
-
-                    // Remove the slim banner if it exists
-                    const banner = document.querySelector('.bg-red-50.animate-fade-in');
-                    if (banner) {
-                        banner.style.opacity = '0';
-                        setTimeout(() => banner.remove(), 300);
-                    }
-                }
-            }, 1000);
-        }
-
         <?php if ($is_locked): ?>
-            startLockoutCountdown(<?php echo $remaining_time; ?>);
+            let remainingSeconds = <?php echo $remaining_time; ?>;
+            const timerElement = document.getElementById('lockoutTimer');
+
+            function updateLockoutTimer() {
+                const formattedTime = `${String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`;
+                timerElement.textContent = formattedTime;
+
+                if (remainingSeconds > 0) {
+                    remainingSeconds--;
+                    setTimeout(updateLockoutTimer, 1000);
+                } else {
+                    location.reload();
+                }
+            }
+
+            updateLockoutTimer();
         <?php endif; ?>
 
         // Handle login form submission
@@ -853,14 +768,110 @@ if ($failed_in_cycle >= 3) {
             loginBtnIcon.classList.remove('bi-arrow-right');
             loginBtnIcon.classList.add('spinner');
             loginBtnIcon.innerHTML = '';
+
+            // Inject and start loading elements (Top bar + Centered Overlay)
+            let loaderBar = document.getElementById('login-loading-bar');
+            let loaderOverlay = document.getElementById('cms-page-loader');
             
-            // Show loading overlay ONLY for admin (normal/immediate redirect)
-            // For others, we'll show it during the OTP phase as requested
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            if (loadingOverlay && email.toLowerCase() === 'lgu@admin.com') {
-                loadingOverlay.classList.remove('hidden');
-                authLoadingStartTime = Date.now();
+            if (!loaderOverlay) {
+                const style = document.createElement('style');
+                style.textContent = `
+                    #login-loading-bar {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        height: 4px;
+                        background: linear-gradient(to right, #dc2626, #ef4444, #f97316);
+                        z-index: 999999;
+                        width: 0%;
+                        opacity: 1;
+                        transition: width 0.3s ease-out, opacity 0.3s ease-in-out;
+                        box-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
+                        pointer-events: none;
+                    }
+                    #cms-page-loader {
+                        position: fixed;
+                        inset: 0;
+                        z-index: 999998;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: rgba(0, 0, 0, 0.45);
+                        backdrop-filter: blur(3px);
+                        opacity: 0;
+                        pointer-events: none;
+                        transition: opacity 0.18s ease;
+                    }
+                    #cms-page-loader.visible {
+                        opacity: 1;
+                        pointer-events: all;
+                    }
+                    #cms-page-loader .loader-card {
+                        background: #fff;
+                        border-radius: 16px;
+                        padding: 32px 40px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 16px;
+                        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                        min-width: 160px;
+                    }
+                    .dark #cms-page-loader .loader-card {
+                        background: #1f2937;
+                    }
+                    #cms-page-loader .loader-spinner {
+                        width: 48px;
+                        height: 48px;
+                        border: 4px solid #fee2e2;
+                        border-top-color: #dc2626;
+                        border-radius: 50%;
+                        animation: cms-spin 0.7s linear infinite;
+                    }
+                    #cms-page-loader .loader-text {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: #6b7280;
+                        letter-spacing: 0.05em;
+                        text-transform: uppercase;
+                    }
+                    .dark #cms-page-loader .loader-text {
+                        color: #9ca3af;
+                    }
+                    @keyframes cms-spin {
+                        to { transform: rotate(360deg); }
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                loaderBar = document.createElement('div');
+                loaderBar.id = 'login-loading-bar';
+                document.body.appendChild(loaderBar);
+                
+                loaderOverlay = document.createElement('div');
+                loaderOverlay.id = 'cms-page-loader';
+                loaderOverlay.innerHTML = `
+                    <div class="loader-card">
+                        <div class="loader-spinner"></div>
+                        <span class="loader-text">Signing in...</span>
+                    </div>`;
+                document.body.appendChild(loaderOverlay);
             }
+            
+            loaderBar.style.opacity = '1';
+            loaderBar.style.width = '10%';
+            
+            // Force reflow and show overlay
+            loaderOverlay.offsetHeight;
+            loaderOverlay.classList.add('visible');
+            
+            let loadProgress = 10;
+            const progressInterval = setInterval(() => {
+                if (loadProgress < 85) {
+                    loadProgress += Math.random() * 10;
+                    loaderBar.style.width = loadProgress + '%';
+                }
+            }, 150);
 
             // Prepare form data
             const formData = new FormData();
@@ -875,206 +886,48 @@ if ($failed_in_cycle >= 3) {
             })
                 .then(response => response.json())
                 .then(data => {
+                    clearInterval(progressInterval);
                     if (data.success) {
-                        if (data.requires_otp) {
-                            if (loadingOverlay) loadingOverlay.classList.add('hidden');
-                            showOTPView(data.masked_email || email);
-                            showAlert(data.message, 'success');
-                        } else {
-                            const elapsedTime = Date.now() - authLoadingStartTime;
-                            const remainingTime = Math.max(0, MIN_AUTH_LOADING_TIME - elapsedTime);
-                            setTimeout(() => {
-                                location.href = data.redirect;
-                            }, remainingTime);
-                        }
+                        loaderBar.style.width = '100%';
+                        setTimeout(() => {
+                            location.href = data.redirect;
+                        }, 250);
                     } else {
-                        if (loadingOverlay) loadingOverlay.classList.add('hidden');
-                        showAlert(data.message || 'Login failed', 'error');
-                        loginBtn.disabled = data.is_locked ? true : false;
+                        loaderBar.style.opacity = '0';
+                        setTimeout(() => { loaderBar.style.width = '0%'; }, 300);
                         
-                        // Always clear password field on failure
-                        document.getElementById('password').value = '';
+                        if (loaderOverlay) {
+                            loaderOverlay.classList.remove('visible');
+                        }
+                        
+                        showAlert(data.message || 'Login failed', 'error');
+                        loginBtn.disabled = false;
+                        loginBtnText.textContent = 'Sign In';
+                        loginBtnIcon.classList.add('bi-arrow-right');
+                        loginBtnIcon.classList.remove('spinner');
+                        form.classList.add('animate-shake');
+                        setTimeout(() => form.classList.remove('animate-shake'), 500);
 
-                        if (!data.is_locked) {
-                            loginBtnText.textContent = 'Sign In';
-                            loginBtnIcon.classList.add('bi-arrow-right');
-                            loginBtnIcon.classList.remove('spinner');
-                            form.classList.add('animate-shake');
-                            setTimeout(() => form.classList.remove('animate-shake'), 500);
-                        } else {
-                            // Locked state - Use unified countdown
-                            startLockoutCountdown(data.remaining_time);
+                        if (data.is_locked) {
+                            location.reload();
                         }
                     }
                 })
                 .catch(error => {
+                    clearInterval(progressInterval);
+                    if (loaderBar) {
+                        loaderBar.style.opacity = '0';
+                        setTimeout(() => { loaderBar.style.width = '0%'; }, 300);
+                    }
+                    if (loaderOverlay) {
+                        loaderOverlay.classList.remove('visible');
+                    }
                     console.error('Error:', error);
-                    const loadingOverlay = document.getElementById('loadingOverlay');
-                    if (loadingOverlay) loadingOverlay.classList.add('hidden');
                     showAlert('An error occurred. Please try again later.', 'error');
                     loginBtn.disabled = false;
                     loginBtnText.textContent = 'Sign In';
                     loginBtnIcon.classList.add('bi-arrow-right');
                     loginBtnIcon.classList.remove('spinner');
-                });
-        });
-
-        // OTP Handler Functions
-        function showOTPView(maskedEmail) {
-            document.getElementById('loginForm').classList.add('hidden');
-            document.getElementById('otpView').classList.remove('hidden');
-            document.getElementById('maskedEmail').textContent = maskedEmail;
-
-            // Focus first OTP input
-            setTimeout(() => {
-                const firstInput = document.querySelector('.otp-input');
-                if (firstInput) firstInput.focus();
-            }, 100);
-        }
-
-        function backToLogin() {
-            document.getElementById('otpView').classList.add('hidden');
-            document.getElementById('loginForm').classList.remove('hidden');
-
-            // Reset login button
-            const loginBtn = document.getElementById('login-btn');
-            const loginBtnText = document.getElementById('login-btn-text');
-            const loginBtnIcon = document.getElementById('login-btn-icon');
-            loginBtn.disabled = false;
-            loginBtnText.textContent = 'Sign In';
-            loginBtnIcon.classList.add('bi-arrow-right');
-            loginBtnIcon.classList.remove('spinner');
-            loginBtnIcon.innerHTML = '';
-        }
-
-        // OTP Input Management
-        const otpInputs = document.querySelectorAll('.otp-input');
-        otpInputs.forEach((input, index) => {
-            input.addEventListener('input', (e) => {
-                // Ensure only numbers
-                e.target.value = e.target.value.replace(/[^0-9]/g, '');
-
-                if (e.target.value.length === 1 && index < otpInputs.length - 1) {
-                    otpInputs[index + 1].focus();
-                }
-                updateOTPValue();
-            });
-
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && !e.target.value && index > 0) {
-                    otpInputs[index - 1].focus();
-                }
-            });
-
-            // Paste support
-            input.addEventListener('paste', (e) => {
-                e.preventDefault();
-                const pastedData = e.clipboardData.getData('text').slice(0, 6).split('');
-                pastedData.forEach((char, i) => {
-                    if (otpInputs[i]) otpInputs[i].value = char;
-                });
-                updateOTPValue();
-                if (pastedData.length >= 6) {
-                    document.getElementById('otpForm').requestSubmit();
-                }
-            });
-        });
-
-        function updateOTPValue() {
-            const otpValue = Array.from(otpInputs).map(input => input.value).join('');
-            document.getElementById('otp-value').value = otpValue;
-        }
-
-        // Handle OTP verification
-        document.getElementById('otpForm')?.addEventListener('submit', function (e) {
-            e.preventDefault();
-            const otp = document.getElementById('otp-value').value;
-            const verifyBtn = document.getElementById('verify-otp-btn');
-            const verifyText = document.getElementById('verify-otp-text');
-            const verifyIcon = document.getElementById('verify-otp-icon');
-
-            if (otp.length < 6) {
-                showAlert('Please enter the full 6-digit code', 'error');
-                return;
-            }
-
-            verifyBtn.disabled = true;
-            verifyText.textContent = 'Verifying...';
-            verifyIcon.className = 'spinner ml-2';
-            verifyIcon.innerHTML = '';
-
-            // Show loading overlay for OTP verification phase
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            if (loadingOverlay) {
-                loadingOverlay.classList.remove('hidden');
-                authLoadingStartTime = Date.now();
-            }
-
-            const formData = new FormData();
-            formData.append('action', 'verify_otp');
-            formData.append('otp', otp);
-
-            fetch('../app/controllers/AuthController.php', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const elapsedTime = Date.now() - authLoadingStartTime;
-                        const remainingTime = Math.max(0, MIN_AUTH_LOADING_TIME - elapsedTime);
-                        setTimeout(() => {
-                            location.href = data.redirect;
-                        }, remainingTime);
-                    } else {
-                        const elapsedTime = Date.now() - authLoadingStartTime;
-                        const remainingTime = Math.max(0, MIN_AUTH_LOADING_TIME - elapsedTime);
-                        
-                        setTimeout(() => {
-                            showAlert(data.message, 'error');
-                            if (loadingOverlay) loadingOverlay.classList.add('hidden');
-                            verifyBtn.disabled = false;
-                            verifyText.textContent = 'Verify & Sign In';
-                            verifyIcon.className = 'bi bi-shield-check ml-2';
-                            verifyIcon.innerHTML = '';
-                        }, remainingTime);
-                    }
-                });
-        });
-
-        // Handle OTP resend
-        document.getElementById('resend-otp-link')?.addEventListener('click', function (e) {
-            e.preventDefault();
-            const link = this;
-            const originalText = link.textContent;
-
-            link.disabled = true;
-            link.textContent = 'Sending...';
-            link.classList.add('opacity-50', 'pointer-events-none');
-
-            const formData = new FormData();
-            formData.append('action', 'resend_otp');
-
-            fetch('../app/controllers/AuthController.php', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    showAlert(data.message, data.success ? 'success' : 'error');
-
-                    // 30s cooldown for resend
-                    let cooldown = 30;
-                    const interval = setInterval(() => {
-                        link.textContent = `Resend in ${cooldown}s`;
-                        cooldown--;
-                        if (cooldown < 0) {
-                            clearInterval(interval);
-                            link.disabled = false;
-                            link.textContent = originalText;
-                            link.classList.remove('opacity-50', 'pointer-events-none');
-                        }
-                    }, 1000);
                 });
         });
     </script>
