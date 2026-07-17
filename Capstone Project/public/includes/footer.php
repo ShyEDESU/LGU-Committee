@@ -38,8 +38,7 @@ $systemLogo = $settings['lgu_logo_path'] ?? 'assets/images/logo.png';
                     </div>
                 </div>
                 <p class="text-slate-400 text-sm leading-relaxed max-w-sm">
-                    Making legislative documents accessible to all citizens. Transparency and efficiency in city
-                    governance through digital tracking.
+                    A centralized platform for managing the legislative committees of the City Government of Valenzuela — tracking members, meetings, documents, reports, and ordinances in one system.
                 </p>
             </div>
 
@@ -47,14 +46,11 @@ $systemLogo = $settings['lgu_logo_path'] ?? 'assets/images/logo.png';
             <div class="md:pl-12">
                 <h4 class="text-white font-bold text-sm mb-8 uppercase tracking-[0.2em]">Quick Links</h4>
                 <ul class="space-y-4 text-sm font-semibold">
-                    <li><a href="<?php echo $rootPath; ?>index.php" class="hover:text-white transition-colors">Home</a>
-                    </li>
-                    <li><a href="<?php echo $rootPath; ?>public/pages/committee-meetings/index.php"
-                            class="hover:text-white transition-colors">Browse Meetings</a></li>
-                    <li><a href="<?php echo $rootPath; ?>public/pages/committee-reports/index.php"
-                            class="hover:text-white transition-colors">Committee Reports</a></li>
-                    <li><a href="<?php echo $rootPath; ?>index.php#leaders"
-                            class="hover:text-white transition-colors">Contact Us</a></li>
+                    <li><a href="<?php echo $rootPath; ?>public/dashboard.php" class="hover:text-white transition-colors">Dashboard</a></li>
+                    <li><a href="<?php echo $rootPath; ?>public/pages/committee-profiles/index.php" class="hover:text-white transition-colors">Committees</a></li>
+                    <li><a href="<?php echo $rootPath; ?>public/pages/committee-meetings/index.php" class="hover:text-white transition-colors">Meetings</a></li>
+                    <li><a href="<?php echo $rootPath; ?>public/pages/committee-reports/index.php" class="hover:text-white transition-colors">Committee Reports</a></li>
+                    <li><a href="<?php echo $rootPath; ?>public/pages/committee-profiles/index.php" class="hover:text-white transition-colors">Ordinances</a></li>
                 </ul>
             </div>
 

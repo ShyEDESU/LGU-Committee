@@ -45,18 +45,19 @@ $reportDistribution = [
 ];
 
 // Fetch user tasks
-$userTasksQuery = "SELECT t.*, c.committee_name FROM tasks t LEFT JOIN committees c ON t.committee_id = c.committee_id WHERE t.assigned_to = ? AND t.status != 'Done' ORDER BY t.due_date ASC LIMIT 5";
-$stmt = $conn->prepare($userTasksQuery);
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$userTasksResult = $stmt->get_result();
 $myTasks = [];
-if ($userTasksResult) {
-    while ($row = $userTasksResult->fetch_assoc()) {
-        $myTasks[] = $row;
+$userTasksQuery = "SELECT t.*, c.committee_name FROM tasks t LEFT JOIN committees c ON t.committee_id = c.committee_id WHERE t.assigned_to = ? AND t.status != 'Done' ORDER BY t.due_date ASC LIMIT 5";
+if ($stmt = $conn->prepare($userTasksQuery)) {
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $userTasksResult = $stmt->get_result();
+    if ($userTasksResult) {
+        while ($row = $userTasksResult->fetch_assoc()) {
+            $myTasks[] = $row;
+        }
     }
+    $stmt->close();
 }
-$stmt->close();
 
 // Fetch Recent Activity from audit logs
 $isPrivileged = in_array($userRole, ['Admin', 'Super Admin']);
@@ -77,6 +78,10 @@ if ($recentActivityResult) {
     }
 }
 
+// Run deadline reminder engine — fires once per task per 24h (deduplicated)
+require_once __DIR__ . '/../app/helpers/NotificationHelper.php';
+checkAndSendDeadlineReminders($userId);
+
 // Include the standardized header
 include 'includes/header.php';
 ?>
@@ -85,23 +90,21 @@ include 'includes/header.php';
 <div class="space-y-8">
     <!-- Dashboard Sub-Header -->
     <div class="flex items-center space-x-3 mb-2 animate-fade-in">
-        <div
-            class="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center border border-gray-100 dark:border-gray-700">
+        <div class="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center border border-gray-100 dark:border-gray-700">
             <i class="bi bi-layout-text-window-reverse text-gray-400"></i>
         </div>
         <h2 class="text-xl font-black text-gray-800 dark:text-white uppercase tracking-tight">Dashboard</h2>
     </div>
 
-    <!-- Welcome Banner (Screenshot 1 Style) -->
-    <div
-        class="relative overflow-hidden bg-[#dc2626] rounded-3xl p-8 md:p-10 text-white shadow-xl animate-fade-in mb-8">
+    <!-- Welcome Banner -->
+    <div class="relative overflow-hidden bg-gradient-to-r from-red-600 to-red-700 rounded-3xl p-8 md:p-10 text-white shadow-xl animate-fade-in mb-8">
         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div class="animate-slide-in-left">
                 <h1 class="text-4xl md:text-5xl font-black mb-2 tracking-tighter uppercase italic">
                     WELCOME BACK, <?php echo strtoupper(explode(' ', $userName)[0]); ?>! 👋
                 </h1>
                 <p class="text-red-100/90 text-lg font-medium max-w-xl italic">
-                    Here's what's happening with your committee management today.
+                    Centralized platform for legislative committee activities, document management, and statistics.
                 </p>
             </div>
             <div class="hidden lg:block animate-slide-in-right opacity-20">
@@ -109,231 +112,197 @@ include 'includes/header.php';
             </div>
         </div>
         <!-- Decorative Background Elements -->
-        <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl">
-        </div>
-        <div
-            class="absolute bottom-0 left-0 w-32 h-32 bg-black/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl">
-        </div>
+        <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl text-red-500"></div>
+        <div class="absolute bottom-0 left-0 w-32 h-32 bg-black/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl text-red-500"></div>
     </div>
 
-    <!-- Stats Grid (5 Columns - Screenshot 1 Style) -->
+    <!-- Stats Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <!-- Committees -->
-        <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
-            <div
-                class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
-                <i
-                    class="bi bi-building text-red-600 dark:text-red-400 text-2xl group-hover:text-white group-hover:scale-110 transition-all"></i>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
+            <div class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
+                <i class="bi bi-building text-red-600 dark:text-red-400 text-2xl group-hover:text-white group-hover:scale-110 transition-all"></i>
             </div>
             <div class="flex-1">
-                <p class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-1">
-                    Committees</p>
+                <p class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-1">Committees</p>
                 <div class="flex items-center justify-between">
                     <h3 class="text-3xl font-black text-gray-900 dark:text-white leading-none tracking-tighter">
                         <?php echo $stats['committees']; ?>
                     </h3>
-                    <span
-                        class="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Active</span>
+                    <span class="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Active</span>
                 </div>
             </div>
         </div>
 
         <!-- Meetings -->
-        <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
-            <div
-                class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
-                <i
-                    class="bi bi-calendar-event text-red-600 dark:text-red-400 text-2xl group-hover:text-white group-hover:scale-110 transition-all"></i>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
+            <div class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
+                <i class="bi bi-calendar-event text-red-600 dark:text-red-400 text-2xl group-hover:text-white group-hover:scale-110 transition-all"></i>
             </div>
             <div class="flex-1">
-                <p class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-1">
-                    Meetings</p>
+                <p class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-1">Meetings</p>
                 <div class="flex items-center justify-between">
                     <h3 class="text-3xl font-black text-gray-900 dark:text-white leading-none tracking-tighter">
                         <?php echo $stats['meetings']; ?>
                     </h3>
-                    <span
-                        class="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Pending</span>
+                    <span class="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Pending</span>
                 </div>
             </div>
         </div>
 
         <!-- Documents -->
-        <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
-            <div
-                class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
-                <i
-                    class="bi bi-file-earmark-text text-red-600 dark:text-red-400 text-2xl group-hover:text-white group-hover:scale-110 transition-all"></i>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
+            <div class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
+                <i class="bi bi-file-earmark-text text-red-600 dark:text-red-400 text-2xl group-hover:text-white group-hover:scale-110 transition-all"></i>
             </div>
             <div class="flex-1">
-                <p class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-1">
-                    Documents</p>
+                <p class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-1">Documents</p>
                 <div class="flex items-center justify-between">
                     <h3 class="text-3xl font-black text-gray-900 dark:text-white leading-none tracking-tighter">
                         <?php echo $stats['documents']; ?>
                     </h3>
-                    <span
-                        class="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Total</span>
+                    <span class="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Total</span>
                 </div>
             </div>
         </div>
 
-        <!-- Task Items -->
-        <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
-            <div
-                class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
-                <i
-                    class="bi bi-check2-square text-red-600 dark:text-red-400 text-2xl group-hover:text-white group-hover:scale-110 transition-all"></i>
+        <!-- Action Items -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
+            <div class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
+                <i class="bi bi-check2-square text-red-600 dark:text-red-400 text-2xl group-hover:text-white group-hover:scale-110 transition-all"></i>
             </div>
             <div class="flex-1">
-                <p class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-1">Task
-                    Items</p>
+                <p class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-1">Action Items</p>
                 <div class="flex items-center justify-between">
                     <h3 class="text-3xl font-black text-gray-900 dark:text-white leading-none tracking-tighter">
                         <?php echo $stats['tasks']; ?>
                     </h3>
-                    <span
-                        class="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Active</span>
+                    <span class="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Active</span>
                 </div>
             </div>
         </div>
 
         <!-- Committee Reports -->
-        <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
-            <div
-                class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
-                <i
-                    class="bi bi-file-earmark-bar-graph text-red-600 dark:text-red-400 text-2xl group-hover:text-white group-hover:scale-110 transition-all"></i>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center group hover:shadow-lg transition-all duration-300">
+            <div class="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mr-5 group-hover:bg-red-600 transition-all duration-500">
+                <i class="bi bi-file-earmark-bar-graph text-red-600 dark:text-red-400 text-2xl group-hover:text-white group-hover:scale-110 transition-all"></i>
             </div>
             <div class="flex-1">
-                <p class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-1">
-                    Reports</p>
+                <p class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-1">Reports</p>
                 <div class="flex items-center justify-between">
                     <h3 class="text-3xl font-black text-gray-900 dark:text-white leading-none tracking-tighter">
                         <?php echo $stats['reports']; ?>
                     </h3>
-                    <span
-                        class="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Total</span>
+                    <span class="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Total</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Charts and Quick Actions -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
+    <!-- Charts, Quick Actions, and API Status -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
         <!-- Document Distribution Chart -->
-        <div class="lg:col-span-3">
-            <div
-                class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8 h-[450px]">
-                <h3 class="text-2xl font-black text-gray-900 dark:text-white tracking-tighter uppercase mb-6 italic">
-                    Report Status Distribution</h3>
-                <div class="relative h-[320px]">
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 h-[400px]">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-wider">
+                    Report Status Distribution
+                </h3>
+                <div class="relative h-[300px] flex items-center justify-center">
                     <canvas id="documentChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Actions Sidebar -->
+        <!-- Quick Actions Panel -->
         <div class="lg:col-span-1">
-            <div
-                class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8 h-full flex flex-col justify-between">
-                <h3 class="text-2xl font-black text-gray-900 dark:text-white tracking-tighter uppercase mb-6 italic">
-                    Quick Actions</h3>
-                <div class="space-y-4">
-                    <a href="pages/committee-profiles/index.php"
-                        class="flex items-center justify-center space-x-3 p-4 bg-[#dc2626] text-white rounded-2xl font-black uppercase tracking-tighter hover:bg-red-700 transition shadow-lg shadow-red-600/20 group animate-fade-in">
-                        <i class="bi bi-building"></i>
-                        <span>Committee Profiles</span>
-                    </a>
-                    <a href="pages/notifications/index.php"
-                        class="flex items-center justify-center space-x-3 p-4 border-2 border-[#dc2626] text-[#dc2626] rounded-2xl font-black uppercase tracking-tighter hover:bg-red-50 transition group animate-fade-in animation-delay-100">
-                        <i class="bi bi-bell"></i>
-                        <span>Notifications</span>
-                    </a>
-                    <a href="pages/reports-analytics/index.php"
-                        class="flex items-center justify-center space-x-3 p-4 border-2 border-[#dc2626] text-[#dc2626] rounded-2xl font-black uppercase tracking-tighter hover:bg-red-50 transition group animate-fade-in animation-delay-200">
-                        <i class="bi bi-bar-chart"></i>
-                        <span>View Reports</span>
-                    </a>
-                    <a href="portal/index.php" target="_blank"
-                        class="flex items-center justify-center space-x-3 p-4 border-2 border-[#dc2626] text-[#dc2626] rounded-2xl font-black uppercase tracking-tighter hover:bg-red-50 transition group animate-fade-in animation-delay-300">
-                        <i class="bi bi-globe"></i>
-                        <span>Public Portal</span>
-                    </a>
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 h-[400px] flex flex-col justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-wider">Quick Actions</h3>
+                    <div class="space-y-3">
+                        <a href="pages/committee-profiles/index.php"
+                            class="flex items-center space-x-3 p-3 bg-red-600 text-white rounded-xl font-bold text-sm tracking-wide hover:bg-red-700 transition shadow-lg shadow-red-600/20 group">
+                            <i class="bi bi-building"></i>
+                            <span>Committee Profiles</span>
+                        </a>
+                        <a href="pages/notifications/index.php"
+                            class="flex items-center space-x-3 p-3 border border-red-600 text-red-600 rounded-xl font-bold text-sm tracking-wide hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                            <i class="bi bi-bell"></i>
+                            <span>Notifications Log</span>
+                        </a>
+                        <a href="pages/reports-analytics/index.php"
+                            class="flex items-center space-x-3 p-3 border border-red-600 text-red-600 rounded-xl font-bold text-sm tracking-wide hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                            <i class="bi bi-bar-chart"></i>
+                            <span>View Reports</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="pt-4 border-t border-gray-100 dark:border-gray-700 text-center">
+                    <p class="text-xs text-gray-400">Manage legislative activities smoothly</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Connection Monitor Card -->
+        <div class="lg:col-span-1">
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 h-[400px] flex flex-col justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3 uppercase tracking-wider">API Sync Log</h3>
+                    <div class="space-y-3 text-xs">
+                        <div class="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-between">
+                            <span class="text-gray-700 dark:text-gray-300 font-semibold"><i class="bi bi-calendar-check mr-1 text-blue-500"></i> Plenary Calendar</span>
+                            <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded font-bold uppercase tracking-wider text-[9px]">Demo Sync</span>
+                        </div>
+                        <div class="p-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg flex items-center justify-between">
+                            <span class="text-gray-700 dark:text-gray-300 font-semibold"><i class="bi bi-bank2 mr-1 text-amber-500"></i> Ordinances DB</span>
+                            <span class="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded font-bold uppercase tracking-wider text-[9px]">Pending API</span>
+                        </div>
+                        <div class="p-2.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-between">
+                            <span class="text-gray-700 dark:text-gray-300 font-semibold"><i class="bi bi-chat-heart mr-1 text-purple-500"></i> Citizen Portal</span>
+                            <span class="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded font-bold uppercase tracking-wider text-[9px]">Demo Sync</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/30 p-3 rounded-xl border border-gray-100 dark:border-gray-700 text-center">
+                    <span class="inline-block w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse mr-1"></span>
+                    <span class="text-xs text-gray-500 font-semibold">Integrations Online</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Legislative Calendar card -->
-    <div
-        class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8 mb-8 overflow-hidden">
-        <div class="flex items-center justify-between mb-8">
-            <h3
-                class="text-2xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic flex items-center">
-                <i class="bi bi-calendar3 mr-4 text-[#dc2626]"></i>Legislative Calendar
-            </h3>
-            <div class="flex items-center space-x-4">
-                <span class="flex items-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                    <span class="w-3 h-3 bg-[#dc2626] rounded-full mr-2"></span> Meetings
-                </span>
-            </div>
-        </div>
-        <div id="calendar" class="min-h-[600px]"></div>
-    </div>
-
     <!-- Feeds Grid (3 Columns - Activity, Tasks, Meetings) -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-0">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-0">
         <!-- Recent Activity Feed -->
-        <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8">
-            <div class="flex items-center justify-between mb-8">
-                <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">Recent
-                    Activity</h3>
-                <a href="pages/audit-logs/index.php"
-                    class="text-[10px] font-black text-red-600 uppercase tracking-widest hover:underline">View All</a>
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-base font-bold text-gray-900 dark:text-white uppercase tracking-wider">Recent Activity</h3>
+                <a href="pages/audit-logs/index.php" class="text-[10px] font-bold text-red-600 uppercase tracking-widest hover:underline">View All</a>
             </div>
-            <div class="space-y-6">
+            <div class="space-y-4">
                 <?php if (empty($recentActivities)): ?>
-                    <p class="text-sm text-gray-400 italic font-medium text-center py-8">No activity recorded.</p>
+                    <p class="text-sm text-gray-400 italic text-center py-6">No activity recorded.</p>
                 <?php else: ?>
                     <?php foreach ($recentActivities as $activity): ?>
-                        <div class="flex items-start space-x-4 group">
-                            <div
-                                class="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-900/50 flex items-center justify-center flex-shrink-0 group-hover:bg-red-50 dark:group-hover:bg-red-900/20 transition-all">
+                        <div class="flex items-start space-x-3 group">
+                            <div class="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-900 flex items-center justify-center flex-shrink-0 group-hover:bg-red-50 dark:group-hover:bg-red-900/20 transition-all">
                                 <i class="bi <?php
                                 switch ($activity['action']) {
-                                    case 'CREATE':
-                                        echo 'bi-plus-circle text-green-600';
-                                        break;
-                                    case 'UPDATE':
-                                        echo 'bi-pencil text-blue-600';
-                                        break;
-                                    case 'DELETE':
-                                        echo 'bi-trash text-red-600';
-                                        break;
-                                    case 'LOGIN':
-                                        echo 'bi-box-arrow-in-right text-indigo-600';
-                                        break;
-                                    default:
-                                        echo 'bi-info-circle text-gray-600';
+                                    case 'CREATE': echo 'bi-plus-circle text-green-600'; break;
+                                    case 'UPDATE': echo 'bi-pencil text-blue-600'; break;
+                                    case 'DELETE': echo 'bi-trash text-red-600'; break;
+                                    case 'LOGIN': echo 'bi-box-arrow-in-right text-indigo-600'; break;
+                                    default: echo 'bi-info-circle text-gray-600';
                                 }
-                                ?> text-sm"></i>
+                                ?> text-xs"></i>
                             </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex justify-between items-start mb-0.5">
-                                    <p class="text-[11px] font-black text-gray-800 dark:text-white truncate uppercase">
-                                        <?php echo htmlspecialchars($activity['first_name'] . ' ' . $activity['last_name']); ?>
+                                    <p class="text-[10px] font-bold text-gray-800 dark:text-white truncate uppercase">
+                                        <?php echo htmlspecialchars(($activity['first_name'] ?? '') . ' ' . ($activity['last_name'] ?? '')); ?>
                                     </p>
-                                    <span
-                                        class="text-[9px] font-black text-gray-400 uppercase tracking-tighter"><?php echo date('g:i A', strtotime($activity['timestamp'])); ?></span>
+                                    <span class="text-[9px] text-gray-400 uppercase"><?php echo date('g:i A', strtotime($activity['timestamp'])); ?></span>
                                 </div>
-                                <p class="text-[10px] text-gray-500 dark:text-gray-400 leading-tight line-clamp-2 italic">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 leading-normal italic line-clamp-2">
                                     <?php echo htmlspecialchars($activity['description']); ?>
                                 </p>
                             </div>
@@ -344,28 +313,23 @@ include 'includes/header.php';
         </div>
 
         <!-- My Pending Tasks Feed -->
-        <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8">
-            <div class="flex items-center justify-between mb-8">
-                <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">My
-                    Pending Tasks</h3>
-                <a href="pages/action-items/index.php"
-                    class="text-[10px] font-black text-red-600 uppercase tracking-widest hover:underline">View All</a>
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-base font-bold text-gray-900 dark:text-white uppercase tracking-wider">Action Items</h3>
+                <a href="pages/committee-profiles/index.php" class="text-[10px] font-bold text-red-600 uppercase tracking-widest hover:underline">View All</a>
             </div>
-            <div class="space-y-4">
+            <div class="space-y-3">
                 <?php if (empty($myTasks)): ?>
-                    <p class="text-sm text-gray-400 italic font-medium text-center py-8">No pending tasks.</p>
+                    <p class="text-sm text-gray-400 italic text-center py-6">No pending action items.</p>
                 <?php else: ?>
                     <?php foreach ($myTasks as $task): ?>
-                        <div
-                            class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/30 border-l-4 border-[#dc2626] transition hover:shadow-md cursor-pointer group">
-                            <p
-                                class="font-black text-xs text-gray-800 dark:text-white truncate mb-1 group-hover:text-red-600 transition">
+                        <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900/30 border-l-4 border-red-600 transition hover:shadow-md group">
+                            <p class="font-bold text-xs text-gray-800 dark:text-white truncate mb-1 group-hover:text-red-600 transition">
                                 <?php echo htmlspecialchars($task['title']); ?>
                             </p>
                             <div class="flex items-center text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
                                 <i class="bi bi-clock mr-1"></i> DUE: <?php echo date('M j', strtotime($task['due_date'])); ?>
-                                <span class="mx-2 font-black text-gray-200">•</span>
+                                <span class="mx-2 text-gray-200">•</span>
                                 <i class="bi bi-building mr-1"></i>
                                 <?php echo htmlspecialchars($task['committee_name'] ?? 'General'); ?>
                             </div>
@@ -376,29 +340,25 @@ include 'includes/header.php';
         </div>
 
         <!-- Upcoming Meetings Feed -->
-        <div
-            class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8">
-            <div class="flex items-center justify-between mb-8">
-                <h3 class="text-xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">Upcoming
-                    Meetings</h3>
-                <a href="pages/committee-meetings/index.php"
-                    class="text-[10px] font-black text-red-600 uppercase tracking-widest hover:underline">View All</a>
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-base font-bold text-gray-900 dark:text-white uppercase tracking-wider">Upcoming Meetings</h3>
+                <a href="pages/committee-profiles/index.php" class="text-[10px] font-bold text-red-600 uppercase tracking-widest hover:underline">View All</a>
             </div>
-            <div class="space-y-4">
+            <div class="space-y-3">
                 <?php if (empty($upcomingMeetings)): ?>
-                    <p class="text-sm text-gray-400 italic font-medium text-center py-8">No upcoming meetings.</p>
+                    <p class="text-sm text-gray-400 italic text-center py-6">No upcoming meetings.</p>
                 <?php else: ?>
                     <?php foreach ($upcomingMeetings as $m): ?>
-                        <div
-                            class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/30 border-l-4 border-[#dc2626] transition hover:shadow-md cursor-pointer group">
-                            <p
-                                class="font-black text-xs text-gray-800 dark:text-white truncate mb-1 group-hover:text-red-600 transition">
+                        <div onclick="window.location.href='pages/committee-profiles/view.php?id=<?php echo $m['committee_id']; ?>&tab=meetings'"
+                             class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900/30 border-l-4 border-red-600 transition hover:shadow-md cursor-pointer group">
+                             <p class="font-bold text-xs text-gray-800 dark:text-white truncate mb-1 group-hover:text-red-600 transition">
                                 <?php echo htmlspecialchars($m['committee_name']); ?>
                             </p>
                             <div class="flex items-center text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
                                 <i class="bi bi-calendar-event mr-1 text-red-600"></i>
                                 <?php echo date('M j, Y', strtotime($m['date'])); ?>
-                                <span class="mx-2 font-black text-gray-200">•</span>
+                                <span class="mx-2 text-gray-200">•</span>
                                 <i class="bi bi-clock mr-1"></i>
                                 <?php echo date('g:i A', strtotime($m['date'] . ' ' . $m['time_start'])); ?>
                             </div>
@@ -427,22 +387,22 @@ include 'includes/header.php';
                                 <?php echo intval($reportDistribution['Rejected']); ?>
                             ],
                             backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#dc2626'],
-                            borderColor: '#fff',
+                            borderColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
                             borderWidth: 4,
-                            hoverOffset: 20
+                            hoverOffset: 12
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        cutout: '70%',
+                        cutout: '75%',
                         plugins: {
                             legend: {
                                 position: 'bottom',
                                 labels: {
-                                    padding: 20,
+                                    padding: 15,
                                     usePointStyle: true,
-                                    font: { size: 11, weight: '900', family: 'Inter' },
+                                    font: { size: 10, weight: 'bold', family: 'Inter' },
                                     color: document.documentElement.classList.contains('dark') ? '#e5e5e5' : '#374151'
                                 }
                             }
@@ -450,50 +410,8 @@ include 'includes/header.php';
                     }
                 });
             }
-
-            // FullCalendar Initialization
-            const calendarEl = document.getElementById('calendar');
-            if (calendarEl) {
-                const calendar = new FullCalendar.Calendar(calendarEl, {
-                    initialView: 'dayGridMonth',
-                    headerToolbar: {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                    },
-                    eventTimeFormat: {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        meridiem: 'short',
-                        hour12: true
-                    },
-                    themeSystem: 'standard',
-                    events: [
-                        <?php foreach ($calendarMeetings as $m): ?>
-                                                {
-                                id: '<?php echo $m['id']; ?>',
-                                title: '<?php echo addslashes($m['committee_name']); ?>',
-                                start: '<?php echo $m['date']; ?>T<?php echo $m['time_start']; ?>',
-                                end: '<?php echo $m['date']; ?>T<?php echo $m['time_end']; ?>',
-                                backgroundColor: '#dc2626',
-                                borderColor: '#b91c1c',
-                                textColor: '#ffffff',
-                            },
-                        <?php endforeach; ?>
-                    ],
-                    eventClick: function (info) {
-                        window.location.href = 'pages/committee-meetings/view.php?id=' + info.event.id;
-                    },
-                    height: 'auto',
-                    handleWindowResize: true
-                });
-                calendar.render();
-            }
         });
-
     </script>
-
-
 </div> <!-- Closing space-y-8 -->
 </div> <!-- Closing module-content-wrapper (opened in header.php) -->
 

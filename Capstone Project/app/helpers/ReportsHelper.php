@@ -59,21 +59,25 @@ function getMonthlyTrends()
             WHERE meeting_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
             GROUP BY month";
     $result = $conn->query($sql);
-    while ($row = $result->fetch_assoc()) {
-        if (isset($trends[$row['month']])) {
-            $trends[$row['month']]['meetings'] = (int) $row['count'];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            if (isset($trends[$row['month']])) {
+                $trends[$row['month']]['meetings'] = (int) $row['count'];
+            }
         }
     }
 
-    // Documents trend
+    // Documents trend — use legislative_documents as the document source
     $sql = "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count 
-            FROM meeting_documents 
+            FROM legislative_documents 
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
             GROUP BY month";
     $result = $conn->query($sql);
-    while ($row = $result->fetch_assoc()) {
-        if (isset($trends[$row['month']])) {
-            $trends[$row['month']]['documents'] = (int) $row['count'];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            if (isset($trends[$row['month']])) {
+                $trends[$row['month']]['documents'] = (int) $row['count'];
+            }
         }
     }
 
@@ -143,10 +147,14 @@ function getAttendanceMetrics()
     global $conn;
 
     // Average attendance rate across all meetings
+    $overall_avg = 0;
     $sql = "SELECT AVG(CASE WHEN status = 'present' THEN 1 ELSE 0 END) * 100 as avg_rate 
             FROM attendance_records";
     $res = $conn->query($sql);
-    $overall_avg = $res->fetch_assoc()['avg_rate'] ?? 0;
+    if ($res) {
+        $row = $res->fetch_assoc();
+        $overall_avg = $row['avg_rate'] ?? 0;
+    }
 
     // Monthly attendance trend (last 6 months)
     $monthly_sql = "SELECT DATE_FORMAT(m.meeting_date, '%Y-%m') as month, 
@@ -158,8 +166,15 @@ function getAttendanceMetrics()
                     ORDER BY month ASC";
     $monthly_res = $conn->query($monthly_sql);
     $monthly_trend = [];
-    while ($row = $monthly_res->fetch_assoc()) {
-        $monthly_trend[$row['month']] = round($row['rate'], 1);
+    if ($monthly_res) {
+        while ($row = $monthly_res->fetch_assoc()) {
+            $monthly_trend[$row['month']] = round($row['rate'] ?? 0, 1);
+        }
+    }
+
+    // Fallback: if no data, provide empty placeholder so charts don't crash
+    if (empty($monthly_trend)) {
+        $monthly_trend[date('Y-m')] = 0;
     }
 
     return [
@@ -195,19 +210,31 @@ function getTaskEfficiency()
     global $conn;
 
     // Average completion time for tasks
-    $sql = "SELECT AVG(DATEDIFF(completed_at, created_at)) as avg_completion_days
+    // Use updated_at as fallback if completed_at column doesn't exist
+    $avg_completion = 0;
+    $sql = "SELECT AVG(DATEDIFF(
+                CASE WHEN completed_at IS NOT NULL THEN completed_at ELSE updated_at END,
+                created_at
+            )) as avg_completion_days
             FROM tasks
             WHERE status = 'Done'";
     $res = $conn->query($sql);
-    $avg_completion = $res->fetch_assoc()['avg_completion_days'] ?? 0;
+    if ($res) {
+        $row = $res->fetch_assoc();
+        $avg_completion = $row['avg_completion_days'] ?? 0;
+    }
 
     // Aging: Tasks pending for more than 14 days
+    $older_tasks = 0;
     $aging_sql = "SELECT COUNT(*) as older_tasks
                   FROM tasks
                   WHERE status != 'Done' 
                   AND DATEDIFF(NOW(), created_at) > 14";
     $aging_res = $conn->query($aging_sql);
-    $older_tasks = $aging_res->fetch_assoc()['older_tasks'] ?? 0;
+    if ($aging_res) {
+        $row = $aging_res->fetch_assoc();
+        $older_tasks = $row['older_tasks'] ?? 0;
+    }
 
     return [
         'avg_completion_days' => round($avg_completion, 1),

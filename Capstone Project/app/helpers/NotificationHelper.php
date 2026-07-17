@@ -198,4 +198,124 @@ function timeAgo($datetime)
 
     return date('M j, Y', $time);
 }
+
+/**
+ * Check for approaching deadlines and send reminder notifications.
+ * Designed to be called on dashboard/page load. Deduplicates to avoid spamming.
+ *
+ * @param int $userId The current logged-in user's ID.
+ */
+function checkAndSendDeadlineReminders($userId)
+{
+    global $conn;
+
+    if (!$userId) return;
+
+    $today     = date('Y-m-d');
+    $in1Day    = date('Y-m-d', strtotime('+1 day'));
+    $in3Days   = date('Y-m-d', strtotime('+3 days'));
+
+    // Fetch tasks due within 3 days that are not yet done, assigned to this user
+    $sql = "SELECT t.task_id, t.title, t.due_date, t.priority
+            FROM tasks t
+            WHERE t.assigned_to = ?
+              AND t.status NOT IN ('Done', 'Cancelled')
+              AND t.due_date BETWEEN ? AND ?
+            ORDER BY t.due_date ASC";
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("iss", $userId, $today, $in3Days);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    while ($task = $result->fetch_assoc()) {
+        $taskId  = $task['task_id'];
+        $dueDate = $task['due_date'];
+        $title   = $task['title'];
+
+        // Calculate days remaining
+        $daysLeft = (int) ceil((strtotime($dueDate) - strtotime($today)) / 86400);
+
+        if ($daysLeft < 0) continue; // Already overdue — skip (overdue handled separately)
+
+        // Deduplicate: check if a reminder was already sent in the last 24 hours for this task
+        $dedupeCheck = $conn->prepare(
+            "SELECT COUNT(*) as cnt FROM notifications
+             WHERE user_id = ?
+               AND action_link LIKE ?
+               AND notification_type = 'deadline'
+               AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+        );
+        $linkPattern = '%action-items/view.php?id=' . $taskId . '%';
+        $dedupeCheck->bind_param("is", $userId, $linkPattern);
+        $dedupeCheck->execute();
+        $dedupeRow = $dedupeCheck->get_result()->fetch_assoc();
+        $dedupeCheck->close();
+
+        if ($dedupeRow['cnt'] > 0) continue; // Already notified recently
+
+        // Build the message
+        if ($daysLeft === 0) {
+            $urgency = 'DUE TODAY';
+            $priority = 'urgent';
+        } elseif ($daysLeft === 1) {
+            $urgency = 'Due Tomorrow';
+            $priority = 'high';
+        } else {
+            $urgency = "Due in {$daysLeft} days";
+            $priority = 'medium';
+        }
+
+        $notifTitle   = "⏰ Task Deadline Reminder";
+        $notifMessage = "{$urgency}: \"{$title}\" is due on " . date('F j, Y', strtotime($dueDate)) . ".";
+        $notifLink    = "pages/action-items/view.php?id={$taskId}";
+
+        createNotification($userId, $notifTitle, $notifMessage, 'deadline', $priority, $notifLink);
+    }
+
+    $stmt->close();
+
+    // Also check for OVERDUE tasks and send a single alert (deduplicated per task per 24h)
+    $overdueSql = "SELECT t.task_id, t.title, t.due_date
+                   FROM tasks t
+                   WHERE t.assigned_to = ?
+                     AND t.status NOT IN ('Done', 'Cancelled')
+                     AND t.due_date < ?
+                   ORDER BY t.due_date ASC
+                   LIMIT 5";
+
+    $stmtO = $conn->prepare($overdueSql);
+    $stmtO->bind_param("is", $userId, $today);
+    $stmtO->execute();
+    $overdueResult = $stmtO->get_result();
+
+    while ($overdueTask = $overdueResult->fetch_assoc()) {
+        $taskId = $overdueTask['task_id'];
+
+        // Dedup check
+        $dedupeOver = $conn->prepare(
+            "SELECT COUNT(*) as cnt FROM notifications
+             WHERE user_id = ?
+               AND action_link LIKE ?
+               AND notification_type = 'alert'
+               AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+        );
+        $linkPattern = '%action-items/view.php?id=' . $taskId . '%';
+        $dedupeOver->bind_param("is", $userId, $linkPattern);
+        $dedupeOver->execute();
+        $dedupeRowO = $dedupeOver->get_result()->fetch_assoc();
+        $dedupeOver->close();
+
+        if ($dedupeRowO['cnt'] > 0) continue;
+
+        $overdueDays  = (int) ceil((strtotime($today) - strtotime($overdueTask['due_date'])) / 86400);
+        $notifTitle   = "🚨 Overdue Action Item";
+        $notifMessage = "\"{$overdueTask['title']}\" was due " . date('F j, Y', strtotime($overdueTask['due_date'])) . " ({$overdueDays} day(s) ago). Please update its status.";
+        $notifLink    = "pages/action-items/view.php?id={$taskId}";
+
+        createNotification($userId, $notifTitle, $notifMessage, 'alert', 'urgent', $notifLink);
+    }
+
+    $stmtO->close();
+}
 ?>

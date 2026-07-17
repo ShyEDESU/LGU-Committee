@@ -90,6 +90,10 @@ $attendanceLabels = array_map(fn($m) => date('M Y', strtotime($m)), $attendanceM
             <p class="text-gray-600 dark:text-gray-400 mt-1">System-wide performance metrics and legislative insights</p>
         </div>
         <div class="flex gap-3">
+            <a href="../committee-reports/index.php"
+               class="bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition flex items-center gap-2 border border-gray-300 dark:border-gray-600">
+                <i class="bi bi-file-text text-green-600 dark:text-green-400"></i> View Committee Reports
+            </a>
             <button onclick="window.print()"
                 class="bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition flex items-center gap-2 border border-gray-300 dark:border-gray-600">
                 <i class="bi bi-printer"></i> Export

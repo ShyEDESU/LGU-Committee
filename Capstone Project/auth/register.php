@@ -482,10 +482,17 @@
                 button.innerHTML = originalText;
                 
                 if (data.success) {
-                    AlertManager.success('Account created successfully! Redirecting to login...');
-                    setTimeout(() => {
-                        window.location.href = 'login.php';
-                    }, 2000);
+                    if (data.debug_verify_url) {
+                        AlertManager.success('Account created! (Local Sandbox Mode): Click <a href="' + data.debug_verify_url + '" class="underline font-bold" style="color: #ffffff">HERE</a> to verify instantly, or wait to redirect.');
+                        setTimeout(() => {
+                            window.location.href = data.debug_verify_url;
+                        }, 4000);
+                    } else {
+                        AlertManager.success('Account created successfully! Redirecting to login...');
+                        setTimeout(() => {
+                            window.location.href = 'login.php';
+                        }, 2000);
+                    }
                 } else {
                     AlertManager.danger(data.message || 'Registration failed. Please try again.');
                 }

@@ -1028,4 +1028,133 @@ function getAgendaItemById($id)
     return $stmt->get_result()->fetch_assoc();
 }
 
+/**
+ * Emergency Meeting Requests
+ * Auto-creates the table on first use so no separate migration script is needed.
+ */
+function initEmergencyMeetingTable()
+{
+    global $conn;
+    $conn->query("CREATE TABLE IF NOT EXISTS `emergency_meeting_requests` (
+        `request_id`    INT AUTO_INCREMENT PRIMARY KEY,
+        `committee_id`  INT NOT NULL,
+        `title`         VARCHAR(200) NOT NULL,
+        `reason`        TEXT NOT NULL,
+        `proposed_date` DATETIME NOT NULL,
+        `status`        ENUM('Pending','Approved','Rejected') DEFAULT 'Pending',
+        `requested_by`  INT NOT NULL,
+        `admin_notes`   TEXT DEFAULT NULL,
+        `created_at`    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        `updated_at`    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+}
+
+/**
+ * Create a new emergency meeting request
+ */
+function createEmergencyMeetingRequest($committeeId, $title, $reason, $proposedDate)
+{
+    global $conn;
+    initEmergencyMeetingTable();
+
+    $requestedBy = $_SESSION['user_id'] ?? 0;
+    $stmt = $conn->prepare(
+        "INSERT INTO emergency_meeting_requests (committee_id, title, reason, proposed_date, requested_by)
+         VALUES (?, ?, ?, ?, ?)"
+    );
+    $stmt->bind_param("isssi", $committeeId, $title, $reason, $proposedDate, $requestedBy);
+    $success = $stmt->execute();
+    $newId   = $success ? $conn->insert_id : false;
+    $stmt->close();
+
+    if ($newId && function_exists('logAuditAction')) {
+        logAuditAction($requestedBy, 'CREATE', 'meetings', "Requested emergency meeting: '{$title}'");
+    }
+
+    return $newId;
+}
+
+/**
+ * Get all emergency meeting requests (optionally filtered by committee and/or status)
+ */
+function getEmergencyMeetingRequests($committeeId = null, $status = null)
+{
+    global $conn;
+    initEmergencyMeetingTable();
+
+    $sql = "SELECT emr.*,
+                   c.committee_name,
+                   CONCAT(u.first_name, ' ', u.last_name) AS requested_by_name
+            FROM emergency_meeting_requests emr
+            LEFT JOIN committees c ON emr.committee_id = c.committee_id
+            LEFT JOIN users u ON emr.requested_by = u.user_id";
+
+    $where  = [];
+    $params = [];
+    $types  = '';
+
+    if ($committeeId) {
+        $where[]  = "emr.committee_id = ?";
+        $params[] = $committeeId;
+        $types   .= 'i';
+    }
+    if ($status) {
+        $where[]  = "emr.status = ?";
+        $params[] = $status;
+        $types   .= 's';
+    }
+
+    if ($where) {
+        $sql .= " WHERE " . implode(" AND ", $where);
+    }
+    $sql .= " ORDER BY emr.created_at DESC";
+
+    $stmt = $conn->prepare($sql);
+    if ($params) {
+        $stmt->bind_param($types, ...$params);
+    }
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+/**
+ * Update the status of an emergency meeting request (Admin only)
+ */
+function updateEmergencyMeetingStatus($requestId, $status, $adminNotes = '')
+{
+    global $conn;
+    initEmergencyMeetingTable();
+
+    $stmt = $conn->prepare(
+        "UPDATE emergency_meeting_requests SET status = ?, admin_notes = ? WHERE request_id = ?"
+    );
+    $stmt->bind_param("ssi", $status, $adminNotes, $requestId);
+    $success = $stmt->execute();
+    $stmt->close();
+
+    if ($success && function_exists('logAuditAction')) {
+        logAuditAction(
+            $_SESSION['user_id'] ?? null,
+            'UPDATE',
+            'meetings',
+            "Emergency meeting request #{$requestId} marked as {$status}"
+        );
+    }
+
+    return $success;
+}
+
+/**
+ * Count pending emergency meeting requests (for dashboard alert badge)
+ */
+function countPendingEmergencyRequests()
+{
+    global $conn;
+    initEmergencyMeetingTable();
+
+    $result = $conn->query("SELECT COUNT(*) AS cnt FROM emergency_meeting_requests WHERE status = 'Pending'");
+    return $result ? (int) $result->fetch_assoc()['cnt'] : 0;
+}
 ?>

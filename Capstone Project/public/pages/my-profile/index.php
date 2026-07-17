@@ -55,6 +55,14 @@ $lastActive = $statsResult['last_active'] ? date('M j, g:i A', strtotime($statsR
 // Fetch recent activity
 $recentActivities = getAuditLogs(5, 0, ['user_id' => $userId]);
 
+// Fetch login history
+$loginHistoryQuery = "SELECT timestamp, action, description, ip_address FROM audit_logs WHERE user_id = ? AND action IN ('LOGIN', 'OAUTH_LOGIN', 'LOGIN_FAILED', 'LOGOUT') ORDER BY timestamp DESC LIMIT 10";
+$lhStmt = $conn->prepare($loginHistoryQuery);
+$lhStmt->bind_param("i", $userId);
+$lhStmt->execute();
+$loginHistory = $lhStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$lhStmt->close();
+
 // Update session with latest data
 $_SESSION['user_name'] = $userName;
 $_SESSION['user_email'] = $userEmail;
@@ -387,19 +395,19 @@ include '../../includes/header.php';
                     <i class="bi bi-chevron-right text-gray-400"></i>
                 </button>
 
-                <button
+                <button onclick="openTwoFactorModal()"
                     class="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition border border-gray-100 dark:border-gray-600">
                     <div class="flex items-center gap-3">
                         <i class="bi bi-shield-lock text-red-600 dark:text-red-400 text-xl"></i>
                         <div class="text-left">
                             <p class="font-semibold text-gray-900 dark:text-white">Two-Factor Auth</p>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Not enabled</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Not enabled &middot; Click to configure</p>
                         </div>
                     </div>
                     <i class="bi bi-chevron-right text-gray-400"></i>
                 </button>
 
-                <button
+                <button onclick="openLoginHistoryModal()"
                     class="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition border border-gray-100 dark:border-gray-600">
                     <div class="flex items-center gap-3">
                         <i class="bi bi-clock-history text-purple-600 dark:text-purple-400 text-xl"></i>
@@ -437,11 +445,11 @@ include '../../includes/header.php';
                     <i class="bi bi-clock-history text-red-600 dark:text-red-400 mr-3"></i>
                     <span class="font-semibold text-gray-700 dark:text-gray-300">Audit Logs</span>
                 </a>
-                <a href="#"
-                    class="flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                    <i class="bi bi-question-circle text-red-600 dark:text-red-400 mr-3"></i>
+                <button onclick="openHelpCenterModal()"
+                    class="w-full flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left">
+                    <i class="bi bi-question-circle text-red-600 dark:text-red-400 mr-3 text-lg"></i>
                     <span class="font-semibold text-gray-700 dark:text-gray-300">Help Center</span>
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -733,7 +741,156 @@ include '../../includes/header.php';
                 alert('An error occurred');
             });
     }
+
+    // Modal control handlers
+    function openTwoFactorModal() {
+        document.getElementById('twoFactorModal').classList.remove('hidden');
+    }
+    function closeTwoFactorModal() {
+        document.getElementById('twoFactorModal').classList.add('hidden');
+    }
+    function openLoginHistoryModal() {
+        document.getElementById('loginHistoryModal').classList.remove('hidden');
+    }
+    function closeLoginHistoryModal() {
+        document.getElementById('loginHistoryModal').classList.add('hidden');
+    }
+    function openHelpCenterModal() {
+        document.getElementById('helpCenterModal').classList.remove('hidden');
+    }
+    function closeHelpCenterModal() {
+        document.getElementById('helpCenterModal').classList.add('hidden');
+    }
 </script>
+
+<!-- Two-Factor Authentication Explanation Modal -->
+<div id="twoFactorModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full animate-fade-in-up border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <i class="bi bi-shield-lock text-red-600"></i> Two-Factor Authentication (2FA)
+            </h2>
+            <button onclick="closeTwoFactorModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <i class="bi bi-x-lg text-lg"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                Two-Factor Authentication adds an extra layer of security by requiring a unique verification code from your mobile device every time you sign in.
+            </p>
+            <div class="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                <p class="text-xs font-semibold text-amber-900 dark:text-amber-300 mb-1"><i class="bi bi-info-circle mr-1"></i> How It Works:</p>
+                <ol class="text-xs text-amber-800 dark:text-amber-400 list-decimal list-inside space-y-1.5 leading-relaxed">
+                    <li>Scan a QR Code with an authenticator app (e.g. Google Authenticator, Microsoft Authenticator).</li>
+                    <li>The app generates a temporary 6-digit verification code that changes every 30 seconds.</li>
+                    <li>Whenever you log in, enter the current code from your app after typing your password.</li>
+                </ol>
+            </div>
+            <p class="text-xs text-gray-500">Note: 2FA configuration is currently disabled in your system profile and is undergoing security policy review.</p>
+        </div>
+        <div class="p-6 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-150 dark:border-gray-700 flex justify-end">
+            <button onclick="closeTwoFactorModal()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg font-semibold text-sm transition">Got It</button>
+        </div>
+    </div>
+</div>
+
+<!-- Login History Modal -->
+<div id="loginHistoryModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full animate-fade-in-up border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <i class="bi bi-clock-history text-purple-600"></i> Recent Login History
+            </h2>
+            <button onclick="closeLoginHistoryModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <i class="bi bi-x-lg text-lg"></i>
+            </button>
+        </div>
+        <div class="p-6 max-h-[350px] overflow-y-auto">
+            <?php if (empty($loginHistory)): ?>
+                <div class="text-center py-8 text-gray-400">
+                    <i class="bi bi-shield-slash text-3xl block mb-2"></i>
+                    <p class="text-sm">No login attempts logged yet.</p>
+                </div>
+            <?php else: ?>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-200 dark:border-gray-700 text-gray-400 font-semibold">
+                                <th class="py-2.5">Date &amp; Time</th>
+                                <th class="py-2.5">Action</th>
+                                <th class="py-2.5">IP Address</th>
+                                <th class="py-2.5">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700 text-gray-700 dark:text-gray-300">
+                            <?php foreach ($loginHistory as $lh): 
+                                $badgeClass = match($lh['action']) {
+                                    'LOGIN', 'OAUTH_LOGIN' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+                                    'LOGIN_FAILED', 'PREAUTH_FAILED' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+                                    default => 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+                                };
+                            ?>
+                                <tr>
+                                    <td class="py-3 font-medium text-xs whitespace-nowrap"><?php echo date('M d, Y g:i A', strtotime($lh['timestamp'])); ?></td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-full <?php echo $badgeClass; ?>"><?php echo htmlspecialchars($lh['action']); ?></span>
+                                    </td>
+                                    <td class="py-3 text-xs font-mono"><?php echo htmlspecialchars($lh['ip_address']); ?></td>
+                                    <td class="py-3 text-xs truncate max-w-[200px]" title="<?php echo htmlspecialchars($lh['description']); ?>"><?php echo htmlspecialchars($lh['description']); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div class="p-6 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-150 dark:border-gray-700 flex justify-end">
+            <button onclick="closeLoginHistoryModal()" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-5 py-2 rounded-lg font-semibold text-sm transition">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Help Center Modal -->
+<div id="helpCenterModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full animate-fade-in-up border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <i class="bi bi-question-circle text-red-600"></i> Help Center
+            </h2>
+            <button onclick="closeHelpCenterModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <i class="bi bi-x-lg text-lg"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                Welcome to the Committee Management Help Center. If you need assistance with managing members, scheduling hearings, drafting committee reports, or resolving access rights:
+            </p>
+            <div class="space-y-3">
+                <div class="flex items-start gap-3">
+                    <i class="bi bi-envelope text-red-500 mt-0.5 text-lg"></i>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-800 dark:text-gray-200">Email Support</p>
+                        <p class="text-xs text-gray-500">support@valenzuela.gov.ph</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <i class="bi bi-telephone text-red-500 mt-0.5 text-lg"></i>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-800 dark:text-gray-200">Secretariat Hotline</p>
+                        <p class="text-xs text-gray-500">(02) 8352-1000 ext. 1234</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/40 rounded-lg p-3 text-xs text-blue-800 dark:text-blue-300">
+                <i class="bi bi-robot mr-1"></i> An AI Help Assistant is planned and will be rolled out in a future system update.
+            </div>
+        </div>
+        <div class="p-6 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-150 dark:border-gray-700 flex justify-end">
+            <button onclick="closeHelpCenterModal()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg font-semibold text-sm transition">Close</button>
+        </div>
+    </div>
+</div>
+
 
 </div> <!-- Closing module-content-wrapper -->
 <?php

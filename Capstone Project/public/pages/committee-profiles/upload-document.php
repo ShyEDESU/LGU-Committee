@@ -174,7 +174,8 @@ include '../../includes/header.php';
     });
 </script>
 
-</div> <!-- Closing container-fluid and module-content-wrapper -->
+</div> <!-- Closing container-fluid -->
+</div> <!-- Closing module-content-wrapper -->
 <?php
 include '../../includes/footer.php';
 include '../../includes/layout-end.php';

@@ -362,6 +362,30 @@ function updateActionItem($id, $data)
     $stmt->bind_param($types, ...$values);
     if ($stmt->execute()) {
         logAuditAction($_SESSION['user_id'] ?? null, 'UPDATE', 'tasks', "Updated action item ID: $id");
+
+        // If status changed to 'Done', notify the creator
+        if (isset($data['status']) && $data['status'] === 'Done') {
+            require_once __DIR__ . '/NotificationHelper.php';
+            // Fetch the task to get creator and title
+            $taskFetch = $conn->prepare("SELECT title, created_by FROM tasks WHERE task_id = ?");
+            $taskFetch->bind_param("i", $id);
+            $taskFetch->execute();
+            $taskRow = $taskFetch->get_result()->fetch_assoc();
+            $taskFetch->close();
+
+            if ($taskRow && !empty($taskRow['created_by'])) {
+                $completedBy = $_SESSION['user_name'] ?? 'A team member';
+                createNotification(
+                    $taskRow['created_by'],
+                    "✅ Action Item Completed",
+                    "\"{$taskRow['title']}\" has been marked as Done by {$completedBy}.",
+                    'action_item',
+                    'low',
+                    "pages/action-items/view.php?id={$id}"
+                );
+            }
+        }
+
         return true;
     }
     error_log("Error updating task: " . $stmt->error);
@@ -386,19 +410,21 @@ function deleteActionItem($id)
 /**
  * Get all reports from database
  */
-function getAllReports()
-{
-    global $conn;
-    $sql = "SELECT r.*, c.committee_name FROM reports r LEFT JOIN committees c ON r.committee_id = c.committee_id ORDER BY r.created_at DESC";
-    $result = $conn->query($sql);
-    $reports = [];
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            $row['id'] = $row['report_id'];
-            $reports[] = $row;
+if (!function_exists('getAllReports')) {
+    function getAllReports()
+    {
+        global $conn;
+        $sql = "SELECT r.*, c.committee_name FROM reports r LEFT JOIN committees c ON r.committee_id = c.committee_id ORDER BY r.created_at DESC";
+        $result = $conn->query($sql);
+        $reports = [];
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $row['id'] = $row['report_id'];
+                $reports[] = $row;
+            }
         }
+        return $reports;
     }
-    return $reports;
 }
 
 function getActionItemsByCommittee($committeeId)
@@ -424,24 +450,26 @@ function getActionItemsByCommittee($committeeId)
 /**
  * Create a new report
  */
-function createReport($data)
-{
-    global $conn;
-    $committeeId = $data['committee_id'];
-    $title = $data['title'];
-    $type = $data['type'] ?? 'Committee Report';
-    $content = $data['content'] ?? '';
-    $createdBy = $_SESSION['user_id'] ?? 1;
+if (!function_exists('createReport')) {
+    function createReport($data)
+    {
+        global $conn;
+        $committeeId = $data['committee_id'];
+        $title = $data['title'];
+        $type = $data['type'] ?? 'Committee Report';
+        $content = $data['content'] ?? '';
+        $createdBy = $_SESSION['user_id'] ?? 1;
 
-    $stmt = $conn->prepare("INSERT INTO reports (committee_id, title, report_type, content, created_by) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("isssi", $committeeId, $title, $type, $content, $createdBy);
+        $stmt = $conn->prepare("INSERT INTO reports (committee_id, title, report_type, content, created_by) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("isssi", $committeeId, $title, $type, $content, $createdBy);
 
-    if ($stmt->execute()) {
-        $reportId = $conn->insert_id;
-        logAuditAction($_SESSION['user_id'] ?? null, 'CREATE', 'reports', "Created report: '{$title}'");
-        return $reportId;
+        if ($stmt->execute()) {
+            $reportId = $conn->insert_id;
+            logAuditAction($_SESSION['user_id'] ?? null, 'CREATE', 'reports', "Created report: '{$title}'");
+            return $reportId;
+        }
+        return false;
     }
-    return false;
 }
 
 // ==========================================

@@ -258,6 +258,46 @@ $recentNotifications = getUserNotifications($userId, 5);
         }
     </style>
 
+    <!-- Automatic 10-Minute Session Timeout Guard -->
+    <script>
+        (function() {
+            let idleTime = 0;
+            const maxIdleTime = 600; // 10 minutes in seconds
+            let lastHeartbeat = Date.now();
+
+            // Reset idle timer when user interacts
+            function resetTimer() {
+                idleTime = 0;
+                
+                // Throttle heartbeat calls to server (maximum once every 2 minutes)
+                const now = Date.now();
+                if (now - lastHeartbeat > 120000) { 
+                    lastHeartbeat = now;
+                    const formData = new FormData();
+                    formData.append('action', 'heartbeat');
+                    fetch('<?php echo $rootPath; ?>app/controllers/AuthController.php', {
+                        method: 'POST',
+                        body: formData
+                    }).catch(err => console.log('Heartbeat skipped', err));
+                }
+            }
+
+            // User interactions to reset idle state
+            const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+            events.forEach(name => {
+                document.addEventListener(name, resetTimer, true);
+            });
+
+            // Heartbeat ticking every second
+            setInterval(function() {
+                idleTime++;
+                if (idleTime >= maxIdleTime) {
+                    // Redirect to dashboard to let PHP session destroy logic cleanly trigger and show timeout notice
+                    window.location.href = '<?php echo $rootPath; ?>public/dashboard.php';
+                }
+            }, 1000);
+        })();
+    </script>
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-900 font-sans antialiased">

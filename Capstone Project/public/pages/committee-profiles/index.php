@@ -79,6 +79,11 @@ if ($search || $typeFilter || $statusFilter) {
                 <span>Export CSV</span>
             </button>
             <?php if (canCreate($userId, 'committees')): ?>
+            <a href="import.php"
+                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center space-x-2">
+                <i class="bi bi-file-earmark-excel"></i>
+                <span>Import Excel</span>
+            </a>
             <a href="create.php"
                 class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition flex items-center space-x-2">
                 <i class="bi bi-plus-lg"></i>

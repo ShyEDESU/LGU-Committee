@@ -143,10 +143,16 @@ class RegistrationController
             // Log registration
             $this->logAuditAction($user_id, 'ACCOUNT_CREATED', 'Registration', 'New account registered: ' . $email);
 
+            // Construct debug verification url for local environment/sandbox testing
+            $baseUrl = defined('APP_URL') ? rtrim(APP_URL, '/') : 'http://localhost/Capstone%20Project';
+            $baseUrl = str_replace(' ', '%20', $baseUrl);
+            $verificationLink = $baseUrl . "/public/auth/verify.php?token=" . $verification_token;
+
             return [
                 'success' => true,
                 'message' => 'Registration successful! Please check your email to verify your account.',
-                'email' => $email
+                'email' => $email,
+                'debug_verify_url' => $verificationLink
             ];
         }
 

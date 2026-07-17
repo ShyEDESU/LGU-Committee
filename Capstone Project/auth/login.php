@@ -17,32 +17,22 @@ if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
 // Initialize login attempts tracking
 if (!isset($_SESSION['login_attempts'])) {
     $_SESSION['login_attempts'] = 0;
-    $_SESSION['first_attempt_time'] = null;
+}
+if (!isset($_SESSION['lockout_until'])) {
+    $_SESSION['lockout_until'] = null;
 }
 
 // Check if account is locked
 $is_locked = false;
 $remaining_time = 0;
 
-$login_attempts = isset($_SESSION['login_attempts']) ? (int) $_SESSION['login_attempts'] : 0;
-$first_attempt_time = isset($_SESSION['first_attempt_time']) ? $_SESSION['first_attempt_time'] : null;
-
-if ($login_attempts >= 5) {
-    if ($first_attempt_time === null) {
-        $first_attempt_time = time();
-        $_SESSION['first_attempt_time'] = $first_attempt_time;
-    }
-
-    $elapsed_time = time() - $first_attempt_time;
-    $lockout_duration = 300; // 5 minutes lockout
-
-    if ($elapsed_time < $lockout_duration) {
+if ($_SESSION['lockout_until'] !== null) {
+    $elapsed_time = $_SESSION['lockout_until'] - time();
+    if ($elapsed_time > 0) {
         $is_locked = true;
-        $remaining_time = $lockout_duration - $elapsed_time;
+        $remaining_time = $elapsed_time;
     } else {
-        $_SESSION['login_attempts'] = 0;
-        $_SESSION['first_attempt_time'] = null;
-        $is_locked = false;
+        $_SESSION['lockout_until'] = null;
     }
 }
 ?>
@@ -266,6 +256,10 @@ if ($login_attempts >= 5) {
         }
     </style>
 
+    <!-- Google & Microsoft Login SDKs -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://alcdn.msauth.net/browser/2.35.4/js/msal-browser.min.js"></script>
+
     <script>
         // Initialize theme before page load
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -354,6 +348,20 @@ if ($login_attempts >= 5) {
                 </div>
             <?php endif; ?>
 
+            <!-- Session Timeout Alert -->
+            <?php if (isset($_SESSION['timeout_message'])): ?>
+                <div class="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 mb-6 shadow-md animate-fade-in">
+                    <div class="flex items-start">
+                        <i class="bi bi-exclamation-triangle-fill text-amber-600 text-xl mt-1 mr-3 flex-shrink-0 animate-pulse"></i>
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-amber-900 mb-1">Session Expired</h3>
+                            <p class="text-amber-800 text-sm"><?php echo htmlspecialchars($_SESSION['timeout_message']); ?></p>
+                        </div>
+                    </div>
+                </div>
+                <?php unset($_SESSION['timeout_message']); ?>
+            <?php endif; ?>
+
             <!-- Logout Success Notification -->
             <?php if (isset($_GET['logout']) && $_GET['logout'] === 'success'): ?>
                 <div id="logoutAlert"
@@ -393,7 +401,7 @@ if ($login_attempts >= 5) {
             </div>
 
             <!-- Login Form -->
-            <form id="loginForm" class="space-y-4 md:space-y-5" <?php echo $is_locked ? 'style="display: none;"' : ''; ?>>
+            <form id="loginForm" class="space-y-4 md:space-y-5">
                 <input type="hidden" name="action" value="login">
 
                 <!-- Email Field -->
@@ -402,7 +410,8 @@ if ($login_attempts >= 5) {
                         <i class="bi bi-envelope mr-1"></i>Email Address
                     </label>
                     <input type="email" id="email" name="email" required placeholder="your.email@lgu.gov.ph"
-                        class="input-field w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-base dark:bg-slate-700 dark:text-white">
+                        <?php echo $is_locked ? 'disabled readonly' : ''; ?>
+                        class="input-field w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-base dark:bg-slate-700 dark:text-white <?php echo $is_locked ? 'opacity-50 cursor-not-allowed' : ''; ?>">
                     <span class="text-red-500 text-xs hidden mt-1" id="email-error"></span>
                 </div>
 
@@ -414,9 +423,10 @@ if ($login_attempts >= 5) {
                     </label>
                     <div class="relative">
                         <input type="password" id="password" name="password" required placeholder="Enter your password"
-                            class="input-field w-full px-3 md:px-4 py-2.5 md:py-3 pr-12 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-base dark:bg-slate-700 dark:text-white">
-                        <button type="button" id="toggle-password"
-                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
+                            <?php echo $is_locked ? 'disabled readonly' : ''; ?>
+                            class="input-field w-full px-3 md:px-4 py-2.5 md:py-3 pr-12 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-base dark:bg-slate-700 dark:text-white <?php echo $is_locked ? 'opacity-50 cursor-not-allowed' : ''; ?>">
+                        <button type="button" id="toggle-password" <?php echo $is_locked ? 'disabled' : ''; ?>
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors <?php echo $is_locked ? 'opacity-50 cursor-not-allowed' : ''; ?>">
                             <i class="bi bi-eye text-lg" id="eye-icon"></i>
                         </button>
                     </div>
@@ -432,21 +442,21 @@ if ($login_attempts >= 5) {
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" id="login-btn"
-                    class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 md:py-3 rounded-lg transition duration-200 ease-in-out shadow-md hover:shadow-lg flex items-center justify-center">
+                <button type="submit" id="login-btn" <?php echo $is_locked ? 'disabled' : ''; ?>
+                    class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 md:py-3 rounded-lg transition duration-200 ease-in-out shadow-md hover:shadow-lg flex items-center justify-center <?php echo $is_locked ? 'opacity-50 cursor-not-allowed' : ''; ?>">
                     <span id="login-btn-text">Sign In</span>
                     <i class="bi bi-arrow-right ml-2" id="login-btn-icon"></i>
                 </button>
 
                 <!-- Terms & Conditions Checkbox -->
                 <div class="flex items-start">
-                    <input type="checkbox" id="termsCheckbox"
-                        class="w-4 h-4 mt-1 mr-2 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-600 cursor-pointer"
+                    <input type="checkbox" id="termsCheckbox" <?php echo $is_locked ? 'disabled' : ''; ?>
+                        class="w-4 h-4 mt-1 mr-2 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-600 cursor-pointer <?php echo $is_locked ? 'opacity-50 cursor-not-allowed' : ''; ?>"
                         required>
-                    <label for="termsCheckbox" class="text-gray-700 dark:text-slate-300 text-sm">
+                    <label for="termsCheckbox" class="text-gray-700 dark:text-slate-300 text-sm <?php echo $is_locked ? 'opacity-50 cursor-not-allowed' : ''; ?>">
                         I agree to the
-                        <button type="button" onclick="openTermsModal()"
-                            class="text-red-600 dark:text-red-400 hover:text-red-700 font-semibold underline">Terms
+                        <button type="button" onclick="<?php echo $is_locked ? '' : 'openTermsModal()'; ?>"
+                            class="text-red-600 dark:text-red-400 hover:text-red-700 font-semibold underline <?php echo $is_locked ? 'cursor-not-allowed' : ''; ?>">Terms
                             &
                             Conditions</button>
                     </label>
@@ -929,6 +939,131 @@ if ($login_attempts >= 5) {
                     loginBtnIcon.classList.add('bi-arrow-right');
                     loginBtnIcon.classList.remove('spinner');
                 });
+        });
+
+        // ────────────────────────────────────────────────────────────────────────
+        // GOOGLE & MICROSOFT SSO SIGN-IN INTEGRATION
+        // ────────────────────────────────────────────────────────────────────────
+        
+        // Client configurations
+        const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+        const MICROSOFT_CLIENT_ID = 'YOUR_MICROSOFT_CLIENT_ID';
+
+        function handleOAuthLogin(email) {
+            let loaderBar = document.getElementById('login-loading-bar');
+            let loaderOverlay = document.getElementById('cms-page-loader');
+            
+            if (loaderOverlay) loaderOverlay.classList.add('visible');
+            if (loaderBar) {
+                loaderBar.style.opacity = '1';
+                loaderBar.style.width = '60%';
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'oauth_login');
+            formData.append('email', email);
+
+            fetch('../app/controllers/AuthController.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (loaderOverlay) loaderOverlay.classList.remove('visible');
+                if (loaderBar) {
+                    loaderBar.style.opacity = '0';
+                    loaderBar.style.width = '100%';
+                }
+
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    setTimeout(() => {
+                        location.href = data.redirect;
+                    }, 1000);
+                } else {
+                    showAlert(data.message, 'error');
+                }
+            })
+            .catch(err => {
+                if (loaderOverlay) loaderOverlay.classList.remove('visible');
+                console.error(err);
+                showAlert('SSO Connection error. Please try again.', 'error');
+            });
+        }
+
+        // Google Authentication handler
+        document.getElementById('googleLoginBtn')?.addEventListener('click', function() {
+            if (GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE_CLIENT_ID')) {
+                const testEmail = prompt("Google SSO Simulator:\nPlease enter a registered email address to test automatic login:", "");
+                if (testEmail) {
+                    handleOAuthLogin(testEmail);
+                }
+                return;
+            }
+
+            try {
+                const client = google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: 'email profile openid',
+                    callback: (tokenResponse) => {
+                        if (tokenResponse && tokenResponse.access_token) {
+                            fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                                headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                            })
+                            .then(res => res.json())
+                            .then(userInfo => {
+                                if (userInfo.email) {
+                                    handleOAuthLogin(userInfo.email);
+                                } else {
+                                    showAlert('Failed to retrieve email profile from Google.', 'error');
+                                }
+                            });
+                        }
+                    }
+                });
+                client.requestAccessToken();
+            } catch (e) {
+                console.error(e);
+                const testEmail = prompt("Google SDK not initialized. Enter email manually to proceed:", "");
+                if (testEmail) handleOAuthLogin(testEmail);
+            }
+        });
+
+        // Microsoft Authentication handler
+        document.getElementById('microsoftLoginBtn')?.addEventListener('click', function() {
+            if (MICROSOFT_CLIENT_ID.includes('YOUR_MICROSOFT_CLIENT_ID')) {
+                const testEmail = prompt("Microsoft SSO Simulator:\nPlease enter a registered email address to test automatic login:", "");
+                if (testEmail) {
+                    handleOAuthLogin(testEmail);
+                }
+                return;
+            }
+
+            try {
+                const msalConfig = {
+                    auth: {
+                        clientId: MICROSOFT_CLIENT_ID,
+                        authority: 'https://login.microsoftonline.com/common'
+                    }
+                };
+                const msalInstance = new msal.PublicClientApplication(msalConfig);
+                msalInstance.loginPopup({
+                    scopes: ["user.read"]
+                })
+                .then(loginResponse => {
+                    if (loginResponse && loginResponse.account && loginResponse.account.username) {
+                        handleOAuthLogin(loginResponse.account.username);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showAlert('Microsoft login cancelled.', 'error');
+                });
+            } catch (e) {
+                console.error(e);
+                const testEmail = prompt("Microsoft SDK loading failed. Enter email manually to proceed:", "");
+                if (testEmail) handleOAuthLogin(testEmail);
+            }
         });
     </script>
 </body>

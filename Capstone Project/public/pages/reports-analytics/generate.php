@@ -121,4 +121,8 @@ $committees = getAllCommittees(); // Existing helper function
     }
 </style>
 
-<?php include '../../includes/footer.php'; ?>
+</div><!-- /#module-content-wrapper -->
+<?php
+include '../../includes/footer.php';
+include '../../includes/layout-end.php';
+?>

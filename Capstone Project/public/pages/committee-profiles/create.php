@@ -13,8 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
         'name' => trim($_POST['name'] ?? ''),
         'type' => $_POST['type'] ?? '',
-        'chair' => trim($_POST['chair'] ?? ''),
-        'vice_chair' => trim($_POST['vice_chair'] ?? ''),
+        'chairperson_id' => trim($_POST['chairperson_id'] ?? ''),
+        'vice_chair_id' => trim($_POST['vice_chair_id'] ?? ''),
         'jurisdiction' => trim($_POST['jurisdiction'] ?? ''),
         'description' => trim($_POST['description'] ?? ''),
         'status' => $_POST['status'] ?? 'Active'
@@ -30,6 +30,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Chairperson is required';
     if (empty($data['jurisdiction']))
         $errors[] = 'Jurisdiction is required';
+
+    // Check for duplicate name
+    if (!empty($data['name'])) {
+        global $conn;
+        $stmt_dup = $conn->prepare("SELECT committee_id FROM committees WHERE committee_name = ? LIMIT 1");
+        $stmt_dup->bind_param("s", $data['name']);
+        $stmt_dup->execute();
+        if ($stmt_dup->get_result()->num_rows > 0) {
+            $errors[] = 'A committee with this name already exists.';
+        }
+        $stmt_dup->close();
+    }
 
     if (empty($errors)) {
         // Convert array to the format expected by createCommittee (mapping chair to chairperson_id etc)

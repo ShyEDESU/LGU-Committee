@@ -136,7 +136,7 @@ function createCommittee($data)
 
         // Find Admins (Role ID 1 is Super Admin, Role ID 2 is Admin in most standard schemas)
         // We'll notify all users who have 'Admin' in their role name
-        $allUsers = getAllUsers();
+        $allUsers = UserHelper_getAllUsers();
         foreach ($allUsers as $user) {
             if (isset($user['role_name']) && (stripos($user['role_name'], 'Admin') !== false)) {
                 $title = "New Committee Created";
@@ -394,6 +394,17 @@ function addCommitteeMember($committeeId, $userId, $position = 'Member', $joinDa
 
         $committee = getCommitteeById($committeeId);
         $committeeName = $committee['name'] ?? "Committee ID: $committeeId";
+
+        // Notify the added member about their new committee assignment
+        require_once __DIR__ . '/NotificationHelper.php';
+        createNotification(
+            $userId,
+            "📋 Added to Committee",
+            "You have been added to the \"{$committeeName}\" committee as {$position}.",
+            'committee_created',
+            'medium',
+            "pages/committee-profiles/view.php?id={$committeeId}"
+        );
 
         // Log the action with details
         if (function_exists('logAuditAction')) {

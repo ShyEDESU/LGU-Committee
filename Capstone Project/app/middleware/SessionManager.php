@@ -77,6 +77,52 @@ class SessionManager
     }
 
     /**
+     * Authenticate user via OAuth (verified email only)
+     */
+    public function oauthAuthenticate($email)
+    {
+        $query = "SELECT u.user_id, u.email, u.first_name, u.last_name, u.role_id, u.is_active, r.role_name 
+                  FROM users u 
+                  JOIN roles r ON u.role_id = r.role_id 
+                  WHERE u.email = ? AND u.is_active = TRUE";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows === 1) {
+            $user = $result->fetch_assoc();
+
+            // Update last login
+            $this->updateLastLogin($user['user_id']);
+
+            // Set session variables
+            $_SESSION['user_id'] = $user['user_id'];
+            $_SESSION['email'] = $user['email'];
+            $_SESSION['full_name'] = $user['first_name'] . ' ' . $user['last_name'];
+            $_SESSION['role_id'] = $user['role_id'];
+            $_SESSION['role_name'] = $user['role_name'];
+            $_SESSION['login_time'] = time();
+
+            // Frontend compatibility keys
+            $_SESSION['user_name'] = $_SESSION['full_name'];
+            $_SESSION['user_email'] = $_SESSION['email'];
+            $_SESSION['user_role'] = $_SESSION['role_name'];
+
+            // Log the login action
+            $this->logAuditAction($user['user_id'], 'OAUTH_LOGIN', 'Authentication', 'User logged in via OAuth (Email: ' . $email . ')');
+
+            return true;
+        }
+
+        // Log failed OAuth attempt
+        $this->logAuditAction(0, 'OAUTH_LOGIN_FAILED', 'Authentication', 'Failed OAuth login attempt with unregistered email: ' . $email);
+
+        return false;
+    }
+
+    /**
      * Logout user and destroy session
      */
     public function logout()
