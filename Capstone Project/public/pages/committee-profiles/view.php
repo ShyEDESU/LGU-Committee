@@ -67,7 +67,7 @@ if (isset($_POST['request_emergency_meeting'])) {
         if ($newReqId) {
             // Notify all admins
             global $conn;
-            $adminRes = $conn->query("SELECT user_id FROM users WHERE role_id IN (SELECT role_id FROM user_roles WHERE role_name IN ('Admin','Super Admin')) AND is_active = 1");
+            $adminRes = $conn->query("SELECT u.user_id FROM users u JOIN roles r ON u.role_id = r.role_id WHERE r.role_name IN ('Admin','Super Admin') AND u.is_active = 1");
             if ($adminRes) {
                 while ($adminRow = $adminRes->fetch_assoc()) {
                     createNotification(

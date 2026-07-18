@@ -105,121 +105,135 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['xlsx_file'])) {
     $file = $_FILES['xlsx_file'];
 
     if ($file['error'] !== UPLOAD_ERR_OK) {
-        $errors[] = "Error uploading file. Please try again.";
+        $errors[] = "File upload failed. Please try again (Error code: {$file['error']}).";
     } else {
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if ($ext !== 'xlsx') {
-            $errors[] = "Only Excel spreadsheet (.xlsx) files are supported.";
+            $errors[] = "Only Excel spreadsheet (.xlsx) files are supported. You uploaded a <strong>.{$ext}</strong> file.";
         } else {
             try {
                 $reader = new SimpleXlsxReader($file['tmp_name']);
-                $rows = $reader->getRows();
+                $rows   = $reader->getRows();
 
-                // Expect header on Row 1, data starts on Row 2
-                // Sample Columns:
-                // Column 0 (A): Committee Name
-                // Column 1 (B): Committee Type (Standing, Special, Ad Hoc)
-                // Column 2 (C): Chairperson Name
-                // Column 3 (D): Vice-Chairperson Name
-                // Column 4 (E): Secretary Name
-                // Column 5 (F): Members List (Comma-separated)
-                // Column 6 (G): Jurisdiction & Description
+                if (empty($rows)) {
+                    $errors[] = "The spreadsheet appears to be empty. Please make sure your file has data starting from Row 2.";
+                } else {
+                    // Expect header on Row 1, data starts on Row 2
+                    // Column 0 (A): Committee Name
+                    // Column 1 (B): Committee Type
+                    // Column 2 (C): Chairperson Name
+                    // Column 3 (D): Vice-Chairperson Name
+                    // Column 4 (E): Secretary Name
+                    // Column 5 (F): Members List (Comma-separated)
+                    // Column 6 (G): Jurisdiction & Description
 
-                $importedCount = 0;
-                $newUsersCount = 0;
+                    $importedCount = 0;
+                    $skippedCount  = 0;
 
-                // Start transaction to secure import
-                $conn->begin_transaction();
+                    // Helper: safely read a cell value, fall back to empty string
+                    $cell = fn($row, $col) => trim($row[$col] ?? '');
 
-                foreach ($rows as $rowIndex => $row) {
-                    // Skip header row
-                    if ($rowIndex === 1) {
-                        continue;
-                    }
+                    $conn->begin_transaction();
 
-                    $name = trim($row[0] ?? '');
-                    $type = trim($row[1] ?? 'Standing');
-                    $chairName = trim($row[2] ?? '');
-                    $viceChairName = trim($row[3] ?? '');
-                    $secName = trim($row[4] ?? '');
-                    $membersString = trim($row[5] ?? '');
-                    $jurisdiction = trim($row[6] ?? '');
+                    foreach ($rows as $rowIndex => $row) {
+                        // Skip header row
+                        if ($rowIndex === 1) continue;
 
-                    if (empty($name)) {
-                        continue;
-                    }
+                        $name         = $cell($row, 0);
+                        $type         = $cell($row, 1) ?: 'Standing';
+                        $chairName    = $cell($row, 2);
+                        $viceChairName= $cell($row, 3);
+                        $secName      = $cell($row, 4);
+                        $membersString= $cell($row, 5);
+                        $jurisdiction = $cell($row, 6) ?: 'No jurisdiction info provided.';
 
-                    // Check if committee name already exists to prevent duplicate key crashes
-                    $stmt_check_comm = $conn->prepare("SELECT committee_id FROM committees WHERE committee_name = ? LIMIT 1");
-                    $stmt_check_comm->bind_param("s", $name);
-                    $stmt_check_comm->execute();
-                    $comm_exists = $stmt_check_comm->get_result()->num_rows > 0;
-                    $stmt_check_comm->close();
+                        // Skip rows with no committee name
+                        if (empty($name)) {
+                            $skippedCount++;
+                            continue;
+                        }
 
-                    if ($comm_exists) {
-                        $errors[] = "Committee \"{$name}\" already exists. Skipped.";
-                        continue;
-                    }
+                        // Check for duplicate
+                        $stmt_check = $conn->prepare("SELECT committee_id FROM committees WHERE committee_name = ? LIMIT 1");
+                        $stmt_check->bind_param("s", $name);
+                        $stmt_check->execute();
+                        $already_exists = $stmt_check->get_result()->num_rows > 0;
+                        $stmt_check->close();
 
-                    // 1. Resolve or create leadership profiles
-                    $chairId = !empty($chairName) ? findOrCreateTemporaryUser($chairName, 'Chairperson') : null;
-                    $viceChairId = !empty($viceChairName) ? findOrCreateTemporaryUser($viceChairName, 'Vice-Chairperson') : null;
-                    $secretaryId = !empty($secName) ? findOrCreateTemporaryUser($secName, 'Secretary') : null;
+                        if ($already_exists) {
+                            $errors[] = "Row {$rowIndex}: Committee \"<strong>{$name}</strong>\" already exists — skipped.";
+                            $skippedCount++;
+                            continue;
+                        }
 
-                    // 2. Create the Committee
-                    $createData = [
-                        'name' => $name,
-                        'type' => $type,
-                        'description' => "Imported via Excel spreadsheet on " . date('Y-m-d H:i:s'),
-                        'jurisdiction' => $jurisdiction,
-                        'chairperson_id' => $chairId,
-                        'vice_chair_id' => $viceChairId,
-                        'secretary_id' => $secretaryId,
-                        'is_active' => true
-                    ];
+                        // Resolve leadership user IDs (create temp accounts if needed)
+                        $chairId    = !empty($chairName)     ? findOrCreateTemporaryUser($chairName,     'Chairperson')     : null;
+                        $viceChairId= !empty($viceChairName) ? findOrCreateTemporaryUser($viceChairName, 'Vice-Chairperson'): null;
+                        $secretaryId= !empty($secName)       ? findOrCreateTemporaryUser($secName,       'Secretary')       : null;
 
-                    $committeeId = createCommittee($createData);
-                    if ($committeeId) {
-                        $importedCount++;
+                        // Create the committee
+                        $createData = [
+                            'name'           => $name,
+                            'type'           => $type,
+                            'description'    => 'Imported via Excel spreadsheet on ' . date('Y-m-d H:i:s'),
+                            'jurisdiction'   => $jurisdiction,
+                            'chairperson_id' => $chairId,
+                            'vice_chair_id'  => $viceChairId,
+                            'secretary_id'   => $secretaryId,
+                            'is_active'      => true
+                        ];
 
-                        // 3. Link leadership members to committee_members table too
-                        if ($chairId) addCommitteeMember($committeeId, $chairId, 'Chairperson');
-                        if ($viceChairId) addCommitteeMember($committeeId, $viceChairId, 'Vice-Chairperson');
-                        if ($secretaryId) addCommitteeMember($committeeId, $secretaryId, 'Secretary');
+                        $committeeId = createCommittee($createData);
 
-                        // 4. Parse and link roster members list
-                        if (!empty($membersString)) {
-                            $memberNames = explode(',', $membersString);
-                            foreach ($memberNames as $mName) {
-                                $mName = trim($mName);
-                                if (!empty($mName)) {
-                                    $mId = findOrCreateTemporaryUser($mName, 'Member');
-                                    if ($mId) {
-                                        addCommitteeMember($committeeId, $mId, 'Member');
+                        if ($committeeId) {
+                            $importedCount++;
+
+                            // Link leadership to committee_members
+                            if ($chairId)     addCommitteeMember($committeeId, $chairId,     'Chairperson');
+                            if ($viceChairId) addCommitteeMember($committeeId, $viceChairId, 'Vice-Chairperson');
+                            if ($secretaryId) addCommitteeMember($committeeId, $secretaryId, 'Secretary');
+
+                            // Parse and link roster members
+                            if (!empty($membersString)) {
+                                foreach (explode(',', $membersString) as $mName) {
+                                    $mName = trim($mName);
+                                    if (!empty($mName)) {
+                                        $mId = findOrCreateTemporaryUser($mName, 'Member');
+                                        if ($mId) addCommitteeMember($committeeId, $mId, 'Member');
                                     }
                                 }
                             }
+                        } else {
+                            $errors[] = "Row {$rowIndex}: Failed to save committee \"<strong>{$name}</strong>\" to the database.";
                         }
                     }
+
+                    $conn->commit();
+
+                    $importResults = [
+                        'success' => true,
+                        'imported' => $importedCount,
+                        'skipped'  => $skippedCount,
+                        'message'  => "Import complete: <strong>{$importedCount}</strong> committee(s) imported successfully."
+                                    . ($skippedCount > 0 ? " <strong>{$skippedCount}</strong> row(s) were skipped (empty or duplicate)." : "")
+                    ];
                 }
 
-                $conn->commit();
-                $importResults = [
-                    'success' => true,
-                    'message' => "Successfully imported {$importedCount} committees from Excel. Temporary accounts created for any new member names found."
-                ];
-
             } catch (Exception $e) {
-                $conn->rollback();
-                $errors[] = "Error reading Excel file: " . $e->getMessage();
+                if (isset($conn) && $conn->connect_errno === 0) {
+                    $conn->rollback();
+                }
+                $errors[] = $e->getMessage();
             }
         }
     }
 }
 
+
 $pageTitle = 'Import Committees from Excel';
 include '../../includes/header.php';
 ?>
+
 
 <div class="container-fluid">
     <!-- Breadcrumb -->
@@ -357,6 +371,8 @@ function updateFileName(input) {
     }
 }
 </script>
+
+</div><!-- /#module-content-wrapper -->
 
 <?php
 include '../../includes/footer.php';

@@ -161,7 +161,7 @@ include '../../includes/header.php';
             </div>
         </form>
     </div>
-</div>
+
 
 <script>
     // File upload preview
